@@ -1,0 +1,118 @@
+/** Pure kinematics — quadratic intercept + EDF time-to-breach. */
+
+export type Vec3 = { x: number; y: number; z: number };
+
+export type InterceptSolution = Vec3 & { t: number };
+
+export function hypot3(x: number, y: number, z: number): number {
+  return Math.hypot(x, y, z);
+}
+
+export function dist3(a: Vec3, b: Vec3): number {
+  return Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+}
+
+/** Closing speed toward the origin (positive = inbound). */
+export function radialClosingSpeed(p: Vec3, v: Vec3): number {
+  const d = hypot3(p.x, p.y, p.z);
+  if (d < 1e-8) return 0;
+  return -(p.x * v.x + p.y * v.y + p.z * v.z) / d;
+}
+
+/**
+ * Earliest-Deadline-First key.
+ * Time-to-Breach = (Distance − 500m) / Radial Velocity
+ * Receding tracks return +Infinity. Already inside the kill zone → 0.
+ */
+export function timeToBreach(
+  distance: number,
+  radialVelocity: number,
+  killZone: number,
+): number {
+  if (distance <= killZone) return 0;
+  if (radialVelocity <= 1e-6) return Number.POSITIVE_INFINITY;
+  return (distance - killZone) / radialVelocity;
+}
+
+/**
+ * Quadratic intercept of a constant-velocity target.
+ * |P + V t − S| = s t  →  (V·V − s²) t² + 2 (P−S)·V t + |P−S|² = 0
+ * Returns the earliest positive time of flight and the 3D aim point.
+ */
+export function solveIntercept(
+  shooter: Vec3,
+  projectileSpeed: number,
+  targetPos: Vec3,
+  targetVel: Vec3,
+): InterceptSolution | null {
+  const ox = targetPos.x - shooter.x;
+  const oy = targetPos.y - shooter.y;
+  const oz = targetPos.z - shooter.z;
+  const vx = targetVel.x;
+  const vy = targetVel.y;
+  const vz = targetVel.z;
+  const s2 = projectileSpeed * projectileSpeed;
+
+  const a = vx * vx + vy * vy + vz * vz - s2;
+  const b = 2 * (ox * vx + oy * vy + oz * vz);
+  const c = ox * ox + oy * oy + oz * oz;
+
+  let t = -1;
+
+  if (Math.abs(a) < 1e-8) {
+    if (Math.abs(b) < 1e-8) return null;
+    t = -c / b;
+  } else {
+    const disc = b * b - 4 * a * c;
+    if (disc < 0) return null;
+    const sqrt = Math.sqrt(disc);
+    const t1 = (-b - sqrt) / (2 * a);
+    const t2 = (-b + sqrt) / (2 * a);
+    const valid1 = t1 > 1e-4;
+    const valid2 = t2 > 1e-4;
+    if (valid1 && valid2) t = Math.min(t1, t2);
+    else if (valid1) t = t1;
+    else if (valid2) t = t2;
+  }
+
+  if (!(t > 1e-4) || !Number.isFinite(t) || t > 30) return null;
+
+  return {
+    x: targetPos.x + vx * t,
+    y: targetPos.y + vy * t,
+    z: targetPos.z + vz * t,
+    t,
+  };
+}
+
+/** Shortest unsigned angle between two unit directions. */
+export function angleBetween(
+  ax: number,
+  ay: number,
+  az: number,
+  bx: number,
+  by: number,
+  bz: number,
+): number {
+  const d = ax * bx + ay * by + az * bz;
+  return Math.acos(Math.min(1, Math.max(-1, d)));
+}
+
+export function clamp(v: number, lo: number, hi: number): number {
+  return Math.max(lo, Math.min(hi, v));
+}
+
+export function lerp(a: number, b: number, t: number): number {
+  return a + (b - a) * t;
+}
+
+export function formatTtb(t: number): string {
+  if (!Number.isFinite(t)) return "REC";
+  if (t <= 0) return "NOW";
+  if (t >= 100) return t.toFixed(0);
+  return t.toFixed(1);
+}
+
+export function formatDist(m: number): string {
+  return m.toFixed(0);
+}
