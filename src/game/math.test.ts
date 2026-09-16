@@ -1,6 +1,13 @@
 import { describe, expect, test } from "vitest";
 import { KILL_ZONE, PROJECTILE_SPEED } from "./constants";
-import { formatTtb, solveIntercept, timeToBreach } from "./math";
+import {
+  azimuthFromNorth,
+  elevationFromGround,
+  formatTtb,
+  solveIntercept,
+  sphericalToCartesian,
+  timeToBreach,
+} from "./math";
 
 describe("timeToBreach", () => {
   test("is (distance − kill zone) / inbound radial speed", () => {
@@ -48,5 +55,34 @@ describe("formatTtb", () => {
     expect(formatTtb(Number.POSITIVE_INFINITY)).toBe("REC");
     expect(formatTtb(0)).toBe("NOW");
     expect(formatTtb(8.21)).toBe("8.2");
+  });
+});
+
+describe("radar spherical", () => {
+  const origin = { x: 0, y: 16, z: 0 };
+
+  test("azimuth is 0 due north (+Z) and +90° due east (+X)", () => {
+    expect(azimuthFromNorth(0, 400)).toBeCloseTo(0, 8);
+    expect(azimuthFromNorth(400, 0)).toBeCloseTo(Math.PI / 2, 8);
+  });
+
+  test("elevation is the angle above the ground plane", () => {
+    expect(elevationFromGround(0, 0, 400)).toBeCloseTo(0, 8);
+    expect(elevationFromGround(0, 400, 0)).toBeCloseTo(Math.PI / 2, 8);
+    expect(elevationFromGround(0, 100, 100)).toBeCloseTo(Math.PI / 4, 8);
+  });
+
+  test("az/el/range round-trip to cartesian", () => {
+    const pos = { x: 220, y: 90, z: 640 };
+    const az = azimuthFromNorth(pos.x - origin.x, pos.z - origin.z);
+    const dx = pos.x - origin.x;
+    const dy = pos.y - origin.y;
+    const dz = pos.z - origin.z;
+    const range = Math.hypot(dx, dy, dz);
+    const el = elevationFromGround(dx, dy, dz);
+    const back = sphericalToCartesian(az, el, range, origin);
+    expect(back.x).toBeCloseTo(pos.x, 6);
+    expect(back.y).toBeCloseTo(pos.y, 6);
+    expect(back.z).toBeCloseTo(pos.z, 6);
   });
 });

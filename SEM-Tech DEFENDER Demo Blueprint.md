@@ -1,18 +1,18 @@
 # SEM-Tech DEFENDER — Demo Blueprint
 
 **Product:** SEM-Tech DEFENDER  
-**Type:** C-UAS fire-control prototype (web)  
+**Type:** Desktop COUNTER-UAS FIRE CONTROL simulator  
 **Runtime:** 6 minutes seated, 12 minutes with Q&A  
 **Audience:** C-UAS, C2, weapons, software  
-**Classification:** Unclassified prototype — simulated tracks, not a fielded sensor
+**Classification:** Unclassified simulator — simulated tracks, not a fielded sensor
 
 ---
 
 ## 1. One-liner
 
-An operator console that ranks 20 inbound drones by **Earliest Deadline First**, slews a turret at **75°/s** onto a **quadratic intercept**, and fires AUTO or MANUAL before a **500 m** kill zone is breached.
+A desktop COUNTER-UAS FIRE CONTROL simulator that ranks 20 inbound drones by **Earliest Deadline First**, slews a turret at **75°/s** onto a **quadratic intercept**, and fires AUTO or MANUAL before a **500 m** kill zone is breached.
 
-Do not call it a tower-defense game. The player is the **weapons-release authority**, not a builder.
+Do not call it a tower-defense game. The operator is the **weapons-release authority**, not a builder.
 
 ---
 
@@ -29,13 +29,13 @@ Do not call it a tower-defense game. The player is the **weapons-release authori
 - Real radar DSP (no CFAR, no micro-Doppler, no missed detections)
 - RF / Remote ID / EO classification
 - Soft-kill, jamming, or interceptor-drone effectors
-- Unity build — this preview is React + Three.js with the same modules as the C# design
+- Unity build — this simulator is React + Three.js with the same modules as the C# design
 
 ---
 
 ## 3. Pre-flight (30 s)
 
-1. Load the preview. Confirm title **SEM-Tech DEFENDER**.
+1. Load the console. Confirm title **SEM-Tech DEFENDER**.
 2. Leave the camera as-is (facility at origin, green 1 km ring, red 500 m ring).
 3. Optional: unmute.
 4. Know the keys before you click Engage.
@@ -177,7 +177,7 @@ Nearest can be slow and far from breach. TTB is the deadline. A 900 m inbound at
 Yes. Slew + cooldown + 4-round cap. Wave speed ramps. That is the point of MANUAL.
 
 **Is this Unity?**  
-The design is Unity C# (`DroneTarget`, `SwarmManager`, `TurretController`, `TacticalHUD`). This preview is the same architecture in the browser.
+The design is Unity C# (`DroneTarget`, `SwarmManager`, `TurretController`, `TacticalHUD`). This desktop simulator is the same architecture in a browser window.
 
 **Where is the code?**  
 Start screen → View source. Copy one file, or Folders: download zip. Copy all is one concatenated blob.
@@ -206,4 +206,4 @@ Do not promise a fielded C-UAS. Promise a sharper operator loop.
 
 ## 11. Close line
 
-> SEM-Tech DEFENDER is a fire-control prototype: EDF on a 10 Hz track file, quadratic lead, a 75-degree slew budget, and an operator who can take the shot away from AUTO.
+> SEM-Tech DEFENDER is a desktop COUNTER-UAS FIRE CONTROL simulator: EDF on a 10 Hz track file, quadratic lead, a 75-degree slew budget, and an operator who can take the shot away from AUTO.

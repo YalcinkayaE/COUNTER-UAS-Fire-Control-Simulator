@@ -17,7 +17,7 @@ export function Home() {
 function BootScreen() {
   return (
     <main className="flex min-h-dvh items-center justify-center bg-bg px-4 text-fg">
-      <BriefingPanel highScore={0} />
+      <BriefingPanel />
     </main>
   );
 }

@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import {
-  FIRE_COOLDOWN,
+  FIRE_BURST,
   FIXED_DT,
   HIGH_SCORE_KEY,
   HIT_RADIUS,
@@ -11,17 +11,23 @@ import {
 import { dist3 } from "./math";
 import { SwarmManager } from "./swarmManager";
 import { DroneTarget } from "./droneTarget";
+import { RadarSensor } from "./radarSensor";
+import { EdgeComputer } from "./edgeComputer";
 import { TurretController, type FireMode } from "./turretController";
-import { resumeIfNeeded, setMuted, sfxBreach, sfxFire, sfxHit, sfxPing, unlockAudio } from "./audio";
+import { resumeIfNeeded, setMuted, sfxBreach, sfxFire, sfxHit, unlockAudio } from "./audio";
 
 export type Phase = "briefing" | "live" | "paused" | "defeat" | "wavehold";
 
 export type TrackRow = {
   id: string;
+  kind: "quad" | "fixedWing";
   distance: number;
   timeToBreach: number;
   radialVelocity: number;
   speed: number;
+  azimuth: number;
+  elevation: number;
+  range: number;
   x: number;
   z: number;
   y: number;
@@ -59,14 +65,6 @@ export type Projectile = {
   targetId: string;
   tof: number;
   alive: boolean;
-};
-
-export type Tracer = {
-  id: number;
-  from: THREE.Vector3;
-  to: THREE.Vector3;
-  age: number;
-  life: number;
 };
 
 export type Burst = {
@@ -110,9 +108,10 @@ function emit(): void {
 
 export class Simulation {
   readonly swarm = new SwarmManager();
+  readonly radar = new RadarSensor();
+  readonly edge = new EdgeComputer();
   readonly turret = new TurretController();
   readonly projectiles: Projectile[] = [];
-  readonly tracers: Tracer[] = [];
   readonly bursts: Burst[] = [];
   readonly input: InputState = {
     keys: new Set(),
@@ -169,9 +168,10 @@ export class Simulation {
     this.elapsed = 0;
     this.wave = 1;
     this.projectiles.length = 0;
-    this.tracers.length = 0;
     this.bursts.length = 0;
     this.turret.cooldown = 0;
+    this.turret.burstLeft = 0;
+    this.turret.recovery = 0;
     this.turret.mode = "AUTO";
     this.swarm.spawnWave(1);
     this.trauma = 0;
@@ -248,7 +248,7 @@ export class Simulation {
 
   private stepManualOnly(dt: number): void {
     if (this.turret.mode !== "MANUAL") return;
-    this.turret.update(dt, this.swarm, null, false, this.input.keys);
+    this.turret.update(dt, this.edge.fireCall, null, false, this.input.keys);
   }
 
   private pollEdges(): void {
@@ -281,6 +281,10 @@ export class Simulation {
 
     this.elapsed += dt;
     this.swarm.update(dt);
+    this.edge.setRelease(this.turret.mode, this.turret.position);
+    const scan = this.radar.update(dt, this.swarm.drones);
+    if (scan) this.edge.ingest(scan, this.turret.mode, this.turret.position);
+    else this.edge.coast(dt);
     this.resolveMouseAim();
 
     const fireHeld =
@@ -289,16 +293,12 @@ export class Simulation {
       (this.turret.mode === "MANUAL" && this.input.pointerDown);
     this.input.fireEdge = false;
 
-    const engaged = new Set(
-      this.projectiles.filter((p) => p.alive).map((p) => p.targetId),
-    );
     const shot = this.turret.update(
       dt,
-      this.swarm,
+      this.edge.fireCall,
       this.hasMouseAim ? this.mouseAim : null,
       fireHeld,
       this.input.keys,
-      engaged,
     );
     if (shot && this.projectiles.filter((p) => p.alive).length < MAX_IN_FLIGHT) {
       this.launch(shot.from, shot.to, shot.targetId, shot.intercept.t);
@@ -310,8 +310,6 @@ export class Simulation {
     const leaks = this.swarm.collectBreaches();
     for (const d of leaks) {
       this.breaches += 1;
-      this.lives -= 1;
-      this.score = Math.max(0, this.score - 50);
       this.bursts.push({
         id: this.nextId++,
         position: d.position.clone(),
@@ -319,30 +317,32 @@ export class Simulation {
         life: 0.9,
         kind: "breach",
       });
-      this.addTrauma(0.55);
       if (!this.muted) sfxBreach();
-      this.message = `${d.id} BREACHED KILL ZONE`;
+      this.message = `${d.id} BREACHED 500 m — GUNS TIGHT`;
     }
 
-    if (this.lives <= 0) {
-      this.phase = "defeat";
-      this.message = "FACILITY COMPROMISED";
-      this.commitHigh();
-      emit();
-      return;
+    const impacts = this.swarm.collectImpacts();
+    for (const d of impacts) {
+      this.lives = Math.max(0, this.lives - 1);
+      this.bursts.push({
+        id: this.nextId++,
+        position: d.position.clone(),
+        age: 0,
+        life: 1.1,
+        kind: "breach",
+      });
+      if (!this.muted) sfxBreach();
+      this.message = `${d.id} HIT ASSET`;
+      if (this.lives <= 0) {
+        this.phase = "defeat";
+        this.message = "FACILITY LOST";
+      }
     }
 
     if (this.swarm.aliveCount() === 0 && this.phase === "live") {
       this.phase = "wavehold";
       this.holdTimer = 2.2;
       this.message = this.wave >= MAX_WAVES ? "HOLDING PERIMETER" : "WAVE CLEAR";
-      this.score += 250;
-    }
-
-    this.pingTimer -= dt;
-    if (this.pingTimer <= 0) {
-      this.pingTimer = 2.4;
-      if (!this.muted && this.phase === "live") sfxPing();
     }
   }
 
@@ -358,16 +358,8 @@ export class Simulation {
       tof: t,
       alive: true,
     });
-    this.tracers.push({
-      id: this.nextId++,
-      from: from.clone(),
-      to: to.clone(),
-      age: 0,
-      life: 0.22,
-    });
     this.shotsFired += 1;
-    this.addTrauma(0.22);
-    if (!this.muted) sfxFire();
+    if (!this.muted && this.shotsFired % 4 === 1) sfxFire();
   }
 
   private stepProjectiles(dt: number): void {
@@ -398,6 +390,8 @@ export class Simulation {
 
   private detonate(p: Projectile): void {
     p.alive = false;
+    const target = this.swarm.getById(p.targetId);
+    if (!target || !target.alive) return;
     let hit = false;
     for (const d of this.swarm.drones) {
       if (!d.alive) continue;
@@ -436,16 +430,13 @@ export class Simulation {
       life: 0.7,
       kind: "hit",
     });
-    this.addTrauma(0.4);
-    this.hitstop = this.reducedMotion ? 0 : 0.045;
+    this.hitstop = 0;
     if (!this.muted) sfxHit();
     this.message = `${d.id} KILL`;
-    this.swarm.tickRadar();
     this.commitHigh();
   }
 
   private updateTracers(dt: number): void {
-    for (const t of this.tracers) t.age += dt;
     for (const b of this.bursts) b.age += dt;
     this.prune();
   }
@@ -453,9 +444,6 @@ export class Simulation {
   private prune(): void {
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
       if (!this.projectiles[i]!.alive) this.projectiles.splice(i, 1);
-    }
-    for (let i = this.tracers.length - 1; i >= 0; i--) {
-      if (this.tracers[i]!.age >= this.tracers[i]!.life) this.tracers.splice(i, 1);
     }
     for (let i = this.bursts.length - 1; i >= 0; i--) {
       if (this.bursts[i]!.age >= this.bursts[i]!.life) this.bursts.splice(i, 1);
@@ -570,7 +558,7 @@ function emptyHud(): HudSnapshot {
 }
 
 function buildHud(s: Simulation): HudSnapshot {
-  const target = s.turret.target;
+  const targetId = s.turret.targetId;
   const ic = s.turret.intercept;
   let leadScreen: HudSnapshot["leadScreen"] = null;
   if (ic) {
@@ -584,21 +572,30 @@ function buildHud(s: Simulation): HudSnapshot {
   return {
     phase: s.phase,
     mode: s.turret.mode,
-    tracks: s.swarm.sorted.map((d) => ({
-      id: d.id,
-      distance: d.distance,
-      timeToBreach: d.timeToBreach,
-      radialVelocity: d.radialVelocity,
-      speed: d.speed,
-      x: d.position.x,
-      y: d.position.y,
-      z: d.position.z,
-      alive: d.alive,
+    tracks: s.edge.tracks.map((t) => ({
+      id: t.id,
+      kind: t.kind,
+      distance: t.distance,
+      timeToBreach: t.timeToBreach,
+      radialVelocity: t.radialVelocity,
+      speed: t.speed,
+      azimuth: t.azimuth,
+      elevation: t.elevation,
+      range: t.range,
+      x: t.position.x,
+      y: t.position.y,
+      z: t.position.z,
+      alive: true,
     })),
-    targetId: target?.id ?? null,
+    targetId,
     intercept: ic ? { x: ic.x, y: ic.y, z: ic.z, t: ic.t } : null,
     aligned: s.turret.aligned,
-    cooldown: s.turret.cooldown / FIRE_COOLDOWN,
+    cooldown:
+      s.turret.burstLeft > 0
+        ? 1 - s.turret.burstLeft / FIRE_BURST
+        : s.turret.recovery > 0
+          ? 1
+          : 0,
     lives: s.lives,
     score: s.score,
     highScore: s.highScore,
@@ -659,7 +656,7 @@ export function bindControlsProbe(): void {
     setMode: (m: FireMode) => getSim().setMode(m),
     getAlive: () => getSim().swarm.aliveCount(),
     getScore: () => getSim().score,
-    getSortedIds: () => getSim().swarm.sorted.map((d) => d.id),
+    getSortedIds: () => getSim().edge.tracks.map((d) => d.id),
     start: () => getSim().start(),
     getKills: () => getSim().intercepts,
     getAligned: () => getSim().turret.aligned,

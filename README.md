@@ -1,8 +1,10 @@
 # SEM-Tech DEFENDER
 
-Browser C-UAS fire-control prototype. An operator console ranks 20 inbound tracks by Earliest Deadline First, slews a turret at 75°/s onto a quadratic intercept, and fires AUTO or MANUAL before a 500 m kill zone is breached.
+Desktop COUNTER-UAS FIRE CONTROL simulator. An operator console ranks 20 inbound tracks by Earliest Deadline First, slews a turret at 75°/s onto a quadratic intercept, and fires AUTO or MANUAL before a 500 m kill zone is breached.
 
-This is a seated demo, not a fielded sensor. Detection, track, and identify are oracles; Decide and Engage are implemented.
+The operator is the weapons-release authority. Detection, track, and identify are oracles; Decide and Engage are implemented. Simulated tracks only — not a fielded sensor.
+
+Current runtime is a desktop browser window.
 
 ## Run
 

@@ -1,14 +1,11 @@
 import {
   Crosshair,
-  Pause,
-  Play,
-  Shield,
   Volume2,
   VolumeX,
 } from "lucide-react";
 import { type ReactNode, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
-import { formatDist, formatTtb } from "@/game/math";
+import { formatBearingDeg, formatDist, formatElevDeg, formatTtb } from "@/game/math";
 import { getHud, getSim, subscribeHud } from "@/game/simulation";
 import { Radar } from "./Radar";
 
@@ -20,12 +17,14 @@ export function TacticalHUD() {
     <>
       <header className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-between gap-3 p-3 pt-[max(0.75rem,env(safe-area-inset-top))] md:p-4">
         <div className="rounded-xl border border-line bg-surface/90 p-3 md:p-4">
-          <p className="font-mono text-xs tracking-[0.28em] text-muted">SEM-TECH · C-UAS</p>
-          <h1 className="font-display text-3xl font-semibold leading-tight tracking-display md:text-4xl">
-            DEFENDER
+          <p className="font-display text-3xl font-semibold leading-none tracking-display text-khaki md:text-4xl">
+            KANGAL
+          </p>
+          <h1 className="mt-1 font-display text-lg font-semibold leading-tight tracking-display md:text-xl">
+            SEM DEFENDER
           </h1>
-          <p className="mt-1 font-mono text-xs text-dim">
-            WAVE {String(hud.wave).padStart(2, "0")} · {hud.alive} TRACKS
+          <p className="mt-0.5 font-mono text-[10px] tracking-widest text-accent">
+            COUNTER-UAS FIRE CONTROL
           </p>
         </div>
         <div className="flex flex-col items-end gap-2">
@@ -33,12 +32,13 @@ export function TacticalHUD() {
             T+{formatClock(hud.elapsed)}
           </div>
           <div className="pointer-events-auto flex gap-2">
-            <IconBtn
-              label={hud.phase === "paused" ? "Resume" : "Pause"}
+            <button
+              type="button"
               onClick={() => getSim().togglePause()}
+              className="h-11 rounded-md border border-line bg-surface px-3 font-mono text-xs text-fg hover:bg-surface-2"
             >
-              {hud.phase === "paused" ? <Play className="size-4" /> : <Pause className="size-4" />}
-            </IconBtn>
+              {hud.phase === "paused" ? "Resume" : "Pause simulation"}
+            </button>
             <IconBtn label={hud.muted ? "Unmute" : "Mute"} onClick={() => getSim().toggleMute()}>
               {hud.muted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
             </IconBtn>
@@ -61,7 +61,7 @@ export function TacticalHUD() {
       ) : null}
 
       {live ? (
-        <aside className="pointer-events-none absolute top-24 right-0 z-10 hidden w-80 max-w-[calc(100%-1.5rem)] flex-col gap-3 p-4 md:top-4 md:flex">
+        <aside className="pointer-events-none absolute top-24 right-0 z-10 hidden w-[22rem] max-w-[calc(100%-1.5rem)] flex-col gap-3 p-4 md:top-24 md:flex">
           <TrackTable hud={hud} />
           <StatusStrip hud={hud} />
         </aside>
@@ -111,25 +111,29 @@ function TrackTable({
   hud: ReturnType<typeof getHud>;
   compact?: boolean;
 }) {
-  const rows = compact ? hud.tracks.slice(0, 5) : hud.tracks.slice(0, 10);
+  const rows = compact ? hud.tracks.slice(0, 8) : hud.tracks.slice(0, 20);
   return (
     <div className="rounded-xl border border-line bg-surface/90 p-3">
       <div className="mb-2 flex items-center justify-between">
         <span className="font-mono text-xs tracking-[0.18em] text-muted">EDF QUEUE</span>
         <span className="font-mono text-xs text-accent">{hud.mode}</span>
       </div>
-      <table className="w-full border-collapse font-mono text-xs tabular-nums">
+      <div className="max-h-[min(28rem,52vh)] overflow-y-auto">
+      <table className="w-full border-collapse font-mono text-[11px] tabular-nums">
         <thead>
           <tr className="text-dim">
             <th className="pb-1 text-left font-medium">ID</th>
-            <th className="pb-1 text-right font-medium">DIST</th>
+            <th className="pb-1 text-right font-medium">AZ</th>
+            <th className="pb-1 text-right font-medium">EL</th>
+            <th className="pb-1 text-right font-medium">RNG</th>
+            <th className="pb-1 text-right font-medium">V</th>
             <th className="pb-1 text-right font-medium">TTB</th>
           </tr>
         </thead>
         <tbody>
           {rows.length === 0 ? (
             <tr>
-              <td colSpan={3} className="py-2 text-dim">
+              <td colSpan={6} className="py-2 text-dim">
                 No tracks
               </td>
             </tr>
@@ -145,8 +149,12 @@ function TrackTable({
                   <td className="py-0.5">
                     {hot ? "▸ " : `${i + 1} `}
                     {t.id}
+                    {t.kind === "fixedWing" ? " FW" : ""}
                   </td>
-                  <td className="text-right">{formatDist(t.distance)}</td>
+                  <td className="text-right">{formatBearingDeg(t.azimuth)}</td>
+                  <td className="text-right">{formatElevDeg(t.elevation)}</td>
+                  <td className="text-right">{formatDist(t.range)}</td>
+                  <td className="text-right">{t.speed.toFixed(0)}</td>
                   <td className="text-right">{formatTtb(t.timeToBreach)}</td>
                 </tr>
               );
@@ -154,6 +162,7 @@ function TrackTable({
           )}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }
@@ -161,15 +170,8 @@ function TrackTable({
 function StatusStrip({ hud }: { hud: ReturnType<typeof getHud> }) {
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-lg border border-line bg-surface/90 px-3 py-2 font-mono text-xs tabular-nums">
-      <span className="inline-flex items-center gap-1 text-fg">
-        <Shield className="size-3.5 text-accent" />
-        {hud.lives}
-      </span>
-      <span className="text-line">|</span>
-      <span className="text-muted">SCR {hud.score}</span>
-      <span className="text-line">|</span>
-      <span className="text-muted">K {hud.intercepts}</span>
-      <span className="text-line">|</span>
+      {hud.phase === "paused" ? <span className="text-warn">PAUSED</span> : null}
+      {hud.phase === "paused" ? <span className="text-line">|</span> : null}
       <span className={hud.aligned ? "text-accent" : "text-dim"}>
         {hud.aligned ? "LOCKED" : "SLEW"}
       </span>
@@ -184,7 +186,7 @@ function StatusStrip({ hud }: { hud: ReturnType<typeof getHud> }) {
 }
 
 function MobileBar({ hud }: { hud: ReturnType<typeof getHud> }) {
-  if (hud.phase === "briefing" || hud.phase === "defeat") return null;
+  if (hud.phase === "briefing") return null;
   return (
     <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-20 flex items-center justify-between gap-2 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:hidden">
       <Button

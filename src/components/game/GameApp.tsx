@@ -43,7 +43,7 @@ export default function GameApp() {
       className="relative h-dvh w-full touch-none overflow-hidden bg-bg text-fg"
     >
       <Canvas
-        camera={{ position: [620, 430, 740], fov: 42, near: 2, far: 4800 }}
+        camera={{ position: [340, 240, -400], fov: 42, near: 2, far: 8000 }}
         dpr={[1, 1.5]}
         shadows
         gl={{ antialias: true, alpha: false, powerPreference: "high-performance" }}

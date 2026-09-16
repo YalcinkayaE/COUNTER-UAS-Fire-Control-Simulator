@@ -1,7 +1,7 @@
 ---
 repo_name: sem_defender
 repo_root: /Users/erkanyalcinkaya/projects/sem_defender
-repo_type: demo
+repo_type: prototype
 status_date: 2026-09-16
 branch: main
 default_branch: main
@@ -31,7 +31,7 @@ verification_commands:
     expected_result: Vite serves http://127.0.0.1:5173 with title SEM-Tech DEFENDER
 status_summary:
   overall_state: active
-  current_focus: Local Vite SPA demo of EDF fire-control
+  current_focus: Desktop COUNTER-UAS FIRE CONTROL simulator (EDF fire-control)
   next_gate: Optional split-raid / threat-class follow-ons from the blueprint, only if asked
 dependencies:
   internal: []
@@ -59,13 +59,13 @@ update_policy:
 ## 1. Repo Identity
 
 ### Purpose
-Runnable web prototype of SEM-Tech DEFENDER: a C-UAS fire-control console that ranks simulated tracks by Earliest Deadline First, slews a turret onto a quadratic intercept, and lets an operator take AUTO or MANUAL weapons-release authority.
+Desktop COUNTER-UAS FIRE CONTROL simulator (SEM-Tech DEFENDER). An operator console ranks simulated tracks by Earliest Deadline First, slews a turret onto a quadratic intercept, and lets the weapons-release authority take AUTO or MANUAL.
 
 ### Scope
-In scope: the browser SPA, the TypeScript simulation (`DroneTarget`, `SwarmManager`, `TurretController`), the Three.js scene, and the tactical HUD. Out of scope: real radar DSP, RF / Remote ID / EO classification, soft-kill effectors, and a Unity build.
+In scope: the desktop operator console, the TypeScript simulation (`DroneTarget`, `SwarmManager`, `TurretController`), the Three.js battlespace, and the tactical HUD. Current runtime is a desktop browser window (`npm run dev`). Out of scope: real radar DSP, RF / Remote ID / EO classification, soft-kill effectors, a Unity build, and a packaged native desktop app unless explicitly requested.
 
 ### One-line summary
-`Vite + React + Three.js fire-control demo: EDF TTB, 75°/s slew, quadratic lead, AUTO/MANUAL.`
+`Desktop COUNTER-UAS FIRE CONTROL simulator: EDF TTB, 75°/s slew, quadratic lead, AUTO/MANUAL.`
 
 ### Pipeline shorthand
 `Track file (oracle) -> 10 Hz EDF sort -> quadratic intercept -> slew/fire -> hit/miss/breach`
@@ -93,16 +93,17 @@ In scope: the browser SPA, the TypeScript simulation (`DroneTarget`, `SwarmManag
 
 Treat the following as the current truth:
 
-- The checkout is a local Vite SPA. TanStack Start / Grok host adapters (`AuthProvider`, `PreviewHostBridge`, `/__grok/*`) are not part of the runtime.
-- `npm run dev` serves the demo at `http://127.0.0.1:5173`.
+- This product is a desktop COUNTER-UAS FIRE CONTROL simulator, not a tower-defense game and not a fielded sensor.
+- The checkout is a Vite SPA in a desktop browser window. TanStack Start / Grok host adapters (`AuthProvider`, `PreviewHostBridge`, `/__grok/*`) are not part of the runtime.
+- `npm run dev` serves the simulator at `http://127.0.0.1:5173`.
 - Observed on 2026-09-16: briefing card with title SEM-Tech DEFENDER; Engage starts wave 1 with 20 tracks; EDF queue and PPI scope render; AUTO fires; M toggles MANUAL; Esc pauses.
 - Unit tests for TTB, intercept, spawn count, EDF sort, and breach collection passed on 2026-09-16 (`9 passed`).
 - `npm run build` exited 0 on 2026-09-16.
 
 ### Current phase or milestone
-- current phase: local runnable demo
-- current milestone: preview that matches the blueprint Decide/Engage slice
-- completed through: browser play of wave 1 fire-control
+- current phase: local runnable simulator
+- current milestone: Decide/Engage slice matching the blueprint
+- completed through: desktop play of wave 1 fire-control
 - still open: follow-on beats listed in blueprint section 10
 
 ### What is complete
@@ -121,7 +122,7 @@ Use these in order of precedence when determining live status:
 
 1. `REPO_CONTRACT.md`
 2. Runtime under `src/game/` and `src/components/game/`
-3. `SEM-Tech DEFENDER Demo Blueprint.md` for demo claims and numbers
+3. `SEM-Tech DEFENDER Demo Blueprint.md` for walkthrough claims and numbers
 4. `README.md`
 
 ### Authority rules
@@ -133,7 +134,7 @@ Use these in order of precedence when determining live status:
 ## 5. Preferred Runtime and Entry Points
 
 ### Preferred runtime path
-- `npm run dev`: Vite on `127.0.0.1:5173`. This is the seated demo.
+- `npm run dev`: Vite on `127.0.0.1:5173`. This is the desktop operator console.
 
 ### Compatibility or legacy paths
 - `npm run preview`: production `dist/` after `npm run build`.
@@ -223,9 +224,10 @@ Treat repo materials using these classes:
 
 ## 11. Cautions
 
-- Do not call this a tower-defense game. The player is the weapons-release authority.
+- Call it a desktop COUNTER-UAS FIRE CONTROL simulator. Do not call it a tower-defense game. The operator is the weapons-release authority.
 - Do not claim real radar DSP, CFAR, micro-Doppler, or a fielded C-UAS.
 - Simulated tracks only.
+- Desktop means seated operator console (keyboard, pointer, large screen). It does not mean a packaged Electron/Tauri app unless that is explicitly requested.
 
 ### Common assistant mistakes to avoid
 - Do not collapse Detect/Track/Identify (oracles) with Decide/Engage (implemented).
@@ -242,12 +244,16 @@ Use these terms exactly as defined in this repo:
 - `AUTO` / `MANUAL`: fire-control modes on the same intercept solution
 - `kill zone`: 500 m inner ring; a breach is a defended-volume violation, not an HP bar
 - `weapons-release authority`: the operator role
+- `COUNTER-UAS FIRE CONTROL`: product class; this repo is a desktop simulator of that class
+- `simulator`: simulated tracks and fire-control loop; not a fielded weapon system
+- `desktop`: seated operator console (keyboard, pointer, large display)
 
 Avoid these collisions or substitutions:
 
 - Do not rename TTB to “ETA” or “time-to-impact”
-- Do not call the demo a tower-defense game
+- Do not call this a tower-defense game, a web toy, or a fielded C-UAS
 - Nearest-track is not EDF
+- `C-UAS` is the abbreviation of COUNTER-UAS; do not substitute “drone game”
 
 ## 13. Dependency and Environment Notes
 
@@ -272,17 +278,17 @@ If this repo exposes an external contract, treat the following as the main hando
 - Optional `window.__cuas` / `window.__controlsTest` probes in `src/game/simulation.ts` (not relied on for live status)
 
 ### Stability notes
-- Demo numbers in `src/game/constants.ts` match the blueprint
+- Simulator numbers in `src/game/constants.ts` match the blueprint
 - Not a fielded C-UAS API
 
 ## 15. Demo and Communication Surface
 
-Use these for demonstrations, walkthroughs, or stakeholder review:
+Use these for walkthroughs or stakeholder review:
 
-- `npm run dev`: the seated 6-minute demo
+- `npm run dev`: desktop COUNTER-UAS FIRE CONTROL simulator
 - `SEM-Tech DEFENDER Demo Blueprint.md`: talk track and numbers
 
-Do not confuse demo surfaces with a fielded sensor runtime.
+Do not confuse this simulator with a fielded sensor runtime.
 
 ## 16. Update Discipline
 
@@ -304,3 +310,7 @@ Assistants must not silently change:
 - milestone truth claims
 - vocabulary rules
 - handoff contract surfaces
+
+## Change log
+
+- 2026-09-16: Identity locked to desktop COUNTER-UAS FIRE CONTROL simulator (explicit operator instruction). Runtime remains a desktop browser window; packaged native app is out of scope unless requested.

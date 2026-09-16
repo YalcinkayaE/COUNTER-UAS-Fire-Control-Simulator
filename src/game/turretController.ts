@@ -1,13 +1,13 @@
 import * as THREE from "three";
 import {
   ALIGN_TOLERANCE_RAD,
+  FIRE_BURST,
   FIRE_COOLDOWN,
   PROJECTILE_SPEED,
   TURRET_SLEW_RAD,
 } from "./constants";
 import { angleBetween, clamp, solveIntercept, type InterceptSolution } from "./math";
-import type { DroneTarget } from "./droneTarget";
-import type { SwarmManager } from "./swarmManager";
+import type { FireCall } from "./edgeComputer";
 
 export type FireMode = "AUTO" | "MANUAL";
 
@@ -20,8 +20,8 @@ export type FireEvent = {
 
 /**
  * Unity analogue: TurretController.cs at Vector3.zero.
- * Reads the EDF list, solves the quadratic intercept, slews with
- * Quaternion.RotateTowards at 75°/s, fires on alignment.
+ * Consumes the edge-computer fire call, slews at 75°/s, fires on alignment.
+ * MANUAL is the weapons-release bypass.
  */
 export class TurretController {
   readonly position = new THREE.Vector3(0, 14, 0);
@@ -29,12 +29,18 @@ export class TurretController {
   readonly barrelDir = new THREE.Vector3(0, 0, 1);
   mode: FireMode = "AUTO";
   cooldown = 0;
+  /** Seconds left in the current 0.5 s burst. */
+  burstLeft = 0;
+  /** Seconds until a new burst may start. */
+  recovery = 0;
   aligned = false;
   intercept: InterceptSolution | null = null;
-  target: DroneTarget | null = null;
+  targetId: string | null = null;
   readonly muzzle = new THREE.Vector3();
   yaw = 0;
   pitch = 0.12;
+  private burstAim: InterceptSolution | null = null;
+  private burstTargetId: string | null = null;
 
   private readonly _aim = new THREE.Quaternion();
   private readonly _dummy = new THREE.Object3D();
@@ -54,33 +60,35 @@ export class TurretController {
     return this.mode;
   }
 
-  solveFor(target: DroneTarget | null): InterceptSolution | null {
-    this.target = target;
-    if (!target || !target.alive) {
-      this.intercept = null;
-      return null;
-    }
-    this.intercept = solveIntercept(
-      this.position,
-      PROJECTILE_SPEED,
-      target.position,
-      target.velocity,
-    );
-    return this.intercept;
-  }
-
-  /** AUTO: slew toward intercept. MANUAL: keys and/or mouse aim point. */
+  /** AUTO: slew to the edge-computer intercept. MANUAL: operator bypass. */
   update(
     dt: number,
-    swarm: SwarmManager,
+    call: FireCall | null,
     mouseAim: THREE.Vector3 | null,
     fireHeld: boolean,
     keys: Set<string>,
-    engaged: Set<string> = new Set(),
   ): FireEvent | null {
     this.cooldown = Math.max(0, this.cooldown - dt);
-    const priority = swarm.getPriority(engaged);
-    this.solveFor(priority);
+    this.recovery = Math.max(0, this.recovery - dt);
+    if (this.burstLeft > 0) {
+      this.burstLeft = Math.max(0, this.burstLeft - dt);
+      if (this.burstLeft <= 0) {
+        this.recovery = FIRE_BURST;
+        this.burstAim = null;
+        this.burstTargetId = null;
+      }
+    }
+
+    this.targetId = call?.targetId ?? null;
+    this.intercept = null;
+    if (call) {
+      this.intercept = solveIntercept(
+        this.position,
+        PROJECTILE_SPEED,
+        call.track.position,
+        call.track.velocity,
+      );
+    }
 
     if (this.mode === "AUTO" && this.intercept) {
       this._look.set(this.intercept.x, this.intercept.y, this.intercept.z);
@@ -104,13 +112,12 @@ export class TurretController {
     this.barrelDir.set(0, 0, 1).applyQuaternion(this.quaternion).normalize();
     this.muzzle.copy(this.position).addScaledVector(this.barrelDir, 18);
 
-    // Re-solve from the muzzle so time-of-flight matches the actual shot.
-    if (this.target) {
+    if (call) {
       this.intercept = solveIntercept(
         this.muzzle,
         PROJECTILE_SPEED,
-        this.target.position,
-        this.target.velocity,
+        call.track.position,
+        call.track.velocity,
       );
     }
 
@@ -131,19 +138,32 @@ export class TurretController {
       this.aligned = ang <= ALIGN_TOLERANCE_RAD;
     }
 
-    const shouldFire =
-      this.intercept &&
-      this.target &&
-      this.cooldown <= 0 &&
-      (this.mode === "AUTO" ? this.aligned : fireHeld && this.aligned);
+    const autoGate = this.mode === "AUTO" && Boolean(call?.autoEngage) && this.aligned;
+    const manualGate = this.mode === "MANUAL" && fireHeld && this.aligned;
+    const gate = Boolean(this.intercept) && Boolean(this.targetId) && (autoGate || manualGate);
 
-    if (shouldFire && this.intercept && this.target) {
+    if (this.burstLeft > 0 && this.mode === "MANUAL" && !fireHeld) {
+      this.burstLeft = 0;
+      this.recovery = FIRE_BURST;
+      this.burstAim = null;
+      this.burstTargetId = null;
+    }
+    if (gate && this.burstLeft <= 0 && this.recovery <= 0 && this.intercept && this.targetId) {
+      this.burstLeft = FIRE_BURST;
+      this.burstAim = this.intercept;
+      this.burstTargetId = this.targetId;
+    }
+
+    const aim = this.burstAim ?? this.intercept;
+    const id = this.burstTargetId ?? this.targetId;
+    const shouldFire = this.burstLeft > 0 && this.cooldown <= 0 && Boolean(aim) && Boolean(id);
+    if (shouldFire && aim && id) {
       this.cooldown = FIRE_COOLDOWN;
       return {
         from: this.muzzle.clone(),
-        to: new THREE.Vector3(this.intercept.x, this.intercept.y, this.intercept.z),
-        targetId: this.target.id,
-        intercept: this.intercept,
+        to: new THREE.Vector3(aim.x, aim.y, aim.z),
+        targetId: id,
+        intercept: aim,
       };
     }
     return null;

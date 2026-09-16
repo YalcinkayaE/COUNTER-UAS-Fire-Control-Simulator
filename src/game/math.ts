@@ -106,6 +106,36 @@ export function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
 }
 
+/** Azimuth from north (+Z), positive clockwise toward east (+X). */
+export function azimuthFromNorth(east: number, north: number): number {
+  return Math.atan2(east, north);
+}
+
+/** Elevation above the ground plane; 0 = horizon, +π/2 = zenith. */
+export function elevationFromGround(dx: number, dy: number, dz: number): number {
+  const horiz = Math.hypot(dx, dz);
+  return Math.atan2(dy, horiz);
+}
+
+export function sphericalToCartesian(
+  azimuth: number,
+  elevation: number,
+  range: number,
+  origin: Vec3,
+): Vec3 {
+  const ce = Math.cos(elevation);
+  return {
+    x: origin.x + range * ce * Math.sin(azimuth),
+    y: origin.y + range * Math.sin(elevation),
+    z: origin.z + range * ce * Math.cos(azimuth),
+  };
+}
+
+export function wrapTwoPi(rad: number): number {
+  const t = rad % (Math.PI * 2);
+  return t < 0 ? t + Math.PI * 2 : t;
+}
+
 export function formatTtb(t: number): string {
   if (!Number.isFinite(t)) return "REC";
   if (t <= 0) return "NOW";
@@ -115,4 +145,14 @@ export function formatTtb(t: number): string {
 
 export function formatDist(m: number): string {
   return m.toFixed(0);
+}
+
+export function formatBearingDeg(rad: number): string {
+  let d = (rad * 180) / Math.PI;
+  d = ((d % 360) + 360) % 360;
+  return `${d.toFixed(0)}°`;
+}
+
+export function formatElevDeg(rad: number): string {
+  return `${((rad * 180) / Math.PI).toFixed(0)}°`;
 }
