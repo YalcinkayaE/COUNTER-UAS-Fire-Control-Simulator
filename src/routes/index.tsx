@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from "react";
-import { BriefingPanel } from "@/components/game/Briefing";
+import { BriefingPanel } from "@/components/sims/Briefing";
 
-const GameApp = lazy(() => import("@/components/game/GameApp"));
+const GameApp = lazy(() => import("@/components/sims/GameApp"));
 
 export function Home() {
   const [ready, setReady] = useState(false);

@@ -8,9 +8,9 @@ import radarSensorSrc from "@/sims/radarSensor.ts?raw";
 import simulationSrc from "@/sims/simulation.ts?raw";
 import swarmManagerSrc from "@/sims/swarmManager.ts?raw";
 import turretControllerSrc from "@/sims/turretController.ts?raw";
-import radarSrc from "@/components/game/Radar.tsx?raw";
-import sceneSrc from "@/components/game/Scene.tsx?raw";
-import tacticalHudSrc from "@/components/game/TacticalHUD.tsx?raw";
+import radarSrc from "@/components/sims/Radar.tsx?raw";
+import sceneSrc from "@/components/sims/Scene.tsx?raw";
+import tacticalHudSrc from "@/components/sims/TacticalHUD.tsx?raw";
 
 export type SourceFile = {
   path: string;
@@ -27,9 +27,9 @@ export const SOURCE_FILES: SourceFile[] = [
   { path: "src/sims/turretController.ts", content: turretControllerSrc },
   { path: "src/sims/simulation.ts", content: simulationSrc },
   { path: "src/sims/audio.ts", content: audioSrc },
-  { path: "src/components/game/Scene.tsx", content: sceneSrc },
-  { path: "src/components/game/TacticalHUD.tsx", content: tacticalHudSrc },
-  { path: "src/components/game/Radar.tsx", content: radarSrc },
+  { path: "src/components/sims/Scene.tsx", content: sceneSrc },
+  { path: "src/components/sims/TacticalHUD.tsx", content: tacticalHudSrc },
+  { path: "src/components/sims/Radar.tsx", content: radarSrc },
 ];
 
 export const ZIP_NAME = "sem-tech-defender-source.zip";

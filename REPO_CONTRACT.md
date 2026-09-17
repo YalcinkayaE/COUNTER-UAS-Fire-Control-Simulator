@@ -8,7 +8,7 @@ default_branch: main
 preferred_runtime: npm run dev
 preferred_entrypoints:
   - src/main.tsx
-  - src/components/game/GameApp.tsx
+  - src/components/sims/GameApp.tsx
   - src/sims/simulation.ts
 authoritative_docs:
   - REPO_CONTRACT.md
@@ -17,7 +17,7 @@ authoritative_docs:
   - README.md
 authoritative_codepaths:
   - src/sims/
-  - src/components/game/
+  - src/components/sims/
   - src/main.tsx
 verification_commands:
   - name: unit
@@ -74,15 +74,15 @@ In scope: the desktop operator console, the TypeScript simulation (`DroneTarget`
 
 ### Executable core
 - `src/main.tsx`: SPA mount.
-- `src/components/game/GameApp.tsx`: canvas, HUD, overlays, input.
+- `src/components/sims/GameApp.tsx`: canvas, HUD, overlays, input.
 - `src/sims/simulation.ts`: fixed-step loop, magazine, lives, waves.
 
 ### Core subsystems
 - `src/sims/math.ts`: TTB and quadratic intercept.
 - `src/sims/droneTarget.ts` / `src/sims/swarmManager.ts`: 20 tracks, 10 Hz EDF list.
 - `src/sims/turretController.ts`: AUTO/MANUAL slew and fire gate.
-- `src/components/game/Scene.tsx`: battlespace, turret, drones, tracers.
-- `src/components/game/TacticalHUD.tsx` / `Radar.tsx`: EDF table and PPI scope.
+- `src/components/sims/Scene.tsx`: battlespace, turret, drones, tracers.
+- `src/components/sims/TacticalHUD.tsx` / `Radar.tsx`: EDF table and PPI scope.
 
 ### Supporting assets
 - `SEM-Tech DEFENDER Demo Blueprint.md`: 6-minute seated walkthrough.
@@ -121,7 +121,7 @@ Treat the following as the current truth:
 Use these in order of precedence when determining live status:
 
 1. `REPO_CONTRACT.md`
-2. Runtime under `src/sims/` and `src/components/game/`
+2. Runtime under `src/sims/` and `src/components/sims/`
 3. `SEM-Tech DEFENDER Demo Blueprint.md` for walkthrough claims and numbers
 4. `README.md`
 
@@ -191,13 +191,13 @@ For the fastest orientation path, read these in order:
 3. `src/sims/constants.ts`
 4. `src/sims/math.ts`
 5. `src/sims/simulation.ts`
-6. `src/components/game/GameApp.tsx`
+6. `src/components/sims/GameApp.tsx`
 
 ## 9. Workstream Map
 
 Then choose your path:
 
-- Runtime work: `src/sims/`, `src/components/game/Scene.tsx`
+- Runtime work: `src/sims/`, `src/components/sims/Scene.tsx`
 - Verification work: `src/sims/*.test.ts`, `npm test`, `npm run build`
 - Demo or stakeholder walkthrough work: `SEM-Tech DEFENDER Demo Blueprint.md`, `npm run dev`
 - Documentation maintenance work: `REPO_CONTRACT.md`, `README.md`
@@ -212,7 +212,7 @@ Treat repo materials using these classes:
 
 ### B. Implementation truth
 - `src/sims/`
-- `src/components/game/`
+- `src/components/sims/`
 - `src/main.tsx`
 
 ### C. Verification evidence
@@ -313,5 +313,6 @@ Assistants must not silently change:
 
 ## Change log
 
+- 2026-09-17: Renamed `src/components/game/` to `src/components/sims/` (explicit operator instruction). Path references updated. Identity, vocabulary, and preferred runtime unchanged.
 - 2026-09-17: Renamed `src/game/` to `src/sims/` (explicit operator instruction). Path references updated. Identity, vocabulary, and preferred runtime unchanged.
 - 2026-09-16: Identity locked to desktop COUNTER-UAS FIRE CONTROL simulator (explicit operator instruction). Runtime remains a desktop browser window; packaged native app is out of scope unless requested.
