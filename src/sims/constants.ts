@@ -2,6 +2,7 @@
 
 export const OUTER_RADIUS = 1000;
 export const DETECT_RADIUS = 2000;
+/** Horizontal overflight radius of the defended site around the UGV. IMPACT and TTB deadline. */
 export const FACILITY_RADIUS = 36;
 
 /** Raid pools: each wave spawns a random 8–16 quads and 2–3 fixed-wing. */

@@ -43,10 +43,10 @@ describe("Ledger", () => {
 
   test("toJson is a parseable array of entries", () => {
     const log = new Ledger();
-    log.append(4, "T02", "BREACH", "500 m");
+    log.append(4, "T02", "BREACH", "200 m");
     const parsed = JSON.parse(log.toJson()) as { what: string; action: string; outcome: string }[];
     expect(parsed).toHaveLength(1);
-    expect(parsed[0]).toMatchObject({ what: "T02", action: "BREACH", outcome: "500 m" });
+    expect(parsed[0]).toMatchObject({ what: "T02", action: "BREACH", outcome: "200 m" });
   });
 
   test("reset clears entries and restarts sequence numbers", () => {

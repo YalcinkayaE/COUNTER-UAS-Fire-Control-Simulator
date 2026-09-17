@@ -214,6 +214,13 @@ function LedgerPanel({
             <button
               type="button"
               className="h-8 rounded-md border border-line bg-surface-2 px-2 font-mono text-[10px] text-fg hover:bg-surface"
+              onClick={() => getSim().clearLedger()}
+            >
+              Clear
+            </button>
+            <button
+              type="button"
+              className="h-8 rounded-md border border-line bg-surface-2 px-2 font-mono text-[10px] text-fg hover:bg-surface"
               onClick={() => downloadLedger("csv")}
             >
               CSV

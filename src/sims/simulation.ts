@@ -200,6 +200,12 @@ export class Simulation {
     this.applyEffector(this.effectorId);
   }
 
+  /** Wipe recorded rows. Engage already does this via resetRun; this is for a stale panel. */
+  clearLedger(): void {
+    this.ledger.reset();
+    emit();
+  }
+
   setEffector(id: EffectorId): void {
     const spec = EFFECTORS[id];
     this.applyEffector(id);

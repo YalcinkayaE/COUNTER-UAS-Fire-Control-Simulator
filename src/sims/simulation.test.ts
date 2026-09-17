@@ -50,6 +50,19 @@ describe("wave-clear abort", () => {
   });
 });
 
+describe("ledger", () => {
+  test("clearLedger wipes rows so a run after model changes starts empty", () => {
+    const sim = new Simulation();
+    sim.muted = true;
+    sim.resetRun();
+    sim.ledger.append(1, "T01", "BREACH", "500 m");
+    sim.ledger.append(2, "T01", "INTERCEPT", "HIT");
+    expect(sim.ledger.snapshot().length).toBe(2);
+    sim.clearLedger();
+    expect(sim.ledger.snapshot()).toHaveLength(0);
+  });
+});
+
 describe("fuse radius", () => {
   test("aligned AUTO still hits at 48 m; CPA is inside the bubble so the fuse stays", () => {
     const sim = new Simulation();

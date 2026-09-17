@@ -15,22 +15,23 @@ export function BriefingPanel({ onEngage }: { onEngage?: () => void }) {
         <p className="mt-1 font-mono text-xs tracking-widest text-accent">COUNTER-UAS FIRE CONTROL</p>
         <div className="mt-6 space-y-3 font-mono text-sm leading-relaxed text-muted">
           <p>
-            8–16 quads plus 2–3 fixed-wing at 2 km, inbound through the northern sector — the raid
-            axis shifts each wave, and the faster tracks can beat a closer slow one on
-            time-to-breach. One Echodyne Guard AESA stares north over a 120° × 80° sector (1° az /
-            1.5° el accuracy), publishing az, el, range and velocity at 10 Hz — 20 tracks max,
-            ranked by TTB. The edge computer issues the fire call.
+            8–16 quads from 1 km plus 2–3 fixed-wing from 2 km, inbound through the northern
+            sector. The raid axis shifts each wave, and a faster track can beat a closer slow one
+            on time-to-breach. Quads and fixed-wing weave in azimuth and altitude. One Echodyne
+            Guard AESA stares north over a 120° × 80° sector (1° az / 1.5° el accuracy), publishing
+            az, el, range and velocity at 10 Hz — 20 tracks max, ranked by TTB. The edge computer
+            issues the fire call.
           </p>
           <p className="rounded-md border border-line bg-bg px-3 py-2 text-fg">
             TTB = (horizontal range − 36 m asset) / horizontal closing speed
           </p>
           <p>
-            AUTO slews at 75°/s onto the quadratic lead from the latest scan. The red ring is the
-            selected effector's range — the envelope AUTO may fire in, not the EDF deadline. A
-            crossing is GUNS TIGHT, not a lost life; you lose a life if a track overflies the 36 m
-            asset. CAKIR 400 m (1350 rds/min), HN-12 200 m (1000), PENCE-A 400 m (120). MANUAL is
-            the weapons-release bypass on the same solution; AUTO will not fire outside the
-            envelope.
+            AUTO slews at 75°/s onto the quadratic lead from the latest scan. The kill zone is the
+            selected effector's range — a crossing is a breach (GUNS TIGHT), not a lost life. EDF
+            ranks by time to the 36 m site around the UGV; the gun stays on a track across bursts
+            unless a hotter deadline pulls it off. CAKIR 400 m (1350 rds/min), HN-12 200 m (1000),
+            PENCE-A 400 m (120). MANUAL is the weapons-release bypass on the same solution; AUTO
+            will not fire outside the envelope.
           </p>
         </div>
         <div className="mt-6 flex flex-col gap-3">
