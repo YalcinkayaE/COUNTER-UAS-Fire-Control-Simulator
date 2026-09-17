@@ -9,10 +9,7 @@ export function BriefingPanel({ onEngage }: { onEngage?: () => void }) {
   return (
     <>
       <section className="w-full max-w-lg rounded-xl border border-line bg-surface p-6 md:p-8">
-        <p className="font-display text-6xl font-semibold leading-[0.86] tracking-display text-khaki md:text-7xl">
-          KANGAL
-        </p>
-        <h1 className="mt-2 font-display text-2xl font-semibold leading-tight tracking-display md:text-3xl">
+        <h1 className="font-display text-5xl font-semibold leading-none tracking-display text-khaki md:text-6xl">
           SEM DEFENDER
         </h1>
         <p className="mt-1 font-mono text-xs tracking-widest text-accent">COUNTER-UAS FIRE CONTROL</p>

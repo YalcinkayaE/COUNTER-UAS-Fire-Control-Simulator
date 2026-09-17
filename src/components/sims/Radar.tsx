@@ -82,10 +82,19 @@ export function Radar({ tracks, targetId, yaw }: Props) {
           </g>
         );
       })}
-      <text x="110" y="18" textAnchor="middle" fill="#8a929c" fontSize="9" fontFamily="IBM Plex Mono">
+      <text x="110" y="18" textAnchor="middle" fill="#c9b24a" fontSize="9" fontFamily="IBM Plex Mono">
         N
       </text>
-      <text x="202" y="114" fill="#c9b24a" fontSize="8" fontFamily="IBM Plex Mono">
+      <text x="208" y="102" textAnchor="middle" fill="#8a929c" fontSize="9" fontFamily="IBM Plex Mono">
+        E
+      </text>
+      <text x="110" y="216" textAnchor="middle" fill="#8a929c" fontSize="9" fontFamily="IBM Plex Mono">
+        S
+      </text>
+      <text x="12" y="114" textAnchor="middle" fill="#8a929c" fontSize="9" fontFamily="IBM Plex Mono">
+        W
+      </text>
+      <text x="186" y="126" fill="#c9b24a" fontSize="8" fontFamily="IBM Plex Mono">
         2 km
       </text>
       <text x="164" y="114" fill="#ee7f1a" fontSize="8" fontFamily="IBM Plex Mono">

@@ -51,3 +51,8 @@ export const MAX_WAVES = 8;
 export const HIGH_SCORE_KEY = "sentinel-cuas-v1";
 
 export const DEG = Math.PI / 180;
+
+/** Unlit contact colours against the dark battlespace; match PPI class colours, brighter. */
+export const UAV_QUAD_CONTACT = "#b5e8c8";
+export const UAV_FIXED_WING_CONTACT = "#e8cc55";
+export const UAV_IMMINENT_CONTACT = "#e56b5c";

@@ -5,11 +5,18 @@ import {
 } from "lucide-react";
 import { type ReactNode, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
+import type { ViewMode } from "@/sims/camera";
 import { formatBearingDeg, formatDist, formatElevDeg, formatTtb } from "@/sims/math";
 import { getHud, getSim, subscribeHud } from "@/sims/simulation";
 import { Radar } from "./Radar";
 
-export function TacticalHUD() {
+export function TacticalHUD({
+  view,
+  onViewChange,
+}: {
+  view: ViewMode;
+  onViewChange: (view: ViewMode) => void;
+}) {
   const hud = useSyncExternalStore(subscribeHud, getHud, getHud);
   const live = hud.phase === "live" || hud.phase === "wavehold" || hud.phase === "paused";
 
@@ -32,6 +39,14 @@ export function TacticalHUD() {
             T+{formatClock(hud.elapsed)}
           </div>
           <div className="pointer-events-auto flex gap-2">
+            <button
+              type="button"
+              aria-pressed={view === "2d"}
+              onClick={() => onViewChange(view === "2d" ? "3d" : "2d")}
+              className="h-11 rounded-md border border-line bg-surface px-3 font-mono text-xs text-fg hover:bg-surface-2"
+            >
+              {view === "2d" ? "3D view" : "2D view"}
+            </button>
             <button
               type="button"
               onClick={() => getSim().togglePause()}

@@ -1,7 +1,25 @@
-import { Grid, OrbitControls, Stars } from "@react-three/drei";
-import { useFrame } from "@react-three/fiber";
-import { useMemo, useRef } from "react";
+import { Grid, Html, Line, OrbitControls, Stars } from "@react-three/drei";
+import { useFrame, useThree } from "@react-three/fiber";
+import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
+import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
+import {
+  CAMERA_2D_POLAR,
+  cameraFitRadius,
+  CAMERA_3D_POLAR,
+  CAMERA_3D_POLAR_MAX,
+  CAMERA_3D_POLAR_MIN,
+  CAMERA_3D_RADIUS,
+  CAMERA_MAX_RADIUS,
+  CAMERA_MIN_RADIUS,
+  CAMERA_NORTH_AZIMUTH,
+  CAMERA_TARGET_Y,
+  UAV_CONTACT_HIDE_M,
+  applyPpiProjection,
+  northLockedCameraPosition,
+  uavContactWorldSize,
+  type ViewMode,
+} from "@/sims/camera";
 import {
   DETECT_RADIUS,
   FIXED_WING_COUNT,
@@ -9,14 +27,19 @@ import {
   MAX_IN_FLIGHT,
   OUTER_RADIUS,
   QUAD_COUNT,
+  UAV_FIXED_WING_CONTACT,
+  UAV_IMMINENT_CONTACT,
+  UAV_QUAD_CONTACT,
 } from "@/sims/constants";
 import { getSim } from "@/sims/simulation";
 
-export function Scene() {
+const _camTarget = new THREE.Vector3(0, CAMERA_TARGET_Y, 0);
+
+export function Scene({ view }: { view: ViewMode }) {
   return (
     <>
       <color attach="background" args={["#08090b"]} />
-      <fog attach="fog" args={["#08090b", 2200, 5200]} />
+      <FogSync />
       <hemisphereLight args={["#8a96a4", "#161a1e", 0.55]} />
       <ambientLight intensity={0.32} />
       <directionalLight
@@ -33,7 +56,7 @@ export function Scene() {
         shadow-camera-bottom={-900}
       />
       <pointLight position={[0, 36, 0]} intensity={14} distance={220} color="#d7dde4" />
-      <Stars radius={1800} depth={90} count={900} factor={3} saturation={0} fade speed={0.2} />
+      <Stars radius={8000} depth={90} count={900} factor={3} saturation={0} fade speed={0.2} />
       <Ground />
       <Perimeter />
       <UgvInterceptor />
@@ -41,20 +64,21 @@ export function Scene() {
       <Projectiles />
       <Bursts />
       <LeadMarker />
-      <OrbitControls
-        makeDefault
-        enablePan={false}
-        minDistance={160}
-        maxDistance={3600}
-        minPolarAngle={0.28}
-        maxPolarAngle={1.22}
-        target={[0, 8, 0]}
-        enableDamping
-        dampingFactor={0.08}
-      />
+      <NorthLockedControls view={view} />
       <SimLoop />
     </>
   );
+}
+
+function FogSync() {
+  useFrame(({ camera, scene }) => {
+    const fog = scene.fog;
+    if (!(fog instanceof THREE.Fog)) return;
+    const d = camera.position.distanceTo(_camTarget);
+    fog.near = Math.max(400, d * 0.65);
+    fog.far = Math.max(fog.near + 800, d * 2.6);
+  });
+  return <fog attach="fog" args={["#08090b", 2200, 5200]} />;
 }
 
 function SimLoop() {
@@ -68,15 +92,68 @@ function SimLoop() {
     }
     sim.reducedMotion = reduced.current;
     sim.update(delta);
+    if (state.camera) applyPpiProjection(state.camera);
   });
   return null;
+}
+
+function NorthLockedControls({ view }: { view: ViewMode }) {
+  const ref = useRef<OrbitControlsImpl>(null);
+  const last3d = useRef({ polar: CAMERA_3D_POLAR, radius: CAMERA_3D_RADIUS });
+  const size = useThree((s) => s.size);
+  const polarMin = view === "2d" ? CAMERA_2D_POLAR : CAMERA_3D_POLAR_MIN;
+  const polarMax = view === "2d" ? CAMERA_2D_POLAR : CAMERA_3D_POLAR_MAX;
+
+  useEffect(() => {
+    const controls = ref.current;
+    if (!controls) return;
+    if (view === "2d") {
+      last3d.current = { polar: controls.getPolarAngle(), radius: controls.getDistance() };
+      const fit = cameraFitRadius(size.width / size.height);
+      placeNorthLocked(controls, CAMERA_2D_POLAR, Math.max(controls.getDistance(), fit));
+    } else {
+      placeNorthLocked(controls, last3d.current.polar, last3d.current.radius);
+    }
+    controls.update();
+  }, [view, size.width, size.height]);
+
+  useFrame(() => {
+    const cam = ref.current?.object;
+    if (cam) applyPpiProjection(cam);
+  });
+
+  return (
+    <OrbitControls
+      ref={ref}
+      makeDefault
+      enablePan={false}
+      enableRotate={view === "3d"}
+      minDistance={CAMERA_MIN_RADIUS}
+      maxDistance={CAMERA_MAX_RADIUS}
+      minPolarAngle={polarMin}
+      maxPolarAngle={polarMax}
+      minAzimuthAngle={CAMERA_NORTH_AZIMUTH}
+      maxAzimuthAngle={CAMERA_NORTH_AZIMUTH}
+      target={[0, CAMERA_TARGET_Y, 0]}
+      enableDamping
+      dampingFactor={0.08}
+    />
+  );
+}
+
+function placeNorthLocked(controls: OrbitControlsImpl, polar: number, radius: number): void {
+  const [x, y, z] = northLockedCameraPosition(polar, radius);
+  controls.object.position.set(x, y, z);
+  controls.object.scale.set(1, 1, 1);
+  controls.object.lookAt(controls.target);
+  applyPpiProjection(controls.object);
 }
 
 function Ground() {
   return (
     <>
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[5600, 5600]} />
+        <planeGeometry args={[8000, 8000]} />
         <meshStandardMaterial color="#101418" roughness={0.96} metalness={0.04} />
       </mesh>
       <Grid
@@ -87,7 +164,7 @@ function Ground() {
         sectionSize={200}
         sectionThickness={1.1}
         sectionColor="#2a343c"
-        fadeDistance={3600}
+        fadeDistance={CAMERA_MAX_RADIUS}
         fadeStrength={1.2}
         infiniteGrid
         position={[0, 0.15, 0]}
@@ -96,42 +173,93 @@ function Ground() {
   );
 }
 
+function ringPoints(radius: number, y: number): [number, number, number][] {
+  const n = 256;
+  const pts: [number, number, number][] = [];
+  for (let i = 0; i <= n; i++) {
+    const a = (i / n) * Math.PI * 2;
+    pts.push([Math.sin(a) * radius, y, Math.cos(a) * radius]);
+  }
+  return pts;
+}
+
 function Perimeter() {
+  const detect = useMemo(() => ringPoints(DETECT_RADIUS, 0.7), []);
+  const outer = useMemo(() => ringPoints(OUTER_RADIUS, 0.7), []);
+  const kill = useMemo(() => ringPoints(KILL_ZONE, 0.7), []);
   return (
     <group>
-      {/* Closed tori so the fence stays a continuous line — not a thick band and not a broken ring. */}
-      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0.7, 0]} renderOrder={2}>
-        <torusGeometry args={[DETECT_RADIUS, 1.7, 10, 384]} />
-        <meshBasicMaterial color="#c9b24a" fog={false} />
-      </mesh>
-      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0.7, 0]} renderOrder={2}>
-        <torusGeometry args={[OUTER_RADIUS, 1.55, 10, 320]} />
-        <meshBasicMaterial color="#ee7f1a" fog={false} />
-      </mesh>
-      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0.7, 0]} renderOrder={2}>
-        <torusGeometry args={[KILL_ZONE, 1.35, 10, 256]} />
-        <meshBasicMaterial color="#e44535" fog={false} />
-      </mesh>
+      <Line points={detect} color="#c9b24a" lineWidth={1.6} />
+      <Line points={outer} color="#ee7f1a" lineWidth={1.5} />
+      <Line points={kill} color="#e44535" lineWidth={1.4} />
       <SpokeLines />
+      <Cardinals />
     </group>
   );
 }
 
 function SpokeLines() {
-  const geom = useMemo(() => {
-    const g = new THREE.BufferGeometry();
-    const pts: number[] = [];
+  const points = useMemo(() => {
+    const pts: [number, number, number][] = [];
     for (let i = 0; i < 8; i++) {
       const a = (i / 8) * Math.PI * 2;
-      pts.push(0, 0.5, 0, Math.cos(a) * DETECT_RADIUS, 0.5, Math.sin(a) * DETECT_RADIUS);
+      pts.push([0, 0.5, 0], [Math.sin(a) * DETECT_RADIUS, 0.5, Math.cos(a) * DETECT_RADIUS]);
     }
-    g.setAttribute("position", new THREE.Float32BufferAttribute(pts, 3));
+    return pts;
+  }, []);
+  return <Line points={points} segments color="#5a2a24" lineWidth={1} />;
+}
+
+function Cardinals() {
+  const y = 24;
+  const r = DETECT_RADIUS + 120;
+  return (
+    <group>
+      <CardinalLabel text="N" position={[0, y, r]} accent />
+      <CardinalLabel text="E" position={[r, y, 0]} />
+      <CardinalLabel text="S" position={[0, y, -r]} />
+      <CardinalLabel text="W" position={[-r, y, 0]} />
+      <NorthPointer />
+    </group>
+  );
+}
+
+function NorthPointer() {
+  const geom = useMemo(() => {
+    const g = new THREE.BufferGeometry();
+    const z0 = DETECT_RADIUS + 8;
+    g.setAttribute(
+      "position",
+      new THREE.Float32BufferAttribute([0, 1.4, z0 + 90, -36, 1.4, z0, 36, 1.4, z0], 3),
+    );
     return g;
   }, []);
   return (
-    <lineSegments geometry={geom}>
-      <lineBasicMaterial color="#5a2a24" fog={false} />
-    </lineSegments>
+    <mesh geometry={geom} renderOrder={3}>
+      <meshBasicMaterial color="#c9b24a" side={THREE.DoubleSide} fog={false} />
+    </mesh>
+  );
+}
+
+function CardinalLabel({
+  text,
+  position,
+  accent = false,
+}: {
+  text: string;
+  position: [number, number, number];
+  accent?: boolean;
+}) {
+  return (
+    <Html position={position} center sprite pointerEvents="none" zIndexRange={[1, 0]}>
+      <div
+        className={`font-mono text-sm font-bold tracking-widest md:text-base ${
+          accent ? "text-khaki" : "text-muted"
+        }`}
+      >
+        {text}
+      </div>
+    </Html>
   );
 }
 
@@ -261,12 +389,58 @@ function DroneField() {
   return (
     <>
       {Array.from({ length: QUAD_COUNT }, (_, i) => (
-        <DroneMesh key={`q${i}`} index={i} />
+        <group key={`q${i}`}>
+          <DroneMesh index={i} />
+          <ContactMarker index={i} kind="quad" />
+        </group>
       ))}
       {Array.from({ length: FIXED_WING_COUNT }, (_, i) => (
-        <FixedWingMesh key={`f${i}`} index={QUAD_COUNT + i} />
+        <group key={`f${i}`}>
+          <FixedWingMesh index={QUAD_COUNT + i} />
+          <ContactMarker index={QUAD_COUNT + i} kind="fixedWing" />
+        </group>
       ))}
     </>
+  );
+}
+
+function contactColor(kind: "quad" | "fixedWing", imminent: boolean): string {
+  if (imminent) return UAV_IMMINENT_CONTACT;
+  return kind === "fixedWing" ? UAV_FIXED_WING_CONTACT : UAV_QUAD_CONTACT;
+}
+
+function ContactMarker({ index, kind }: { index: number; kind: "quad" | "fixedWing" }) {
+  const mesh = useRef<THREE.Mesh>(null);
+  const mat = useRef<THREE.MeshBasicMaterial>(null);
+  const viewH = useThree((s) => s.size.height);
+  useFrame(({ camera }) => {
+    const d = getSim().swarm.drones[index];
+    const m = mesh.current;
+    if (!d || !m) return;
+    const dist = camera.position.distanceTo(d.position);
+    m.visible = d.alive && dist > UAV_CONTACT_HIDE_M;
+    if (!d.alive) return;
+    m.position.copy(d.position);
+    m.quaternion.copy(camera.quaternion);
+    const s = uavContactWorldSize(dist, viewH);
+    m.scale.set(s, s, 1);
+    if (mat.current) {
+      const hot = Number.isFinite(d.timeToBreach) && d.timeToBreach < 8;
+      mat.current.color.set(contactColor(kind, hot));
+    }
+  });
+  return (
+    <mesh ref={mesh} visible={false} renderOrder={6} frustumCulled={false}>
+      <circleGeometry args={[0.5, 16]} />
+      <meshBasicMaterial
+        ref={mat}
+        color={kind === "fixedWing" ? UAV_FIXED_WING_CONTACT : UAV_QUAD_CONTACT}
+        fog={false}
+        toneMapped={false}
+        depthWrite={false}
+        side={THREE.DoubleSide}
+      />
+    </mesh>
   );
 }
 
@@ -285,23 +459,58 @@ function FixedWingMesh({ index }: { index: number }) {
     <group ref={group} visible={false} scale={16}>
       <mesh rotation={[Math.PI / 2, 0, 0]} scale={[0.7, 1, 0.38]} position={[0, 0.06, 0.15]} castShadow>
         <cylinderGeometry args={[0.28, 0.42, 4.2, 10]} />
-        <meshStandardMaterial color="#c5ccd3" metalness={0.4} roughness={0.34} />
+        <meshStandardMaterial
+          color="#e8cc55"
+          emissive={UAV_FIXED_WING_CONTACT}
+          emissiveIntensity={0.55}
+          metalness={0.28}
+          roughness={0.36}
+          fog={false}
+        />
       </mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.06, 2.45]} scale={[0.7, 1, 0.38]} castShadow>
         <coneGeometry args={[0.28, 1.1, 10]} />
-        <meshStandardMaterial color="#d0d6dc" metalness={0.45} roughness={0.3} />
+        <meshStandardMaterial
+          color="#f0d56a"
+          emissive={UAV_FIXED_WING_CONTACT}
+          emissiveIntensity={0.45}
+          metalness={0.3}
+          roughness={0.32}
+          fog={false}
+        />
       </mesh>
       <mesh position={[0, 0.04, -0.15]} castShadow>
         <boxGeometry args={[7.4, 0.1, 1.15]} />
-        <meshStandardMaterial color="#8b949c" metalness={0.35} roughness={0.4} />
+        <meshStandardMaterial
+          color="#c9b24a"
+          emissive={UAV_FIXED_WING_CONTACT}
+          emissiveIntensity={0.35}
+          metalness={0.28}
+          roughness={0.4}
+          fog={false}
+        />
       </mesh>
       <mesh position={[0, 0.55, -1.85]} castShadow>
         <boxGeometry args={[0.08, 0.85, 0.7]} />
-        <meshStandardMaterial color="#c5ccd3" metalness={0.38} roughness={0.36} />
+        <meshStandardMaterial
+          color="#e8cc55"
+          emissive={UAV_FIXED_WING_CONTACT}
+          emissiveIntensity={0.35}
+          metalness={0.28}
+          roughness={0.36}
+          fog={false}
+        />
       </mesh>
       <mesh position={[0, 0.08, -1.85]} castShadow>
         <boxGeometry args={[2.2, 0.08, 0.45]} />
-        <meshStandardMaterial color="#8b949c" metalness={0.35} roughness={0.4} />
+        <meshStandardMaterial
+          color="#c9b24a"
+          emissive={UAV_FIXED_WING_CONTACT}
+          emissiveIntensity={0.3}
+          metalness={0.28}
+          roughness={0.4}
+          fog={false}
+        />
       </mesh>
     </group>
   );
@@ -315,9 +524,23 @@ const QUAD_TIPS: [number, number, number][] = [
   [-2.78, 0.12, -2.02],
 ];
 
-const HULL = { metalness: 0.5, roughness: 0.28, color: "#d7dde3" } as const;
-const CARBON = { metalness: 0.22, roughness: 0.58, color: "#161b20" } as const;
-const ARM = { metalness: 0.48, roughness: 0.3, color: "#c5ccd4" } as const;
+const HULL = {
+  metalness: 0.32,
+  roughness: 0.34,
+  color: "#d4eee0",
+  emissive: UAV_QUAD_CONTACT,
+  emissiveIntensity: 0.42,
+  fog: false,
+} as const;
+const CARBON = { metalness: 0.22, roughness: 0.58, color: "#161b20", fog: false } as const;
+const ARM = {
+  metalness: 0.36,
+  roughness: 0.32,
+  color: "#c5e6d4",
+  emissive: UAV_QUAD_CONTACT,
+  emissiveIntensity: 0.22,
+  fog: false,
+} as const;
 
 function DroneMesh({ index }: { index: number }) {
   const group = useRef<THREE.Group>(null);
@@ -356,11 +579,25 @@ function DroneMesh({ index }: { index: number }) {
       {/* Wing glove through the mid-body so the X-frame reads as a fighter, not four sticks. */}
       <mesh position={[0, 0.02, 0.08]} castShadow>
         <boxGeometry args={[2.35, 0.1, 0.95]} />
-        <meshStandardMaterial color="#c5ccd3" metalness={0.42} roughness={0.34} />
+        <meshStandardMaterial
+          color="#c5e6d4"
+          emissive={UAV_QUAD_CONTACT}
+          emissiveIntensity={0.28}
+          metalness={0.32}
+          roughness={0.34}
+          fog={false}
+        />
       </mesh>
       <mesh position={[0, 0.01, -0.35]} castShadow>
         <boxGeometry args={[1.55, 0.08, 0.7]} />
-        <meshStandardMaterial color="#b7c0c8" metalness={0.4} roughness={0.36} />
+        <meshStandardMaterial
+          color="#b7dcc8"
+          emissive={UAV_QUAD_CONTACT}
+          emissiveIntensity={0.22}
+          metalness={0.32}
+          roughness={0.36}
+          fog={false}
+        />
       </mesh>
       {/* Cockpit glass on the spine, camera in the chin. */}
       <mesh position={[0, 0.22, 0.55]} scale={[0.55, 0.32, 0.85]} castShadow>
@@ -397,9 +634,10 @@ function DroneMesh({ index }: { index: number }) {
         <sphereGeometry args={[0.12, 8, 8]} />
         <meshStandardMaterial
           ref={led}
-          color="#ff5a48"
-          emissive="#ff5a48"
+          color={UAV_IMMINENT_CONTACT}
+          emissive={UAV_IMMINENT_CONTACT}
           emissiveIntensity={1.1}
+          fog={false}
         />
       </mesh>
       {QUAD_TIPS.map((tip) => (
