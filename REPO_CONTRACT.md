@@ -22,7 +22,7 @@ authoritative_codepaths:
 verification_commands:
   - name: unit
     command: npm test
-    expected_result: 47 passed
+    expected_result: 56 passed
   - name: build
     command: npm run build
     expected_result: exit 0
@@ -68,7 +68,7 @@ In scope: the desktop operator console, the TypeScript simulation (`DroneTarget`
 `Desktop COUNTER-UAS FIRE CONTROL simulator: EDF TTB, 75°/s slew, quadratic lead, AUTO/MANUAL.`
 
 ### Pipeline shorthand
-`Track file (oracle) -> 10 Hz EDF sort -> quadratic intercept -> slew/fire -> hit/miss/breach`
+`Track file (oracle) -> 10 Hz EDF on time-to-asset -> quadratic intercept -> slew/fire in envelope -> hit/miss/breach/impact`
 
 ## 2. What This Repo Contains
 
@@ -78,7 +78,7 @@ In scope: the desktop operator console, the TypeScript simulation (`DroneTarget`
 - `src/sims/simulation.ts`: fixed-step loop, magazine, lives, waves.
 
 ### Core subsystems
-- `src/sims/math.ts`: TTB and quadratic intercept.
+- `src/sims/math.ts`: TTB (time to 36 m asset cylinder) and quadratic intercept.
 - `src/sims/droneTarget.ts` / `src/sims/swarmManager.ts`: 20 quads + 2 fixed-wing, 10 Hz EDF list (radar file holds 20).
 - `src/sims/turretController.ts`: AUTO/MANUAL slew and fire gate.
 - `src/components/sims/Scene.tsx`: battlespace, turret, drones, tracers.
@@ -97,7 +97,7 @@ Treat the following as the current truth:
 - The checkout is a Vite SPA in a desktop browser window. TanStack Start / Grok host adapters (`AuthProvider`, `PreviewHostBridge`, `/__grok/*`) are not part of the runtime.
 - `npm run dev` serves the simulator at `http://127.0.0.1:5173`.
 - Observed on 2026-09-17: document title SEM DEFENDER; briefing and HUD wordmark SEM DEFENDER; Engage starts wave 1 (8–16 quads + 2–3 fixed-wing drawn per wave, raid axis shifts each wave; EDF holds ≤ 20); EDF queue sorts by TTB and PPI is north-up; effector selector live (CAKIR / HN-12 / PENCE-A; HN-12 default; AUTO holds fire OUT OF RANGE); the kill zone follows the selected effector — HN-12 breaches ledger at 200 m, CAKIR at 400 m, and the PPI envelope label tracks the selection (200m / 400m); AUTO fires (FIRE AUTO / RELEASED); M toggles MANUAL; Esc pauses; Ledger records ENGAGE / FIRE AUTO / INTERCEPT / BREACH / IMPACT / DEFEAT rows with AZ, EL, RNG, V plus CSV/JSON export; 2D view fits the 2 km detect ring.
-- Unit tests passed on 2026-09-17 (`47 passed`, 8 files).
+- Unit tests passed on 2026-09-17 (`56 passed`, 9 files).
 - Radar model observed 2026-09-17: single Echodyne Guard-class AESA staring a 120° az × 80° el sector on a north boresight (az gate ±60°, el gate 0–80°), with ±1° az / ±1.5° el angular noise on reports. The full raid spawns inside the sector: quads 10–40° west of north, fixed-wing at ~20°/~40° az northeast. EDF queue, fire control, and kills stay live under noise; status window fixed at 40 rem with effector name, range/lock state, event message, and RDS counter.
 - `npm run build` exited 0 on 2026-09-17.
 - Environment note 2026-09-17: `npm run dev` bound `127.0.0.1:5175` because two stale node processes already held 5173/5174; 5173 remains the expected bind when free.
@@ -115,7 +115,10 @@ Treat the following as the current truth:
 - Briefing, pause, defeat overlays
 - North-locked battlespace matching the PPI; 2D view fits the 2 km detect ring
 - Simulation ledger (when / what / action / outcome + AZ, EL, RNG, V) with CSV/JSON export
-- Variable kill zone tied to effector selection: TTB, EDF order, breach check, and the battlespace ring all follow the selected effector's range (2026-09-17)
+- Variable kill zone tied to effector selection: envelope, BREACH alarm, and the battlespace ring follow the selected effector's range (2026-09-17)
+- EDF TTB is time to the 36 m asset cylinder, not the gun envelope (2026-09-17)
+- AUTO commits to a track across bursts (1.5 s hysteresis) and skips a track when slew + time of flight exceeds TTB (2026-09-17)
+- Wave-clear aborts leftover burst and in-flight rounds as SUPPRESSED (2026-09-17)
 
 ### What is not complete
 - Split-raid waves, threat classes, soft-kill, track quality (blueprint “next demo”, only if asked)
@@ -157,7 +160,7 @@ Verified locally on 2026-09-17:
 
 - unit
   - command: `npm test`
-  - result: 47 passed (8 files)
+  - result: 56 passed (9 files)
 - build
   - command: `npm run build`
   - result: exit 0
@@ -184,7 +187,6 @@ The main open items are:
 - Blueprint section 10 follow-ons are not implemented
 - Headless `window.__cuas` probe was not observed in the browser-automation harness even while play worked; treat HUD/canvas as the live check, not that probe. Update 2026-09-17: the probe was live in the Playwright MCP harness (14 keys; counters reconciled exactly with ledger rows), so the earlier non-observation looks harness-specific, not a sim defect.
 - Contract body drift noted 2026-09-17: `src/sims/edgeComputer.ts`, `src/sims/radarSensor.ts`, `src/sims/audio.ts`, and `src/components/sims/Overlays.tsx` / `SourcePanel.tsx` are live in code and verified in the browser, but Section 2 does not list them yet. (Effector selection is now covered by status and vocabulary after the variable-kill-zone change.)
-- Narrative drift (2026-09-17): `docs/30_design/310_fire_control_optimization.md` (R_kz math, constants table, worked examples) remains pinned to the fixed 500 m kill zone and the fixed 20 + 2 raid. The demo blueprint was brought current and moved to `docs/30_design/320_demo_blueprint.md` the same day; give 310 the same pass before reusing its numbers.
 
 ### Next recommended actions
 - Run `npm run dev` and walk the blueprint beat sheet
@@ -248,10 +250,11 @@ Treat repo materials using these classes:
 
 Use these terms exactly as defined in this repo:
 
-- `Time-to-Breach` / `TTB`: `(Distance − kill zone) / Radial Velocity`
+- `Time-to-Breach` / `TTB`: `(horizontal range − 36 m asset) / horizontal closing speed`
 - `Earliest Deadline First` / `EDF`: sort live tracks by lowest TTB
 - `AUTO` / `MANUAL`: fire-control modes on the same intercept solution
-- `kill zone`: the selected effector's range (HN-12 200 m; CAKIR / PENCE-A 400 m); a breach is a defended-volume violation, not an HP bar
+- `kill zone`: the selected effector's range (HN-12 200 m; CAKIR / PENCE-A 400 m); the AUTO fire envelope and the red ring; a BREACH is envelope entry (GUNS TIGHT), not a lost life
+- `asset`: 36 m horizontal cylinder; IMPACT here costs a life
 - `weapons-release authority`: the operator role
 - `COUNTER-UAS FIRE CONTROL`: product class; this repo is a desktop simulator of that class
 - `simulator`: simulated tracks and fire-control loop; not a fielded weapon system
@@ -259,7 +262,7 @@ Use these terms exactly as defined in this repo:
 
 Avoid these collisions or substitutions:
 
-- Do not rename TTB to “ETA” or “time-to-impact”
+- Do not rename TTB to “ETA” or “time-to-impact”; TTB is the HUD name for time to the asset cylinder
 - Do not call this a tower-defense game, a web toy, or a fielded C-UAS
 - Nearest-track is not EDF
 - `C-UAS` is the abbreviation of COUNTER-UAS; do not substitute “drone game”
@@ -322,6 +325,7 @@ Assistants must not silently change:
 
 ## Change log
 
+- 2026-09-17: Fire-control deadline split on operator instruction (suggested order from the scoring review). TTB is time to the 36 m asset cylinder; the selected effector's range remains the kill-zone envelope (fire gate, red ring, BREACH). AUTO commits across bursts (1.5 s hysteresis) and skips a track when slew + time of flight exceeds TTB. Wave-clear aborts leftover burst and in-flight rounds as SUPPRESSED. Fuse stays 48 m. DOC-310 rewritten to the live constants; DOC-320 talk-track and briefing corrected. Vocabulary for TTB / kill zone / asset updated per that instruction. Verified: 56 passed (9 files), build exit 0.
 - 2026-09-17: Demo blueprint updated to current truth (variable kill zone, single 120° × 80° radar sector with angular noise, 8–16 quads + 2–3 fixed-wing with per-wave raid axis, status window with RDS, ledger SUPPRESSED accounting) and moved to `docs/30_design/320_demo_blueprint.md` (DOC-320) per the docs taxonomy, on operator instruction. Inbound references updated (contract, README, DOC-404). The 310 fire-control optimisation note remains pinned to the fixed 500 m kill zone — still open. Authority ordering unchanged: the blueprint stays the demo talk-track source, not live status.
 - 2026-09-17: Wave randomization and full round accounting on operator instruction. Waves draw 8–16 quads and 2–3 fixed-wing with a per-wave raid axis (quad corridor 30° wide, center within ±27° of north; fixed-wing azimuth 8–34° east of north + 4° per airframe), all inside the 120° sector including maneuver wobble; drone pool is 16 + 3 and pool members start dead. Ledger: rounds resolving on an already-dead track now record INTERCEPT / SUPPRESSED, so FIRE = HIT + MISS + SUPPRESSED + in-flight reconciles exactly (verified live: 176 = 23 + 14 + 139 + 0). Battlespace shows the 120° sector wedge (subtle fill plus edge rays). Briefing updated. Verified: 47 passed (8 files), build exit 0, live run showed wave-1 axis az 11–42° and wave-2 axis az 326–354°, 0 console errors.
 - 2026-09-17: Ledger consistency audit (operator request): 725+ rows over 5 waves reconciled exactly against sim counters and HUD (FIRE == shotsFired == RDS; INTERCEPT HIT == intercepts; IMPACT == lives lost). Timestamps monotonic, no duplicate BREACH/IMPACT per track within a wave, kinematics valid and present on all track rows. Known semantic: rounds resolving on an already-dead target record no terminal row (`detonate` early return), so FIRE exceeds HIT+MISS by design; cross-target proximity kills appear as HIT rows whose id differs from the surrounding FIRE block. Open item on the `__cuas` probe amended: observed live in the Playwright MCP harness.

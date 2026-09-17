@@ -19,20 +19,32 @@ export function radialClosingSpeed(p: Vec3, v: Vec3): number {
   return -(p.x * v.x + p.y * v.y + p.z * v.z) / d;
 }
 
+/** Ground-plane range to the defended point (asset cylinder). */
+export function horizontalRange(p: Vec3): number {
+  return Math.hypot(p.x, p.z);
+}
+
+/** Ground-plane closing speed toward the origin (positive = inbound). */
+export function horizontalClosingSpeed(p: Vec3, v: Vec3): number {
+  const r = Math.hypot(p.x, p.z);
+  if (r < 1e-8) return 0;
+  return -(p.x * v.x + p.z * v.z) / r;
+}
+
 /**
  * Earliest-Deadline-First key.
- * Time-to-Breach = (Distance − kill zone) / Radial Velocity.
- * The kill zone is the selected effector's range. Receding tracks return
- * +Infinity. Already inside the kill zone → 0.
+ * Time-to-Breach = (horizontal range − asset radius) / horizontal closing speed.
+ * The deadline is the 36 m asset cylinder, not the gun envelope. Receding
+ * tracks return +Infinity. Already inside the cylinder → 0.
  */
 export function timeToBreach(
-  distance: number,
-  radialVelocity: number,
-  killZone: number,
+  horiz: number,
+  horizClosing: number,
+  deadlineRadius: number,
 ): number {
-  if (distance <= killZone) return 0;
-  if (radialVelocity <= 1e-6) return Number.POSITIVE_INFINITY;
-  return (distance - killZone) / radialVelocity;
+  if (horiz <= deadlineRadius) return 0;
+  if (horizClosing <= 1e-6) return Number.POSITIVE_INFINITY;
+  return (horiz - deadlineRadius) / horizClosing;
 }
 
 /**

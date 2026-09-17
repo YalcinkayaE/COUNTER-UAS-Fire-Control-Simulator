@@ -137,6 +137,19 @@ describe("SwarmManager", () => {
     expect(d.breached).toBe(true);
   });
 
+  test("a high overflight never breaches the HN-12 sphere but still has a finite TTB to the asset", () => {
+    const swarm = new SwarmManager(fixedRng);
+    swarm.killZone = 200;
+    swarm.spawnWave(1);
+    const d = swarm.drones[0]!;
+    d.position.set(0, 250, 120);
+    d.velocity.set(0, 0, -80);
+    d.refreshTrack(swarm.killZone);
+    expect(d.distance).toBeGreaterThan(200);
+    expect(swarm.collectBreaches()).toHaveLength(0);
+    expect(d.timeToBreach).toBeCloseTo((120 - 36) / 80, 5);
+  });
+
   test("collectImpacts removes a track only over the facility", () => {
     const swarm = new SwarmManager(fixedRng);
     swarm.killZone = 500;

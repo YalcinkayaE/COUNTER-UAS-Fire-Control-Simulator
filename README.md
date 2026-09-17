@@ -1,6 +1,6 @@
 # SEM-Tech DEFENDER
 
-Desktop COUNTER-UAS FIRE CONTROL simulator. An operator console ranks 20 inbound tracks by Earliest Deadline First, slews a turret at 75°/s onto a quadratic intercept, and fires AUTO or MANUAL before the selected effector's kill zone (200–400 m) is breached.
+Desktop COUNTER-UAS FIRE CONTROL simulator. An operator console ranks inbound tracks by Earliest Deadline First (time to the 36 m asset), slews a turret at 75°/s onto a quadratic intercept, and fires AUTO or MANUAL inside the selected effector's envelope (200–400 m).
 
 The operator is the weapons-release authority. Detection, track, and identify are oracles; Decide and Engage are implemented. Simulated tracks only — not a fielded sensor.
 

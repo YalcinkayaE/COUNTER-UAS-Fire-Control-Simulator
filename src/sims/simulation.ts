@@ -188,8 +188,7 @@ export class Simulation {
     this.projectiles.length = 0;
     this.bursts.length = 0;
     this.turret.cooldown = 0;
-    this.turret.burstLeft = 0;
-    this.turret.recovery = 0;
+    this.turret.resetBurst();
     this.turret.mode = "AUTO";
     this.swarm.spawnWave(1);
     this.trauma = 0;
@@ -316,10 +315,15 @@ export class Simulation {
 
     this.elapsed += dt;
     this.swarm.update(dt);
-    this.edge.setRelease(this.turret.mode, this.turret.position);
+    const barrel = {
+      x: this.turret.barrelDir.x,
+      y: this.turret.barrelDir.y,
+      z: this.turret.barrelDir.z,
+    };
+    this.edge.setRelease(this.turret.mode, this.turret.position, barrel);
     const scan = this.radar.update(dt, this.swarm.drones);
-    if (scan) this.edge.ingest(scan, this.turret.mode, this.turret.position);
-    else this.edge.coast(dt);
+    if (scan) this.edge.ingest(scan, this.turret.mode, this.turret.position, barrel);
+    else this.edge.coast(dt, barrel);
     this.resolveMouseAim();
 
     const fireHeld =
@@ -376,6 +380,7 @@ export class Simulation {
         this.phase = "defeat";
         this.message = "FACILITY LOST";
         this.record("OPERATOR", "DEFEAT", "FACILITY LOST");
+        this.abortEngagement();
       }
     }
 
@@ -384,6 +389,18 @@ export class Simulation {
       this.holdTimer = 2.2;
       this.message = this.wave >= MAX_WAVES ? "HOLDING PERIMETER" : "WAVE CLEAR";
       this.record(`WAVE ${String(this.wave).padStart(2, "0")}`, "HOLD", this.message);
+      this.abortEngagement();
+    }
+  }
+
+  /** Stop a mid-burst and resolve in-flight rounds so the next wave cannot inherit them. */
+  private abortEngagement(): void {
+    this.turret.resetBurst();
+    this.edge.resetCommitment();
+    for (const p of this.projectiles) {
+      if (!p.alive) continue;
+      p.alive = false;
+      this.record(p.targetId, "INTERCEPT", "SUPPRESSED");
     }
   }
 
@@ -393,8 +410,6 @@ export class Simulation {
     this.turret.fireCooldown = fireCooldownSec(spec.rpm);
     this.turret.effectiveRange = spec.range;
     this.edge.maxRange = spec.range;
-    this.edge.killZone = spec.range;
-    this.radar.killZone = spec.range;
     this.swarm.killZone = spec.range;
   }
 
@@ -461,7 +476,7 @@ export class Simulation {
       if (!d.alive) continue;
       const dist = distPointSegment(d.position, prev, p.position);
       if (dist <= HIT_RADIUS) {
-        this.killDrone(d, p);
+        this.killDrone(d, p, dist);
         break;
       }
     }
@@ -481,7 +496,7 @@ export class Simulation {
       const dist = dist3(d.position, p.dest);
       if (d.id === p.targetId) this.closestApproach = dist;
       if (dist <= HIT_RADIUS) {
-        this.killDrone(d, p);
+        this.killDrone(d, p, dist);
         hit = true;
         break;
       }
@@ -498,9 +513,10 @@ export class Simulation {
     }
   }
 
-  private killDrone(d: DroneTarget, p: Projectile): void {
+  private killDrone(d: DroneTarget, p: Projectile, missDistance: number): void {
     d.alive = false;
     p.alive = false;
+    this.closestApproach = missDistance;
     this.intercepts += 1;
     this.record(d.id, "INTERCEPT", "HIT");
     const bonus = Math.max(10, 140 - d.distance * 0.04);

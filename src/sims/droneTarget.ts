@@ -1,6 +1,13 @@
 import * as THREE from "three";
-import { DRONE_MANEUVER_FRAC, OUTER_RADIUS } from "./constants";
-import { clamp, hypot3, radialClosingSpeed, timeToBreach } from "./math";
+import { DRONE_MANEUVER_FRAC, FACILITY_RADIUS, OUTER_RADIUS } from "./constants";
+import {
+  clamp,
+  hypot3,
+  horizontalClosingSpeed,
+  horizontalRange,
+  radialClosingSpeed,
+  timeToBreach,
+} from "./math";
 
 const TWO_PI = Math.PI * 2;
 
@@ -108,6 +115,10 @@ export class DroneTarget {
   refreshTrack(killZone: number): void {
     this.distance = hypot3(this.position.x, this.position.y, this.position.z);
     this.radialVelocity = radialClosingSpeed(this.position, this.velocity);
-    this.timeToBreach = timeToBreach(this.distance, this.radialVelocity, killZone);
+    this.timeToBreach = timeToBreach(
+      horizontalRange(this.position),
+      horizontalClosingSpeed(this.position, this.velocity),
+      FACILITY_RADIUS,
+    );
   }
 }

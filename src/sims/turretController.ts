@@ -62,6 +62,14 @@ export class TurretController {
     return this.mode;
   }
 
+  /** Drop an in-progress burst so leftover rounds cannot follow a reused track ID. */
+  resetBurst(): void {
+    this.burstLeft = 0;
+    this.recovery = 0;
+    this.burstAim = null;
+    this.burstTargetId = null;
+  }
+
   /** AUTO: slew to the edge-computer intercept. MANUAL: operator bypass. */
   update(
     dt: number,

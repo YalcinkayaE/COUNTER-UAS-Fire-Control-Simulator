@@ -1,7 +1,6 @@
 import {
   DEG,
-  DEFAULT_EFFECTOR_ID,
-  EFFECTORS,
+  FACILITY_RADIUS,
   RADAR_AZ_ACCURACY_DEG,
   RADAR_AZ_FOV_DEG,
   RADAR_BORESIGHT_AZ_DEG,
@@ -16,6 +15,8 @@ import {
   azimuthFromNorth,
   elevationFromGround,
   hypot3,
+  horizontalClosingSpeed,
+  horizontalRange,
   radialClosingSpeed,
   timeToBreach,
   type Vec3,
@@ -52,8 +53,6 @@ export class RadarSensor {
   readonly origin: Vec3 = { x: RADAR_POS.x, y: RADAR_POS.y, z: RADAR_POS.z };
   reports: RadarReport[] = [];
   seq = 0;
-  /** Kill zone for the TTB pre-rank: the selected effector's range. */
-  killZone: number = EFFECTORS[DEFAULT_EFFECTOR_ID].range;
   private wait = 0;
 
   /** `jitter` returns a uniform sample in [0, 1); tests inject a fixed value. */
@@ -72,9 +71,9 @@ export class RadarSensor {
     const ranked = live
       .map((o) => {
         const ttb = timeToBreach(
-          hypot3(o.position.x, o.position.y, o.position.z),
-          radialClosingSpeed(o.position, o.velocity),
-          this.killZone,
+          horizontalRange(o.position),
+          horizontalClosingSpeed(o.position, o.velocity),
+          FACILITY_RADIUS,
         );
         return { o, ttb };
       })

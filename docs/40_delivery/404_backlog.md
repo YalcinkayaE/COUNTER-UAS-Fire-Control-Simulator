@@ -5,11 +5,12 @@ status: draft
 owner: unresolved
 created: 2026-09-17
 updated: 2026-09-17
-applies_to: working tree on main at 153297f plus uncommitted changes
+applies_to: desktop simulator on main
 authority: informative
 supersedes: null
 related:
   - DOC-310
+  - DOC-320
 ---
 
 # Gap backlog: SEM DEFENDER vs the JRC-based simulator blueprint
@@ -20,8 +21,9 @@ below as "BP2"). Section numbers such as §4 refer to BP2. R, V, S and F IDs are
 
 Every item is PROPOSED. Nothing here has been started.
 
-Narrative drift inside the demo blueprint (fixed 500 m kill zone, fixed-wing from the east, unlisted
-modules) is already tracked in `REPO_CONTRACT.md` §7 and is not repeated here.
+The demo blueprint (`docs/30_design/320_demo_blueprint.md`) and DOC-310 were brought onto the
+live fire-control model (variable envelope, TTB to the 36 m asset) on 2026-09-17. Do not treat the
+older 500 m / 20+2 figures as current.
 
 ## 0. Decision gate (decide before anything below)
 

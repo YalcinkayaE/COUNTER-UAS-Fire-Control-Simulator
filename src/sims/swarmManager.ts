@@ -27,7 +27,8 @@ import { DroneTarget } from "./droneTarget";
 
 /**
  * Truth swarm. Radar samples these objects; EDF ranking lives on the edge computer.
- * The kill zone is the selected effector's range; Simulation re-points it on selection.
+ * The kill zone is the selected effector's range (envelope / BREACH alarm).
+ * EDF deadlines are time to the 36 m asset cylinder, not this ring.
  * Wave size and raid axis are drawn from `rng` at the start of each wave.
  */
 export class SwarmManager {

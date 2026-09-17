@@ -1,8 +1,17 @@
-import { DEFAULT_EFFECTOR_ID, EFFECTORS, PROJECTILE_SPEED, RADAR_POS } from "./constants";
 import {
+  COMMIT_HYSTERESIS_SEC,
+  FACILITY_RADIUS,
+  PROJECTILE_SPEED,
+  RADAR_POS,
+  TURRET_SLEW_RAD,
+} from "./constants";
+import {
+  angleBetween,
   azimuthFromNorth,
   elevationFromGround,
   hypot3,
+  horizontalClosingSpeed,
+  horizontalRange,
   radialClosingSpeed,
   solveIntercept,
   sphericalToCartesian,
@@ -44,24 +53,35 @@ export class EdgeComputer {
   tracks: TrackSnapshot[] = [];
   fireCall: FireCall | null = null;
   maxRange = Number.POSITIVE_INFINITY;
-  /** EDF deadline ring: the selected effector's range. */
-  killZone: number = EFFECTORS[DEFAULT_EFFECTOR_ID].range;
   private mode: FireMode = "AUTO";
   private shooter: Vec3 = { x: 0, y: 14, z: 0 };
+  private barrelDir: Vec3 | null = null;
+  private committedId: string | null = null;
 
-  setRelease(mode: FireMode, shooter: Vec3): void {
+  setRelease(mode: FireMode, shooter: Vec3, barrelDir?: Vec3): void {
     this.mode = mode;
     this.shooter = shooter;
+    if (barrelDir) this.barrelDir = barrelDir;
   }
 
-  ingest(reports: RadarReport[], mode: FireMode, shooter: Vec3): FireCall | null {
-    this.setRelease(mode, shooter);
+  resetCommitment(): void {
+    this.committedId = null;
+  }
+
+  ingest(
+    reports: RadarReport[],
+    mode: FireMode,
+    shooter: Vec3,
+    barrelDir?: Vec3,
+  ): FireCall | null {
+    this.setRelease(mode, shooter, barrelDir);
     this.tracks = reports.map((r) => this.fromReport(r));
     this.tracks.sort((a, b) => a.timeToBreach - b.timeToBreach || a.range - b.range);
     return this.refreshCall(this.mode, this.shooter);
   }
 
-  coast(dt: number): FireCall | null {
+  coast(dt: number, barrelDir?: Vec3): FireCall | null {
+    if (barrelDir) this.barrelDir = barrelDir;
     for (const t of this.tracks) {
       t.position.x += t.velocity.x * dt;
       t.position.y += t.velocity.y * dt;
@@ -107,11 +127,21 @@ export class EdgeComputer {
     t.rangeRate = radialClosingSpeed({ x: dx, y: dy, z: dz }, t.velocity);
     t.distance = hypot3(t.position.x, t.position.y, t.position.z);
     t.radialVelocity = radialClosingSpeed(t.position, t.velocity);
-    t.timeToBreach = timeToBreach(t.distance, t.radialVelocity, this.killZone);
+    t.timeToBreach = timeToBreach(
+      horizontalRange(t.position),
+      horizontalClosingSpeed(t.position, t.velocity),
+      FACILITY_RADIUS,
+    );
   }
 
   private refreshCall(mode: FireMode, shooter: Vec3): FireCall | null {
-    let fallback: FireCall | null = null;
+    type Candidate = {
+      track: TrackSnapshot;
+      intercept: InterceptSolution;
+      inRange: boolean;
+      feasible: boolean;
+    };
+    const cands: Candidate[] = [];
     for (const track of this.tracks) {
       const intercept = solveIntercept(shooter, PROJECTILE_SPEED, track.position, track.velocity);
       if (!intercept) continue;
@@ -121,19 +151,69 @@ export class EdgeComputer {
         intercept.z - shooter.z,
       );
       const inRange = dist <= this.maxRange;
-      const call: FireCall = {
-        targetId: track.id,
-        intercept,
+      cands.push({
         track,
-        autoEngage: mode === "AUTO" && inRange,
-      };
-      if (!fallback) fallback = call;
-      if (inRange) {
-        this.fireCall = call;
-        return call;
-      }
+        intercept,
+        inRange,
+        feasible: this.isFeasible(track, intercept, shooter),
+      });
     }
-    this.fireCall = fallback;
-    return fallback;
+
+    const feasible = cands.filter((c) => c.feasible);
+    const inRangeFeasible = feasible.filter((c) => c.inRange);
+    const committed = this.committedId
+      ? cands.find((c) => c.track.id === this.committedId)
+      : undefined;
+
+    let chosen: Candidate | undefined;
+    if (committed?.feasible) {
+      const challenger = feasible.find((c) => c.track.id !== committed.track.id);
+      const switchForDeadline =
+        challenger !== undefined &&
+        committed.track.timeToBreach - challenger.track.timeToBreach > COMMIT_HYSTERESIS_SEC;
+      chosen = switchForDeadline ? challenger : committed;
+    } else {
+      chosen = inRangeFeasible[0] ?? feasible[0] ?? cands[0];
+    }
+
+    if (!chosen) {
+      this.committedId = null;
+      this.fireCall = null;
+      return null;
+    }
+    this.committedId = chosen.track.id;
+    const call: FireCall = {
+      targetId: chosen.track.id,
+      intercept: chosen.intercept,
+      track: chosen.track,
+      autoEngage: mode === "AUTO" && chosen.inRange && chosen.feasible,
+    };
+    this.fireCall = call;
+    return call;
+  }
+
+  /** True when the turret can slew and the round can arrive before the asset deadline. */
+  private isFeasible(track: TrackSnapshot, intercept: InterceptSolution, shooter: Vec3): boolean {
+    const ttb = track.timeToBreach;
+    if (!Number.isFinite(ttb)) return false;
+    if (ttb <= 0) return true;
+    return this.slewTime(shooter, intercept) + intercept.t < ttb;
+  }
+
+  private slewTime(shooter: Vec3, aim: InterceptSolution): number {
+    if (!this.barrelDir) return 0;
+    const tx = aim.x - shooter.x;
+    const ty = aim.y - shooter.y;
+    const tz = aim.z - shooter.z;
+    const len = hypot3(tx, ty, tz) || 1;
+    const ang = angleBetween(
+      this.barrelDir.x,
+      this.barrelDir.y,
+      this.barrelDir.z,
+      tx / len,
+      ty / len,
+      tz / len,
+    );
+    return ang / TURRET_SLEW_RAD;
   }
 }

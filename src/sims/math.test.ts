@@ -1,29 +1,47 @@
 import { describe, expect, test } from "vitest";
-import { PROJECTILE_SPEED } from "./constants";
+import { FACILITY_RADIUS, PROJECTILE_SPEED } from "./constants";
 import {
   azimuthFromNorth,
   elevationFromGround,
   formatTtb,
+  horizontalClosingSpeed,
+  horizontalRange,
   solveIntercept,
   sphericalToCartesian,
   timeToBreach,
 } from "./math";
 
 describe("timeToBreach", () => {
-  test("is (distance − kill zone) / inbound radial speed", () => {
-    expect(timeToBreach(900, 20, 500)).toBeCloseTo(20, 8);
-    expect(timeToBreach(900, 20, 200)).toBeCloseTo(35, 8);
+  test("is (horizontal range − asset radius) / inbound ground speed", () => {
+    expect(timeToBreach(900, 20, FACILITY_RADIUS)).toBeCloseTo((900 - 36) / 20, 8);
+    expect(timeToBreach(200, 25, FACILITY_RADIUS)).toBeCloseTo((200 - 36) / 25, 8);
   });
 
-  test("returns 0 when already inside the kill zone", () => {
-    expect(timeToBreach(499, 30, 500)).toBe(0);
-    expect(timeToBreach(500, 30, 500)).toBe(0);
-    expect(timeToBreach(200, 30, 200)).toBe(0);
+  test("returns 0 when already inside the 36 m asset cylinder", () => {
+    expect(timeToBreach(35, 30, FACILITY_RADIUS)).toBe(0);
+    expect(timeToBreach(36, 30, FACILITY_RADIUS)).toBe(0);
+  });
+
+  test("does not go to 0 merely because the track is inside a gun envelope", () => {
+    expect(timeToBreach(150, 20, FACILITY_RADIUS)).toBeCloseTo((150 - 36) / 20, 8);
+    expect(timeToBreach(150, 20, FACILITY_RADIUS)).toBeGreaterThan(0);
   });
 
   test("returns +Infinity for receding or hovering tracks", () => {
-    expect(timeToBreach(800, 0, 500)).toBe(Number.POSITIVE_INFINITY);
-    expect(timeToBreach(800, -4, 500)).toBe(Number.POSITIVE_INFINITY);
+    expect(timeToBreach(800, 0, FACILITY_RADIUS)).toBe(Number.POSITIVE_INFINITY);
+    expect(timeToBreach(800, -4, FACILITY_RADIUS)).toBe(Number.POSITIVE_INFINITY);
+  });
+});
+
+describe("horizontal range and closing", () => {
+  test("ignores altitude so a high overflight still has a finite deadline", () => {
+    const p = { x: 0, y: 250, z: 100 };
+    const v = { x: 0, y: 0, z: -20 };
+    expect(horizontalRange(p)).toBeCloseTo(100, 8);
+    expect(horizontalClosingSpeed(p, v)).toBeCloseTo(20, 8);
+    const ttb = timeToBreach(horizontalRange(p), horizontalClosingSpeed(p, v), FACILITY_RADIUS);
+    expect(ttb).toBeCloseTo((100 - 36) / 20, 8);
+    expect(Math.hypot(p.x, p.y, p.z)).toBeGreaterThan(200);
   });
 });
 

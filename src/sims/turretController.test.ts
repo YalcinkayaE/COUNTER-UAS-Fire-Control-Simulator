@@ -38,4 +38,13 @@ describe("UGV gun", () => {
     expect(inBurst.at(-1)! - first).toBeLessThanOrEqual(FIRE_BURST + FIXED_DT);
     expect(afterBurst).toHaveLength(0);
   });
+
+  test("resetBurst clears an in-progress burst so the next wave cannot fire it", () => {
+    const turret = new TurretController();
+    turret.burstLeft = 0.4;
+    turret.recovery = 0.2;
+    turret.resetBurst();
+    expect(turret.burstLeft).toBe(0);
+    expect(turret.recovery).toBe(0);
+  });
 });

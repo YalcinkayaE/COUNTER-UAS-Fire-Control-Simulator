@@ -22,14 +22,15 @@ export function BriefingPanel({ onEngage }: { onEngage?: () => void }) {
             ranked by TTB. The edge computer issues the fire call.
           </p>
           <p className="rounded-md border border-line bg-bg px-3 py-2 text-fg">
-            TTB = (Distance − Kill Zone) / Radial Velocity
+            TTB = (horizontal range − 36 m asset) / horizontal closing speed
           </p>
           <p>
-            AUTO slews at 75°/s onto the quadratic lead from the latest scan. The kill zone is the
-            selected effector's range — a crossing is a breach, not a despawn: EDF holds the track
-            at TTB NOW and the gun stays on it until a kill or the asset. CAKIR 400 m (1350
-            rds/min), HN-12 200 m (1000), PENCE-A 400 m (120). MANUAL is the weapons-release
-            bypass on the same solution; AUTO will not fire outside the envelope.
+            AUTO slews at 75°/s onto the quadratic lead from the latest scan. The red ring is the
+            selected effector's range — the envelope AUTO may fire in, not the EDF deadline. A
+            crossing is GUNS TIGHT, not a lost life; you lose a life if a track overflies the 36 m
+            asset. CAKIR 400 m (1350 rds/min), HN-12 200 m (1000), PENCE-A 400 m (120). MANUAL is
+            the weapons-release bypass on the same solution; AUTO will not fire outside the
+            envelope.
           </p>
         </div>
         <div className="mt-6 flex flex-col gap-3">

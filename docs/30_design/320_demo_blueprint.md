@@ -24,7 +24,7 @@ related:
 
 ## 1. One-liner
 
-A desktop COUNTER-UAS FIRE CONTROL simulator that ranks an inbound raid — **8–16 quads plus 2–3 fixed-wing, axis shifting each wave** — by **Earliest Deadline First**, slews a turret at **75°/s** onto a **quadratic intercept**, and fires AUTO or MANUAL before the selected effector's **kill zone** is breached.
+A desktop COUNTER-UAS FIRE CONTROL simulator that ranks an inbound raid — **8–16 quads plus 2–3 fixed-wing, axis shifting each wave** — by **Earliest Deadline First** (time to the **36 m asset**), slews a turret at **75°/s** onto a **quadratic intercept**, and fires AUTO or MANUAL inside the selected effector's **kill zone** (the gun envelope).
 
 Do not call it a tower-defense game. The operator is the **weapons-release authority**, not a builder.
 
@@ -34,8 +34,9 @@ Do not call it a tower-defense game. The operator is the **weapons-release autho
 
 **Claim**
 - Live EDF track file at 10 Hz from a single Echodyne Guard-class AESA: 120° × 80° staring sector on a north boresight, 1° az / 1.5° el angular accuracy on the reports
-- Time-to-Breach = (range − kill zone) / radial closing speed; the kill zone is the selected effector's range
-- Effector selection: CAKIR (1350 rds/min, 400 m), HN-12 (1000 rds/min, 200 m), PENCE-A (120 rds/min, 400 m) — TTB, EDF order, breach ring, and the battlespace ring all follow the selection
+- Time-to-Breach = (horizontal range − 36 m asset) / horizontal closing speed; EDF sorts on that deadline
+- Effector selection: CAKIR (1350 rds/min, 400 m), HN-12 (1000 rds/min, 200 m), PENCE-A (120 rds/min, 400 m) — the red ring, the AUTO fire envelope, and the BREACH alarm follow the selection; TTB does not
+- AUTO commits to a track across bursts unless another deadline is at least 1.5 s earlier, and skips a track when slew plus time of flight exceeds TTB
 - Quadratic 3D lead for a constant-velocity target
 - Hard slew budget (75°/s) and effector burst cycle (0.5 s burst, 16 rounds in flight)
 - AUTO vs MANUAL override on the same intercept solution
@@ -78,7 +79,7 @@ Do not call it a tower-defense game. The operator is the **weapons-release autho
 **Show:** Start card. Rings and the sector wedge visible through the glass.
 
 **Say:**
-> Facility at the origin. Gold ring is the 2 km detect volume, orange is the 1 km fence, red is the kill zone — and the kill zone is the selected gun's range: 200 m on the HN-12, 400 m on CAKIR or PENCE-A. The pale wedge is the radar: one Echodyne Guard staring north, 120 by 80 degrees. The raid comes through that sector — eight to sixteen quads plus two or three fixed-wing, and the axis shifts every wave. A track that crosses the kill zone un-killed is a breach. Five lives, eight waves.
+> Facility at the origin. Gold ring is the 2 km detect volume, orange is the 1 km fence, red is the kill zone — the selected gun's range: 200 m on the HN-12, 400 m on CAKIR or PENCE-A. That ring is where AUTO is allowed to fire, not the EDF deadline. The pale wedge is the radar: one Echodyne Guard staring north, 120 by 80 degrees. The raid comes through that sector — eight to sixteen quads plus two or three fixed-wing, and the axis shifts every wave. Crossing the red ring is GUNS TIGHT. You lose a life if a track overflies the 36 m asset. Five lives, eight waves.
 
 **Do not:** click Engage until the rings and the TTB formula are on screen.
 
@@ -92,9 +93,9 @@ Do not call it a tower-defense game. The operator is the **weapons-release autho
 **Gesture:** the top row (▸ Txx) is AUTO's current shot. Red TTB < 8 s is imminent.
 
 **Formula to read aloud:**
-`TTB = (Distance − Kill Zone) / Radial Velocity`
+`TTB = (horizontal range − 36 m asset) / horizontal closing speed`
 
-Receding or hovering tracks go to infinity. Already inside the kill zone is zero — too late.
+Receding or hovering tracks go to infinity. NOW means the track is over the asset, not that it has entered the gun envelope.
 
 ### Beat 2 — Geometry, not DPS (1:30–2:30)
 
@@ -119,14 +120,14 @@ Receding or hovering tracks go to infinity. Already inside the kill zone is zero
 **Say:**
 > AUTO is the duty officer. MANUAL is you stealing a shot AUTO would waste — or holding fire. Real C2 is one operator supervising the scheduler, not painting every track by hand.
 
-**Do:** slew onto a second-priority track, fire, switch back to AUTO. Optional: switch effector mid-wave and watch the red kill-zone ring move — the EDF deadlines re-sort with it.
+**Do:** slew onto a second-priority track, fire, switch back to AUTO. Optional: switch effector mid-wave and watch the red kill-zone ring move — that is the fire envelope. The EDF column does not re-sort; TTB is still time to the asset.
 
 ### Beat 5 — Leak and reset (4:15–5:00)
 
 **If a breach:** red burst, "Txx BREACHED 200 m — GUNS TIGHT" in the status window, ledger row with the ring it crossed.
 
 **Say:**
-> A leak is a defended-volume violation, not an HP bar. The sim is honest about the kill zone — and the zone is the gun you picked. Pause with Esc if you need to talk over a freeze-frame.
+> GUNS TIGHT means they are inside the gun you picked. A lost life is HIT ASSET — the 36 m cylinder — not the red ring. Pause with Esc if you need to talk over a freeze-frame.
 
 ### Beat 6 — Close (5:00–6:00)
 
@@ -157,7 +158,8 @@ Runtime here is **TypeScript + Three.js** so it plays in the browser. The math a
 |---|---|
 | Detect ring | 2 000 m |
 | Outer fence | 1 000 m |
-| Kill zone | Selected effector's range: 200 m (HN-12) / 400 m (CAKIR, PENCE-A) |
+| Kill zone / envelope | Selected effector's range: 200 m (HN-12) / 400 m (CAKIR, PENCE-A) |
+| Asset / TTB deadline | 36 m horizontal cylinder |
 | Effectors | CAKIR 1350 rds/min · HN-12 1000 rds/min · PENCE-A 120 rds/min |
 | Tracks / wave | 8–16 quads + 2–3 fixed-wing (radar file holds 20) |
 | Raid axis | Drawn per wave, inside the sector |
@@ -196,13 +198,13 @@ Use that table if someone asks "where is the radar algorithm?" Answer: we model 
 Saturation of one turret is the demo, and a memorized raid is not. Each wave draws 8–16 quads and 2–3 fixed-wing and picks an axis inside the sector. EDF is trivial on one track; it is the policy you want when a dozen deadlines compete.
 
 **Why not just shoot nearest?**
-Nearest can be slow and far from breach. TTB is the deadline. On the HN-12 (200 m kill zone): a fixed-wing at 2 km closing at 80 m/s has TTB ≈ 22.5 s; a quad at 1 km closing at 25 m/s has ≈ 32 s. The farther aircraft is the earlier deadline.
+Nearest can be slow and far from the asset. TTB is time to the 36 m cylinder. A fixed-wing at 2 km closing at 80 m/s has TTB ≈ 24.6 s; a quad at 1 km closing at 25 m/s has ≈ 38.6 s. The farther aircraft is the earlier deadline. Inside the red ring those numbers stay distinct — TTB does not collapse to NOW.
 
 **Can AUTO lose?**
 Yes. Slew + burst cycle + 16-round cap + the envelope. Wave speed ramps. That is the point of MANUAL.
 
 **Why does the red ring move when I switch effector?**
-Because the kill zone is the gun's range, not a painted circle. Pick PENCE-A and the ring, the deadlines, and the breach line all move to 400 m.
+Because the kill zone is the gun's range — the AUTO fire envelope and the BREACH alarm. Pick PENCE-A and the ring moves to 400 m. TTB does not move; it is still time to the 36 m asset.
 
 **Is this Unity?**
 The design is Unity C# (`DroneTarget`, `SwarmManager`, `RadarSensor`, `EdgeComputer`, `TurretController`, `TacticalHUD`). This desktop simulator is the same architecture in a browser window.
@@ -217,7 +219,8 @@ Start screen → View source. Copy one file, or Folders: download zip. Copy all 
 - **Slew contest:** wait until two imminent rows sit at opposite sector edges. Narrate AUTO rotating through the gap.
 - **Magazine starve:** watch the RDS counter and the in-flight cap; AUTO skips assigned tracks.
 - **MANUAL miss:** fire off-align; round flies to the old lead.
-- **Wrong gun:** switch to PENCE-A late in a wave — 120 rds/min cannot service the queue even with a 400 m kill zone.
+- **Wrong gun:** switch to PENCE-A late in a wave — 120 rds/min cannot service the queue even with a 400 m envelope.
+- **HN-12 ceiling:** a high fixed-wing can stay outside the 200 m sphere and still run the 36 m asset. TTB keeps counting down; AUTO stays OUT OF RANGE. Switch to CAKIR.
 - **Pause freeze-frame (Esc):** walk TTB vs distance on the table without the swarm moving.
 
 ---
@@ -235,4 +238,4 @@ Do not promise a fielded C-UAS. Promise a sharper operator loop.
 
 ## 11. Close line
 
-> SEM DEFENDER is a desktop COUNTER-UAS FIRE CONTROL simulator: EDF on a 10 Hz track file from a 120-degree sector, quadratic lead, a 75-degree slew budget, an effector choice that moves the kill zone, and an operator who can take the shot away from AUTO.
+> SEM DEFENDER is a desktop COUNTER-UAS FIRE CONTROL simulator: EDF on time to the 36 m asset, a 10 Hz track file from a 120-degree sector, quadratic lead, a 75-degree slew budget, an effector choice that moves the fire envelope, and an operator who can take the shot away from AUTO.

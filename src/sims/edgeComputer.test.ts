@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
-import { PROJECTILE_SPEED, RADAR_POS, TURRET_POS } from "./constants";
+import { FACILITY_RADIUS, PROJECTILE_SPEED, RADAR_POS, TURRET_POS } from "./constants";
 import { EdgeComputer } from "./edgeComputer";
-import { timeToBreach } from "./math";
+import { horizontalClosingSpeed, horizontalRange, timeToBreach } from "./math";
 import { RadarSensor } from "./radarSensor";
 
 describe("EdgeComputer", () => {
@@ -27,7 +27,11 @@ describe("EdgeComputer", () => {
     const hot = edge.tracks[0]!;
     expect(hot.range).toBeGreaterThan(0);
     expect(hot.position.z).toBeCloseTo(560, 0);
-    const ttb = timeToBreach(hot.distance, hot.radialVelocity, edge.killZone);
+    const ttb = timeToBreach(
+      horizontalRange(hot.position),
+      horizontalClosingSpeed(hot.position, hot.velocity),
+      FACILITY_RADIUS,
+    );
     expect(hot.timeToBreach).toBeCloseTo(ttb, 5);
   });
 
@@ -59,7 +63,7 @@ describe("EdgeComputer", () => {
     expect(manual!.targetId).toBe("T01");
   });
 
-  test("still issues a fire call inside the kill zone (TTB is NOW)", () => {
+  test("ranks a near-asset track ahead of a far inbound even when both are inside a gun envelope", () => {
     const radar = new RadarSensor(() => 0.5);
     const inside = {
       id: "T-IN",
@@ -76,15 +80,16 @@ describe("EdgeComputer", () => {
       velocity: { x: 0, y: 0, z: -20 },
     };
     const edge = new EdgeComputer();
-    edge.killZone = 200;
+    edge.maxRange = 200;
     const call = edge.ingest(radar.scan([inside, outside]), "AUTO", TURRET_POS);
     expect(call).not.toBeNull();
     expect(call!.targetId).toBe("T-IN");
     expect(call!.autoEngage).toBe(true);
-    expect(edge.tracks[0]!.timeToBreach).toBe(0);
+    expect(edge.tracks[0]!.timeToBreach).toBeGreaterThan(0);
+    expect(edge.tracks[0]!.timeToBreach).toBeLessThan(edge.tracks[1]!.timeToBreach);
   });
 
-  test("TTB follows the selected effector's kill zone", () => {
+  test("TTB is time to the asset cylinder and does not follow the gun envelope", () => {
     const radar = new RadarSensor(() => 0.5);
     const t = {
       id: "T01",
@@ -94,14 +99,34 @@ describe("EdgeComputer", () => {
     };
     const reports = radar.scan([t]);
     const edge = new EdgeComputer();
+    const expected = (300 - FACILITY_RADIUS) / 20;
 
-    edge.killZone = 200;
+    edge.maxRange = 200;
     edge.ingest(reports, "AUTO", TURRET_POS);
-    expect(edge.tracks[0]!.timeToBreach).toBeGreaterThan(0);
+    expect(edge.tracks[0]!.timeToBreach).toBeCloseTo(expected, 5);
 
-    edge.killZone = 400;
+    edge.maxRange = 400;
     edge.ingest(reports, "AUTO", TURRET_POS);
-    expect(edge.tracks[0]!.timeToBreach).toBe(0);
+    expect(edge.tracks[0]!.timeToBreach).toBeCloseTo(expected, 5);
+    expect(edge.tracks[0]!.timeToBreach).not.toBe(0);
+  });
+
+  test("a high overflight still has a finite TTB even when it never enters the HN-12 sphere", () => {
+    const radar = new RadarSensor(() => 0.5);
+    const high = {
+      id: "F-HIGH",
+      alive: true,
+      kind: "fixedWing" as const,
+      position: { x: 0, y: 250, z: 120 },
+      velocity: { x: 0, y: 0, z: -80 },
+    };
+    const edge = new EdgeComputer();
+    edge.maxRange = 200;
+    edge.ingest(radar.scan([high]), "AUTO", TURRET_POS);
+    const ttb = edge.tracks[0]!.timeToBreach;
+    expect(Math.hypot(0, 250, 120)).toBeGreaterThan(200);
+    expect(ttb).toBeGreaterThan(0);
+    expect(ttb).toBeCloseTo((120 - FACILITY_RADIUS) / 80, 5);
   });
 
   test("coasts tracks between 10 Hz scans", () => {
@@ -118,5 +143,58 @@ describe("EdgeComputer", () => {
     edge.coast(0.1);
     expect(edge.tracks[0]!.position.z).toBeCloseTo(z0 - 2, 5);
     expect(RADAR_POS.y).toBeGreaterThan(0);
+  });
+
+  test("stays on the committed track unless another deadline beats it by the hysteresis", () => {
+    const radar = new RadarSensor(() => 0.5);
+    const edge = new EdgeComputer();
+    const a = {
+      id: "T-A",
+      alive: true,
+      position: { x: 0, y: 40, z: 200 },
+      velocity: { x: 0, y: 0, z: -20 },
+    };
+    const b = {
+      id: "T-B",
+      alive: true,
+      position: { x: 40, y: 40, z: 250 },
+      velocity: { x: -3, y: 0, z: -20 },
+    };
+    const first = edge.ingest(radar.scan([a, b]), "AUTO", TURRET_POS);
+    expect(first!.targetId).toBe("T-A");
+
+    const bCloser = { ...b, position: { x: 30, y: 40, z: 185 }, velocity: { x: -3, y: 0, z: -20 } };
+    const held = edge.ingest(radar.scan([a, bCloser]), "AUTO", TURRET_POS);
+    expect(held!.targetId).toBe("T-A");
+
+    const bHot = { ...b, position: { x: 10, y: 40, z: 70 }, velocity: { x: -4, y: 0, z: -40 } };
+    const switched = edge.ingest(radar.scan([a, bHot]), "AUTO", TURRET_POS);
+    expect(switched!.targetId).toBe("T-B");
+  });
+
+  test("skips a track when slew plus time of flight exceeds TTB", () => {
+    const radar = new RadarSensor(() => 0.5);
+    const edge = new EdgeComputer();
+    edge.maxRange = 400;
+    const hot = {
+      id: "T-HOT",
+      alive: true,
+      position: { x: 34, y: 40, z: 34 },
+      velocity: { x: -28, y: 0, z: -28 },
+    };
+    const steady = {
+      id: "T-STEADY",
+      alive: true,
+      position: { x: 0, y: 40, z: 250 },
+      velocity: { x: 0, y: 0, z: -20 },
+    };
+    const edf = edge.ingest(radar.scan([hot, steady]), "AUTO", TURRET_POS);
+    expect(edf!.targetId).toBe("T-HOT");
+
+    edge.resetCommitment();
+    const barrelEast = { x: 1, y: 0, z: 0 };
+    const feasible = edge.ingest(radar.scan([hot, steady]), "AUTO", TURRET_POS, barrelEast);
+    expect(feasible!.targetId).toBe("T-STEADY");
+    expect(feasible!.autoEngage).toBe(true);
   });
 });
