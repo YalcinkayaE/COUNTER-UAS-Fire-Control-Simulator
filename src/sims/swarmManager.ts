@@ -22,8 +22,10 @@ import {
   QUAD_COUNT_MAX,
   QUAD_COUNT_MIN,
 } from "./constants";
-import { lerp } from "./math";
+import { lerp, type Vec3 } from "./math";
 import { DroneTarget } from "./droneTarget";
+
+const WORLD_ORIGIN: Vec3 = { x: 0, y: 0, z: 0 };
 
 /**
  * Truth swarm. Radar samples these objects; EDF ranking lives on the edge computer.
@@ -46,7 +48,7 @@ export class SwarmManager {
     }
   }
 
-  spawnWave(wave = 1): void {
+  spawnWave(wave = 1, origin: Vec3 = WORLD_ORIGIN): void {
     this.wave = wave;
     const speedBoost = Math.min(10, (wave - 1) * 2.2);
     // Raid axis and size shift each wave, always inside the radar sector.
@@ -76,7 +78,7 @@ export class SwarmManager {
         azPhase: hash(i * 19 + wave) * Math.PI * 2,
         speedFreq: 1 / (8 + hash(i * 23 + wave * 5) * 10),
         speedPhase: hash(i * 29 + wave * 7) * Math.PI * 2,
-      }, this.killZone);
+      }, this.killZone, origin);
     }
     for (let i = 0; i < FIXED_WING_COUNT_MAX; i++) {
       const d = this.drones[QUAD_COUNT_MAX + i]!;
@@ -99,12 +101,12 @@ export class SwarmManager {
         azPhase: hash(i * 51 + wave) * Math.PI * 2,
         speedFreq: 1 / (10 + hash(i * 57 + wave * 5) * 8),
         speedPhase: hash(i * 61 + wave * 7) * Math.PI * 2,
-      }, this.killZone);
+      }, this.killZone, origin);
     }
   }
 
-  update(dt: number): void {
-    for (const d of this.drones) d.tick(dt, this.killZone);
+  update(dt: number, origin: Vec3 = WORLD_ORIGIN): void {
+    for (const d of this.drones) d.tick(dt, this.killZone, origin);
   }
 
   getById(id: string): DroneTarget | undefined {
@@ -128,11 +130,11 @@ export class SwarmManager {
   }
 
   /** Horizontal overflight of the defended asset. Track is then gone. */
-  collectImpacts(): DroneTarget[] {
+  collectImpacts(origin: Vec3 = WORLD_ORIGIN): DroneTarget[] {
     const hit: DroneTarget[] = [];
     for (const d of this.drones) {
       if (!d.alive) continue;
-      const horiz = Math.hypot(d.position.x, d.position.z);
+      const horiz = Math.hypot(d.position.x - origin.x, d.position.z - origin.z);
       if (horiz <= FACILITY_RADIUS) {
         d.alive = false;
         d.breached = true;

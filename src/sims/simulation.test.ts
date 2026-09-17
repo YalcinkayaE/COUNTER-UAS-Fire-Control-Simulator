@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { describe, expect, test } from "vitest";
-import { FIXED_DT, HIT_RADIUS } from "./constants";
+import { FIXED_DT, HIT_RADIUS, UGV_MOVE_KMH, UGV_MOVE_MPS } from "./constants";
 import { getHud, getSim, resetSim, Simulation } from "./simulation";
 
 function step(sim: Simulation, seconds: number): void {
@@ -60,6 +60,32 @@ describe("ledger", () => {
     expect(sim.ledger.snapshot().length).toBe(2);
     sim.clearLedger();
     expect(sim.ledger.snapshot()).toHaveLength(0);
+  });
+});
+
+describe("UGV shoot-on-the-move", () => {
+  test("is 4 km/h when the option is on, and stays put when off", () => {
+    expect(UGV_MOVE_KMH).toBe(4);
+    expect(UGV_MOVE_MPS).toBeCloseTo(4 / 3.6, 10);
+
+    const parked = new Simulation();
+    parked.muted = true;
+    parked.resetRun();
+    parked.phase = "live";
+    parked.setUgvMove(false);
+    step(parked, 2);
+    expect(parked.ugv.x).toBeCloseTo(0, 8);
+    expect(parked.ugv.z).toBeCloseTo(0, 8);
+
+    const moving = new Simulation();
+    moving.muted = true;
+    moving.resetRun();
+    moving.phase = "live";
+    moving.setUgvMove(true);
+    step(moving, 1);
+    const dist = Math.hypot(moving.ugv.x, moving.ugv.z);
+    expect(dist).toBeGreaterThan(UGV_MOVE_MPS * 0.9);
+    expect(dist).toBeLessThan(UGV_MOVE_MPS * 1.1);
   });
 });
 

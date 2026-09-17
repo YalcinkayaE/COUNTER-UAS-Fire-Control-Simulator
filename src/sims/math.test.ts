@@ -5,8 +5,10 @@ import {
   elevationFromGround,
   formatSlew,
   formatTtb,
+  horizontalClosingFrom,
   horizontalClosingSpeed,
   horizontalRange,
+  horizontalRangeFrom,
   solveIntercept,
   sphericalToCartesian,
   timeToBreach,
@@ -36,6 +38,15 @@ describe("timeToBreach", () => {
 });
 
 describe("horizontal range and closing", () => {
+  test("range and closing can be measured from a displaced defended point", () => {
+    const origin = { x: 80, y: 0, z: 20 };
+    const p = { x: 80, y: 40, z: 220 };
+    const v = { x: 0, y: 0, z: -20 };
+    expect(horizontalRangeFrom(p, origin)).toBeCloseTo(200, 8);
+    expect(horizontalClosingFrom(p, v, origin)).toBeCloseTo(20, 8);
+    expect(timeToBreach(200, 20, FACILITY_RADIUS)).toBeCloseTo((200 - 36) / 20, 8);
+  });
+
   test("ignores altitude so a high overflight still has a finite deadline", () => {
     const p = { x: 0, y: 250, z: 100 };
     const v = { x: 0, y: 0, z: -20 };

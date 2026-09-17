@@ -3,11 +3,13 @@ import { DRONE_MANEUVER_FRAC, FACILITY_RADIUS, OUTER_RADIUS } from "./constants"
 import {
   clamp,
   hypot3,
-  horizontalClosingSpeed,
-  horizontalRange,
-  radialClosingSpeed,
+  horizontalClosingFrom,
+  horizontalRangeFrom,
   timeToBreach,
+  type Vec3,
 } from "./math";
+
+const WORLD_ORIGIN: Vec3 = { x: 0, y: 0, z: 0 };
 
 const TWO_PI = Math.PI * 2;
 
@@ -60,7 +62,7 @@ export class DroneTarget {
     this.id = id;
   }
 
-  spawn(p: SwarmProfile, killZone: number): void {
+  spawn(p: SwarmProfile, killZone: number, origin: Vec3 = WORLD_ORIGIN): void {
     this.alive = true;
     this.breached = false;
     this.kind = p.kind;
@@ -74,22 +76,28 @@ export class DroneTarget {
     this.speedFreq = p.speedFreq;
     this.speedPhase = p.speedPhase;
     this.age = 0;
-    this.position.set(Math.cos(p.angle) * p.range, p.altitude, Math.sin(p.angle) * p.range);
-    this.spawnAz = Math.atan2(this.position.x, this.position.z);
+    this.position.set(
+      origin.x + Math.cos(p.angle) * p.range,
+      p.altitude,
+      origin.z + Math.sin(p.angle) * p.range,
+    );
+    this.spawnAz = Math.atan2(this.position.x - origin.x, this.position.z - origin.z);
     this.homeDir.set(-Math.cos(p.angle), 0, -Math.sin(p.angle)).normalize();
     this.velocity.copy(this.homeDir).multiplyScalar(this.speed);
-    this.refreshTrack(killZone);
+    this.refreshTrack(killZone, origin);
   }
 
-  tick(dt: number, killZone: number): void {
+  tick(dt: number, killZone: number, origin: Vec3 = WORLD_ORIGIN): void {
     if (!this.alive) return;
     this.age += dt;
     const k = DRONE_MANEUVER_FRAC;
     this.speed = this.cruiseSpeed * (1 + k * Math.sin(this.age * this.speedFreq * TWO_PI + this.speedPhase));
     this.rotor += dt * (18 + this.speed * 0.4);
 
-    const r = Math.hypot(this.position.x, this.position.z);
-    const curAz = Math.atan2(this.position.x, this.position.z);
+    const dx = this.position.x - origin.x;
+    const dz = this.position.z - origin.z;
+    const r = Math.hypot(dx, dz);
+    const curAz = Math.atan2(dx, dz);
     const targetAz = this.spawnAz * (1 + k * Math.sin(this.age * this.azFreq * TWO_PI + this.azPhase));
     const maxDaz = (12 / Math.max(r, 40)) * dt;
     const newAz = curAz + clamp(targetAz - curAz, -maxDaz, maxDaz);
@@ -102,22 +110,23 @@ export class DroneTarget {
       this.baseAlt * (1 + k),
     );
 
+    const nx = origin.x + newR * Math.sin(newAz);
+    const nz = origin.z + newR * Math.cos(newAz);
     const invDt = dt > 1e-8 ? 1 / dt : 0;
-    this.velocity.set(
-      (newR * Math.sin(newAz) - this.position.x) * invDt,
-      (nextY - this.position.y) * invDt,
-      (newR * Math.cos(newAz) - this.position.z) * invDt,
-    );
-    this.position.set(newR * Math.sin(newAz), nextY, newR * Math.cos(newAz));
-    this.refreshTrack(killZone);
+    this.velocity.set((nx - this.position.x) * invDt, (nextY - this.position.y) * invDt, (nz - this.position.z) * invDt);
+    this.position.set(nx, nextY, nz);
+    this.refreshTrack(killZone, origin);
   }
 
-  refreshTrack(killZone: number): void {
-    this.distance = hypot3(this.position.x, this.position.y, this.position.z);
-    this.radialVelocity = radialClosingSpeed(this.position, this.velocity);
+  refreshTrack(killZone: number, origin: Vec3 = WORLD_ORIGIN): void {
+    const dx = this.position.x - origin.x;
+    const dy = this.position.y - origin.y;
+    const dz = this.position.z - origin.z;
+    this.distance = hypot3(dx, dy, dz);
+    this.radialVelocity = horizontalClosingFrom(this.position, this.velocity, origin);
     this.timeToBreach = timeToBreach(
-      horizontalRange(this.position),
-      horizontalClosingSpeed(this.position, this.velocity),
+      horizontalRangeFrom(this.position, origin),
+      this.radialVelocity,
       FACILITY_RADIUS,
     );
   }

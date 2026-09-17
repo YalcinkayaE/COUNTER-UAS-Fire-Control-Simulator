@@ -10,16 +10,22 @@ import {
   MAX_WAVES,
   RADAR_POS,
   STARTING_LIVES,
+  TURRET_POS,
+  UGV_MOVE_KMH,
+  UGV_MOVE_MPS,
+  UGV_TURN_RAD,
   fireCooldownSec,
   type EffectorId,
   type EffectorSpec,
 } from "./constants";
 import {
   azimuthFromNorth,
+  clamp,
   dist3,
   elevationFromGround,
   hypot3,
   trackAssignment,
+  wrapTwoPi,
   type TrackAssignment,
 } from "./math";
 import { Ledger, type LedgerEntry, type LedgerKinematics } from "./ledger";
@@ -77,6 +83,8 @@ export type HudSnapshot = {
   effector: EffectorSpec;
   inRange: boolean;
   shots: number;
+  ugvMove: boolean;
+  ugv: { x: number; z: number };
 };
 
 export type Projectile = {
@@ -168,6 +176,8 @@ export class Simulation {
   reducedMotion = false;
   readonly ledger = new Ledger();
   effectorId: EffectorId = DEFAULT_EFFECTOR_ID;
+  ugvMove = false;
+  readonly ugv = { x: 0, z: 0, heading: Math.PI / 2 };
 
   private acc = 0;
   private hudAcc = 0;
@@ -186,6 +196,7 @@ export class Simulation {
     this.phase = "live";
     this.message = "WEAPONS FREE";
     this.record(`WAVE ${String(this.wave).padStart(2, "0")}`, "ENGAGE", "WEAPONS FREE");
+    if (this.ugvMove) this.record("OPERATOR", "UGV MOVE", `${UGV_MOVE_KMH} km/h`);
     emit();
   }
 
@@ -208,7 +219,62 @@ export class Simulation {
     this.shotsFired = 0;
     this.closestApproach = Infinity;
     this.ledger.reset();
+    this.ugv.x = 0;
+    this.ugv.z = 0;
+    this.ugv.heading = Math.PI / 2;
     this.applyEffector(this.effectorId);
+    this.syncUgvSensors();
+  }
+
+  setUgvMove(on: boolean): void {
+    this.ugvMove = on;
+    this.record("OPERATOR", on ? "UGV MOVE" : "UGV HOLD", on ? `${UGV_MOVE_KMH} km/h` : "STATIONARY");
+    emit();
+  }
+
+  toggleUgvMove(): void {
+    this.setUgvMove(!this.ugvMove);
+  }
+
+  private defendedPoint(): { x: number; y: number; z: number } {
+    return { x: this.ugv.x, y: 0, z: this.ugv.z };
+  }
+
+  private ugvVelocity(): { x: number; y: number; z: number } {
+    if (!this.ugvMove) return { x: 0, y: 0, z: 0 };
+    return {
+      x: Math.sin(this.ugv.heading) * UGV_MOVE_MPS,
+      y: 0,
+      z: Math.cos(this.ugv.heading) * UGV_MOVE_MPS,
+    };
+  }
+
+  private syncUgvSensors(): void {
+    this.turret.position.set(this.ugv.x, TURRET_POS.y, this.ugv.z);
+    this.radar.origin.x = this.ugv.x;
+    this.radar.origin.y = RADAR_POS.y;
+    this.radar.origin.z = this.ugv.z;
+    this.edge.radarOrigin = { x: this.ugv.x, y: RADAR_POS.y, z: this.ugv.z };
+    this.edge.defended = this.defendedPoint();
+    this.edge.defendedVel = this.ugvVelocity();
+  }
+
+  private stepUgv(dt: number): void {
+    if (this.ugvMove) {
+      const call = this.edge.fireCall;
+      if (call) {
+        const az = azimuthFromNorth(
+          call.track.position.x - this.ugv.x,
+          call.track.position.z - this.ugv.z,
+        );
+        const desired = az + Math.PI / 2;
+        const d = wrapTwoPi(desired - this.ugv.heading + Math.PI) - Math.PI;
+        this.ugv.heading += clamp(d, -UGV_TURN_RAD * dt, UGV_TURN_RAD * dt);
+      }
+      this.ugv.x += Math.sin(this.ugv.heading) * UGV_MOVE_MPS * dt;
+      this.ugv.z += Math.cos(this.ugv.heading) * UGV_MOVE_MPS * dt;
+    }
+    this.syncUgvSensors();
   }
 
   /** Wipe recorded rows. Engage already does this via resetRun; this is for a stale panel. */
@@ -317,11 +383,12 @@ export class Simulation {
 
   private fixedStep(dt: number): void {
     if (this.phase === "wavehold") {
+      this.stepUgv(dt);
       this.holdTimer -= dt;
       this.updateTracers(dt);
       if (this.holdTimer <= 0) {
         this.wave = Math.min(MAX_WAVES, this.wave + 1);
-        this.swarm.spawnWave(this.wave);
+        this.swarm.spawnWave(this.wave, this.defendedPoint());
         this.phase = "live";
         this.message = `WAVE ${String(this.wave).padStart(2, "0")}`;
         this.record(`WAVE ${String(this.wave).padStart(2, "0")}`, "START", "LIVE");
@@ -331,7 +398,8 @@ export class Simulation {
     }
 
     this.elapsed += dt;
-    this.swarm.update(dt);
+    this.stepUgv(dt);
+    this.swarm.update(dt, this.defendedPoint());
     const barrel = {
       x: this.turret.barrelDir.x,
       y: this.turret.barrelDir.y,
@@ -380,7 +448,7 @@ export class Simulation {
       this.record(d.id, "BREACH", `${killZone} m`);
     }
 
-    const impacts = this.swarm.collectImpacts();
+    const impacts = this.swarm.collectImpacts(this.defendedPoint());
     for (const d of impacts) {
       this.lives = Math.max(0, this.lives - 1);
       this.bursts.push({
@@ -682,6 +750,8 @@ function emptyHud(): HudSnapshot {
     effector: EFFECTORS[DEFAULT_EFFECTOR_ID],
     inRange: false,
     shots: 0,
+    ugvMove: false,
+    ugv: { x: 0, z: 0 },
   };
 }
 
@@ -758,6 +828,8 @@ function buildHud(s: Simulation): HudSnapshot {
     effector: EFFECTORS[s.effectorId],
     inRange: interceptInRange(s),
     shots: s.shotsFired,
+    ugvMove: s.ugvMove,
+    ugv: { x: s.ugv.x, z: s.ugv.z },
   };
 }
 

@@ -1,10 +1,13 @@
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
+import { UGV_MOVE_KMH } from "@/sims/constants";
+import { getHud, getSim, subscribeHud } from "@/sims/simulation";
 import { ZIP_HREF, ZIP_NAME } from "./sourceFiles";
 import { SourcePanel } from "./SourcePanel";
 
 export function BriefingPanel({ onEngage }: { onEngage?: () => void }) {
   const [sourceOpen, setSourceOpen] = useState(false);
+  const hud = useSyncExternalStore(subscribeHud, getHud, getHud);
 
   return (
     <>
@@ -43,6 +46,18 @@ export function BriefingPanel({ onEngage }: { onEngage?: () => void }) {
             ) : (
               <p className="font-mono text-xs text-dim">Loading battlespace…</p>
             )}
+            <button
+              type="button"
+              aria-pressed={hud.ugvMove}
+              onClick={() => getSim().toggleUgvMove()}
+              className={`h-11 rounded-md border px-3 font-mono text-xs ${
+                hud.ugvMove
+                  ? "border-khaki bg-khaki/15 text-khaki"
+                  : "border-line bg-surface-2 text-muted hover:text-fg"
+              }`}
+            >
+              {hud.ugvMove ? `UGV MOVE ${UGV_MOVE_KMH} km/h` : "UGV HOLD"}
+            </button>
             <p className="font-mono text-xs text-dim">M mode · A/D slew · Space fire · Esc pause</p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">

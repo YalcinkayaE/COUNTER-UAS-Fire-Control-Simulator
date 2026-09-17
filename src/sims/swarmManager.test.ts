@@ -150,6 +150,19 @@ describe("SwarmManager", () => {
     expect(d.timeToBreach).toBeCloseTo((120 - 36) / 80, 5);
   });
 
+  test("collectImpacts uses the defended point, not world origin", () => {
+    const swarm = new SwarmManager(fixedRng);
+    swarm.spawnWave(1);
+    const d = swarm.drones[0]!;
+    const origin = { x: 120, y: 0, z: 40 };
+    d.position.set(10, 40, 10);
+    expect(swarm.collectImpacts(origin)).toHaveLength(0);
+    d.position.set(120, 40, 45);
+    const hits = swarm.collectImpacts(origin);
+    expect(hits.map((x) => x.id)).toContain(d.id);
+    expect(d.alive).toBe(false);
+  });
+
   test("collectImpacts removes a track only over the facility", () => {
     const swarm = new SwarmManager(fixedRng);
     swarm.killZone = 500;

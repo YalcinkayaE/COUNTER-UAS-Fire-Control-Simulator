@@ -10,8 +10,8 @@ import {
   azimuthFromNorth,
   elevationFromGround,
   hypot3,
-  horizontalClosingSpeed,
-  horizontalRange,
+  horizontalClosingFrom,
+  horizontalRangeFrom,
   radialClosingSpeed,
   solveIntercept,
   sphericalToCartesian,
@@ -56,6 +56,9 @@ export class EdgeComputer {
   tracks: TrackSnapshot[] = [];
   fireCall: FireCall | null = null;
   maxRange = Number.POSITIVE_INFINITY;
+  radarOrigin: Vec3 = { x: RADAR_POS.x, y: RADAR_POS.y, z: RADAR_POS.z };
+  defended: Vec3 = { x: 0, y: 0, z: 0 };
+  defendedVel: Vec3 = { x: 0, y: 0, z: 0 };
   private mode: FireMode = "AUTO";
   private shooter: Vec3 = { x: 0, y: 14, z: 0 };
   private barrelDir: Vec3 | null = null;
@@ -100,7 +103,7 @@ export class EdgeComputer {
   }
 
   private fromReport(r: RadarReport): TrackSnapshot {
-    const position = sphericalToCartesian(r.azimuth, r.elevation, r.range, RADAR_POS);
+    const position = sphericalToCartesian(r.azimuth, r.elevation, r.range, this.radarOrigin);
     const track: TrackSnapshot = {
       id: r.id,
       kind: r.kind,
@@ -123,19 +126,23 @@ export class EdgeComputer {
   }
 
   private refreshDerived(t: TrackSnapshot): void {
-    const dx = t.position.x - RADAR_POS.x;
-    const dy = t.position.y - RADAR_POS.y;
-    const dz = t.position.z - RADAR_POS.z;
+    const dx = t.position.x - this.radarOrigin.x;
+    const dy = t.position.y - this.radarOrigin.y;
+    const dz = t.position.z - this.radarOrigin.z;
     t.azimuth = azimuthFromNorth(dx, dz);
     t.elevation = elevationFromGround(dx, dy, dz);
     t.range = hypot3(dx, dy, dz);
     t.speed = hypot3(t.velocity.x, t.velocity.y, t.velocity.z);
     t.rangeRate = radialClosingSpeed({ x: dx, y: dy, z: dz }, t.velocity);
-    t.distance = hypot3(t.position.x, t.position.y, t.position.z);
-    t.radialVelocity = radialClosingSpeed(t.position, t.velocity);
+    t.distance = hypot3(
+      t.position.x - this.defended.x,
+      t.position.y - this.defended.y,
+      t.position.z - this.defended.z,
+    );
+    t.radialVelocity = horizontalClosingFrom(t.position, t.velocity, this.defended, this.defendedVel);
     t.timeToBreach = timeToBreach(
-      horizontalRange(t.position),
-      horizontalClosingSpeed(t.position, t.velocity),
+      horizontalRangeFrom(t.position, this.defended),
+      t.radialVelocity,
       FACILITY_RADIUS,
     );
   }

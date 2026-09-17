@@ -6,9 +6,11 @@ type Props = {
   targetId: string | null;
   yaw: number;
   effectiveRange: number;
+  originX?: number;
+  originZ?: number;
 };
 
-export function Radar({ tracks, targetId, yaw, effectiveRange }: Props) {
+export function Radar({ tracks, targetId, yaw, effectiveRange, originX = 0, originZ = 0 }: Props) {
   const scale = 96 / DETECT_RADIUS;
   const envelopeR = Math.max(4, effectiveRange * scale);
   return (
@@ -68,8 +70,8 @@ export function Radar({ tracks, targetId, yaw, effectiveRange }: Props) {
         <polygon points="0,-22 -3,-14 3,-14" fill="#d7dce2" />
       </g>
       {tracks.map((t) => {
-        const x = 110 + t.x * scale;
-        const y = 110 - t.z * scale;
+        const x = 110 + (t.x - originX) * scale;
+        const y = 110 - (t.z - originZ) * scale;
         const imminent = Number.isFinite(t.timeToBreach) && t.timeToBreach < 8;
         const isTarget = t.id === targetId;
         const fill = imminent ? "#c45c4a" : t.kind === "fixedWing" ? "#c9b24a" : "#9eb8a8";

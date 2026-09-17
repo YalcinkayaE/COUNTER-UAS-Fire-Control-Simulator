@@ -7,7 +7,7 @@ import { type ReactNode, useState, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
 import type { ViewMode } from "@/sims/camera";
 import type { LedgerEntry } from "@/sims/ledger";
-import { EFFECTOR_IDS } from "@/sims/constants";
+import { EFFECTOR_IDS, UGV_MOVE_KMH } from "@/sims/constants";
 import { formatBearingDeg, formatDist, formatElevDeg, formatSlew, formatTtb } from "@/sims/math";
 import { getHud, getSim, subscribeHud } from "@/sims/simulation";
 import { Radar } from "./Radar";
@@ -85,6 +85,8 @@ export function TacticalHUD({
                 targetId={hud.targetId}
                 yaw={hud.barrel.yaw}
                 effectiveRange={hud.effector.range}
+                originX={hud.ugv.x}
+                originZ={hud.ugv.z}
               />
             </div>
           </div>
@@ -144,6 +146,7 @@ function TrackTable({
         <span className="font-mono text-xs text-accent">{hud.mode}</span>
       </div>
       <EffectorPicker id={hud.effector.id} rpm={hud.effector.rpm} range={hud.effector.range} />
+      <UgvMoveToggle on={hud.ugvMove} />
       <p className="mt-1 font-mono text-[10px] text-dim">
         SLEW vs TTB · ENG rounds in air · HOLD assigned · LATE cannot save
       </p>
@@ -357,6 +360,23 @@ function EffectorPicker({
   );
 }
 
+function UgvMoveToggle({ on }: { on: boolean }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={on}
+      onClick={() => getSim().toggleUgvMove()}
+      className={`pointer-events-auto mt-2 h-8 w-full rounded-md border px-2 font-mono text-[10px] ${
+        on
+          ? "border-khaki bg-khaki/15 text-khaki"
+          : "border-line bg-surface-2 text-muted hover:text-fg"
+      }`}
+    >
+      {on ? `UGV MOVE ${UGV_MOVE_KMH} km/h` : "UGV HOLD"}
+    </button>
+  );
+}
+
 function StatusWindow({ hud }: { hud: ReturnType<typeof getHud> }) {
   return (
     <div className="flex w-[40rem] max-w-[calc(100vw-2rem)] flex-col items-center gap-1.5 rounded-lg border border-line bg-surface/90 px-4 py-2 font-mono text-xs tabular-nums">
@@ -379,6 +399,10 @@ function StatusWindow({ hud }: { hud: ReturnType<typeof getHud> }) {
         <span className="text-muted">
           RDS <span className="text-fg">{hud.shots}</span>
         </span>
+        {hud.ugvMove ? <span className="text-line">|</span> : null}
+        {hud.ugvMove ? (
+          <span className="text-khaki">MOVE {UGV_MOVE_KMH} km/h</span>
+        ) : null}
         <span className="h-1.5 w-16 overflow-hidden rounded-full bg-line">
           <span
             className="block h-full bg-accent"

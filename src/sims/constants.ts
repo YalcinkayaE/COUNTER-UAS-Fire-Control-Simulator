@@ -59,6 +59,11 @@ export const ALIGN_TOLERANCE_DEG = 0.85;
 export const ALIGN_TOLERANCE_RAD = (ALIGN_TOLERANCE_DEG * Math.PI) / 180;
 /** Stay on the current fire-call track unless another deadline is earlier by this much. */
 export const COMMIT_HYSTERESIS_SEC = 1.5;
+/** Optional shoot-on-the-move: UGV crabs at this speed to displace the asset. */
+export const UGV_MOVE_KMH = 4;
+export const UGV_MOVE_MPS = UGV_MOVE_KMH / 3.6;
+export const UGV_TURN_DEG = 20;
+export const UGV_TURN_RAD = (UGV_TURN_DEG * Math.PI) / 180;
 
 export const EFFECTOR_IDS = ["CAKIR", "HN-12", "PENCE-A"] as const;
 export type EffectorId = (typeof EFFECTOR_IDS)[number];

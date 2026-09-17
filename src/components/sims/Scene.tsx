@@ -119,8 +119,15 @@ function NorthLockedControls({ view }: { view: ViewMode }) {
   }, [view, size.width, size.height]);
 
   useFrame(() => {
-    const cam = ref.current?.object;
-    if (cam) applyPpiProjection(cam);
+    const controls = ref.current;
+    if (!controls) return;
+    const s = getSim();
+    const polar = controls.getPolarAngle();
+    const radius = controls.getDistance();
+    const [cx, cy, cz] = northLockedCameraPosition(polar, radius);
+    controls.target.set(s.ugv.x, CAMERA_TARGET_Y, s.ugv.z);
+    controls.object.position.set(cx + s.ugv.x, cy, cz + s.ugv.z);
+    applyPpiProjection(controls.object);
   });
 
   return (
@@ -187,8 +194,13 @@ function ringPoints(radius: number, y: number): [number, number, number][] {
 function Perimeter() {
   const detect = useMemo(() => ringPoints(DETECT_RADIUS, 0.7), []);
   const outer = useMemo(() => ringPoints(OUTER_RADIUS, 0.7), []);
+  const root = useRef<THREE.Group>(null);
+  useFrame(() => {
+    const s = getSim();
+    if (root.current) root.current.position.set(s.ugv.x, 0, s.ugv.z);
+  });
   return (
-    <group>
+    <group ref={root}>
       <Line points={detect} color="#c9b24a" lineWidth={1.6} />
       <Line points={outer} color="#ee7f1a" lineWidth={1.5} />
       <KillZoneRing />
@@ -334,10 +346,13 @@ const KHAKI_LIGHT = "#ffe566";
 const KHAKI_METAL = "#e8c030";
 
 function UgvInterceptor() {
+  const hull = useRef<THREE.Group>(null);
   const turret = useRef<THREE.Group>(null);
   const flash = useRef<THREE.PointLight>(null);
   useFrame(() => {
-    const t = getSim().turret;
+    const s = getSim();
+    if (hull.current) hull.current.position.set(s.ugv.x, 0, s.ugv.z);
+    const t = s.turret;
     if (turret.current) turret.current.quaternion.copy(t.quaternion);
     if (flash.current) {
       flash.current.intensity = t.burstLeft > 0 ? 48 : 0;
@@ -365,6 +380,7 @@ function UgvInterceptor() {
   );
 
   return (
+    <group ref={hull}>
     <group scale={4}>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.04, 0]} receiveShadow>
         <circleGeometry args={[22, 48]} />
@@ -604,6 +620,7 @@ function UgvInterceptor() {
           <pointLight ref={flash} position={[0, 0.2, 17.2]} color="#f3f0d8" distance={90} />
         </group>
       </group>
+    </group>
     </group>
   );
 }

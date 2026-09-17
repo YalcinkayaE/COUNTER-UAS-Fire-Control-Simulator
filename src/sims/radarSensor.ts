@@ -15,8 +15,8 @@ import {
   azimuthFromNorth,
   elevationFromGround,
   hypot3,
-  horizontalClosingSpeed,
-  horizontalRange,
+  horizontalClosingFrom,
+  horizontalRangeFrom,
   radialClosingSpeed,
   timeToBreach,
   type Vec3,
@@ -71,8 +71,8 @@ export class RadarSensor {
     const ranked = live
       .map((o) => {
         const ttb = timeToBreach(
-          horizontalRange(o.position),
-          horizontalClosingSpeed(o.position, o.velocity),
+          horizontalRangeFrom(o.position, this.origin),
+          horizontalClosingFrom(o.position, o.velocity, this.origin),
           FACILITY_RADIUS,
         );
         return { o, ttb };

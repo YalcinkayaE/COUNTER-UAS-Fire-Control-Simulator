@@ -255,3 +255,4 @@ The value for stakeholders is that the visible queue (AZ, EL, RNG, V, TTB) is th
 | Quad speed | 12–38 m/s |
 | Fixed-wing speed | 72–96 m/s |
 | Path change (alt, azimuth, speed) | up to 40% of spawn values |
+| UGV MOVE (optional) | 4 km/h crab, heading 90° off the fire-call azimuth |

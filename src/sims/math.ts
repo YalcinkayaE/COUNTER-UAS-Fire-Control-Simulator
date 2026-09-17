@@ -24,11 +24,31 @@ export function horizontalRange(p: Vec3): number {
   return Math.hypot(p.x, p.z);
 }
 
+export function horizontalRangeFrom(p: Vec3, origin: Vec3): number {
+  return Math.hypot(p.x - origin.x, p.z - origin.z);
+}
+
 /** Ground-plane closing speed toward the origin (positive = inbound). */
 export function horizontalClosingSpeed(p: Vec3, v: Vec3): number {
   const r = Math.hypot(p.x, p.z);
   if (r < 1e-8) return 0;
   return -(p.x * v.x + p.z * v.z) / r;
+}
+
+/** Closing speed toward a possibly moving defended point (positive = inbound). */
+export function horizontalClosingFrom(
+  p: Vec3,
+  v: Vec3,
+  origin: Vec3,
+  originVel: Vec3 = { x: 0, y: 0, z: 0 },
+): number {
+  const x = p.x - origin.x;
+  const z = p.z - origin.z;
+  const r = Math.hypot(x, z);
+  if (r < 1e-8) return 0;
+  const vx = v.x - originVel.x;
+  const vz = v.z - originVel.z;
+  return -(x * vx + z * vz) / r;
 }
 
 /**
