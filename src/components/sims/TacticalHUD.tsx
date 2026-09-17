@@ -16,16 +16,16 @@ export function TacticalHUD() {
   return (
     <>
       <header className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-between gap-3 p-3 pt-[max(0.75rem,env(safe-area-inset-top))] md:p-4">
-        <div className="rounded-xl border border-line bg-surface/90 p-3 md:p-4">
-          <p className="font-display text-3xl font-semibold leading-none tracking-display text-khaki md:text-4xl">
-            KANGAL
-          </p>
-          <h1 className="mt-1 font-display text-lg font-semibold leading-tight tracking-display md:text-xl">
-            SEM DEFENDER
-          </h1>
-          <p className="mt-0.5 font-mono text-[10px] tracking-widest text-accent">
-            COUNTER-UAS FIRE CONTROL
-          </p>
+        <div className="flex items-start gap-3 rounded-xl border border-line bg-surface/90 p-3 md:gap-4 md:p-4">
+          <div>
+            <h1 className="font-display text-3xl font-semibold leading-none tracking-display text-khaki md:text-4xl">
+              SEM DEFENDER
+            </h1>
+            <p className="mt-1 font-mono text-[10px] tracking-widest text-accent">
+              COUNTER-UAS FIRE CONTROL
+            </p>
+          </div>
+          <CompassRose />
         </div>
         <div className="flex flex-col items-end gap-2">
           <div className="rounded-lg border border-line bg-surface/90 px-3 py-2 font-mono text-xs tabular-nums text-muted">
@@ -234,6 +234,63 @@ function IconBtn({
     >
       {children}
     </button>
+  );
+}
+
+function CompassRose() {
+  return (
+    <svg
+      viewBox="0 0 88 88"
+      className="size-16 shrink-0 md:size-[4.5rem]"
+      role="img"
+      aria-label="Compass, north up. Cardinals N, E, S, W."
+    >
+      <circle cx="44" cy="50" r="24" fill="none" stroke="#252b32" strokeWidth="1.2" />
+      <line x1="44" y1="30" x2="44" y2="70" stroke="#252b32" strokeWidth="0.8" />
+      <line x1="24" y1="50" x2="64" y2="50" stroke="#252b32" strokeWidth="0.8" />
+      <polygon points="44,20 39,38 44,34 49,38" fill="#c9b24a" />
+      <text
+        x="44"
+        y="16"
+        textAnchor="middle"
+        fill="#c9b24a"
+        fontSize="12"
+        fontFamily="IBM Plex Mono, ui-monospace, monospace"
+        fontWeight="700"
+      >
+        N
+      </text>
+      <text
+        x="80"
+        y="54"
+        textAnchor="middle"
+        fill="#8a929c"
+        fontSize="10"
+        fontFamily="IBM Plex Mono, ui-monospace, monospace"
+      >
+        E
+      </text>
+      <text
+        x="44"
+        y="84"
+        textAnchor="middle"
+        fill="#8a929c"
+        fontSize="10"
+        fontFamily="IBM Plex Mono, ui-monospace, monospace"
+      >
+        S
+      </text>
+      <text
+        x="8"
+        y="54"
+        textAnchor="middle"
+        fill="#8a929c"
+        fontSize="10"
+        fontFamily="IBM Plex Mono, ui-monospace, monospace"
+      >
+        W
+      </text>
+    </svg>
   );
 }
 
