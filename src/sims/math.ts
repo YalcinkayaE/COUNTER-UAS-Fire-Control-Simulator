@@ -156,6 +156,28 @@ export function formatTtb(t: number): string {
   return t.toFixed(1);
 }
 
+/** Slew time onto the intercept. 0 means already aligned; missing solution is a dash. */
+export function formatSlew(t: number): string {
+  if (!Number.isFinite(t)) return "—";
+  if (t >= 100) return t.toFixed(0);
+  return t.toFixed(1);
+}
+
+export type TrackAssignment = "ENGAGED" | "HOLD" | "LATE" | null;
+
+/** EDF-row gate: in-flight rounds, assigned fire call, or geometry that cannot save. */
+export function trackAssignment(opts: {
+  inFlight: boolean;
+  assigned: boolean;
+  feasible: boolean;
+  timeToBreach: number;
+}): TrackAssignment {
+  if (opts.inFlight) return "ENGAGED";
+  if (Number.isFinite(opts.timeToBreach) && opts.timeToBreach > 0 && !opts.feasible) return "LATE";
+  if (opts.assigned) return "HOLD";
+  return null;
+}
+
 export function formatDist(m: number): string {
   return m.toFixed(0);
 }

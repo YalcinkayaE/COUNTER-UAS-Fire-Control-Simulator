@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import type { ViewMode } from "@/sims/camera";
 import type { LedgerEntry } from "@/sims/ledger";
 import { EFFECTOR_IDS } from "@/sims/constants";
-import { formatBearingDeg, formatDist, formatElevDeg, formatTtb } from "@/sims/math";
+import { formatBearingDeg, formatDist, formatElevDeg, formatSlew, formatTtb } from "@/sims/math";
 import { getHud, getSim, subscribeHud } from "@/sims/simulation";
 import { Radar } from "./Radar";
 
@@ -92,7 +92,7 @@ export function TacticalHUD({
       ) : null}
 
       {live ? (
-        <aside className="pointer-events-none absolute top-24 right-0 z-10 hidden w-[22rem] max-w-[calc(100%-1.5rem)] flex-col gap-3 p-4 md:top-24 md:flex">
+        <aside className="pointer-events-none absolute top-24 right-0 z-10 hidden w-[28rem] max-w-[calc(100%-1.5rem)] flex-col gap-3 p-4 md:top-24 md:flex">
           <TrackTable hud={hud} />
         </aside>
       ) : null}
@@ -144,6 +144,9 @@ function TrackTable({
         <span className="font-mono text-xs text-accent">{hud.mode}</span>
       </div>
       <EffectorPicker id={hud.effector.id} rpm={hud.effector.rpm} range={hud.effector.range} />
+      <p className="mt-1 font-mono text-[10px] text-dim">
+        SLEW vs TTB · ENG rounds in air · HOLD assigned · LATE cannot save
+      </p>
       <div className="mt-2 max-h-[min(28rem,52vh)] overflow-y-auto">
       <table className="w-full border-collapse font-mono text-[11px] tabular-nums">
         <thead>
@@ -153,13 +156,15 @@ function TrackTable({
             <th className="pb-1 text-right font-medium">EL</th>
             <th className="pb-1 text-right font-medium">RNG</th>
             <th className="pb-1 text-right font-medium">V</th>
+            <th className="pb-1 text-right font-medium">SLEW</th>
             <th className="pb-1 text-right font-medium">TTB</th>
+            <th className="pb-1 text-right font-medium">ST</th>
           </tr>
         </thead>
         <tbody>
           {rows.length === 0 ? (
             <tr>
-              <td colSpan={6} className="py-2 text-dim">
+              <td colSpan={8} className="py-2 text-dim">
                 No tracks
               </td>
             </tr>
@@ -167,10 +172,13 @@ function TrackTable({
             rows.map((t, i) => {
               const hot = t.id === hud.targetId;
               const imminent = Number.isFinite(t.timeToBreach) && t.timeToBreach < 8;
+              const late = t.assignment === "LATE";
               return (
                 <tr
                   key={t.id}
-                  className={hot ? "text-fg" : imminent ? "text-danger" : "text-muted"}
+                  className={
+                    hot ? "text-fg" : late ? "text-warn" : imminent ? "text-danger" : "text-muted"
+                  }
                 >
                   <td className="py-0.5">
                     {hot ? "▸ " : `${i + 1} `}
@@ -181,7 +189,11 @@ function TrackTable({
                   <td className="text-right">{formatElevDeg(t.elevation)}</td>
                   <td className="text-right">{formatDist(t.range)}</td>
                   <td className="text-right">{t.speed.toFixed(0)}</td>
+                  <td className="text-right">{formatSlew(t.slewTime)}</td>
                   <td className="text-right">{formatTtb(t.timeToBreach)}</td>
+                  <td className={`text-right ${t.assignment === "ENGAGED" ? "text-accent" : ""}`}>
+                    {t.assignment ?? ""}
+                  </td>
                 </tr>
               );
             })

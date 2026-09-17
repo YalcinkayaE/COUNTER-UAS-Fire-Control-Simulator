@@ -3,12 +3,14 @@ import { FACILITY_RADIUS, PROJECTILE_SPEED } from "./constants";
 import {
   azimuthFromNorth,
   elevationFromGround,
+  formatSlew,
   formatTtb,
   horizontalClosingSpeed,
   horizontalRange,
   solveIntercept,
   sphericalToCartesian,
   timeToBreach,
+  trackAssignment,
 } from "./math";
 
 describe("timeToBreach", () => {
@@ -75,6 +77,45 @@ describe("formatTtb", () => {
     expect(formatTtb(Number.POSITIVE_INFINITY)).toBe("REC");
     expect(formatTtb(0)).toBe("NOW");
     expect(formatTtb(8.21)).toBe("8.2");
+  });
+});
+
+describe("formatSlew", () => {
+  test("shows seconds, not NOW, and blanks a missing solution", () => {
+    expect(formatSlew(Number.POSITIVE_INFINITY)).toBe("—");
+    expect(formatSlew(0)).toBe("0.0");
+    expect(formatSlew(1.24)).toBe("1.2");
+  });
+});
+
+describe("trackAssignment", () => {
+  test("ENGAGED when rounds are in flight, even if the geometry later goes late", () => {
+    expect(
+      trackAssignment({ inFlight: true, assigned: true, feasible: false, timeToBreach: 0.4 }),
+    ).toBe("ENGAGED");
+  });
+
+  test("LATE when slew plus tof cannot beat a finite TTB", () => {
+    expect(
+      trackAssignment({ inFlight: false, assigned: false, feasible: false, timeToBreach: 0.8 }),
+    ).toBe("LATE");
+  });
+
+  test("does not mark receding tracks LATE", () => {
+    expect(
+      trackAssignment({
+        inFlight: false,
+        assigned: false,
+        feasible: false,
+        timeToBreach: Number.POSITIVE_INFINITY,
+      }),
+    ).toBeNull();
+  });
+
+  test("HOLD when this row is the fire call and no round is away yet", () => {
+    expect(
+      trackAssignment({ inFlight: false, assigned: true, feasible: true, timeToBreach: 12 }),
+    ).toBe("HOLD");
   });
 });
 

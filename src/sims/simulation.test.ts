@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { describe, expect, test } from "vitest";
 import { FIXED_DT, HIT_RADIUS } from "./constants";
-import { Simulation } from "./simulation";
+import { getHud, getSim, resetSim, Simulation } from "./simulation";
 
 function step(sim: Simulation, seconds: number): void {
   const n = Math.ceil(seconds / FIXED_DT);
@@ -60,6 +60,30 @@ describe("ledger", () => {
     expect(sim.ledger.snapshot().length).toBe(2);
     sim.clearLedger();
     expect(sim.ledger.snapshot()).toHaveLength(0);
+  });
+});
+
+describe("EDF row assignment", () => {
+  test("marks a track ENGAGED while a round is in flight to it", () => {
+    resetSim();
+    const sim = getSim();
+    sim.muted = true;
+    sim.resetRun();
+    sim.phase = "live";
+    step(sim, 0.2);
+    const id = sim.edge.tracks[0]?.id;
+    expect(id).toBeTruthy();
+    sim.projectiles.push({
+      id: 7,
+      position: new THREE.Vector3(0, 14, 0),
+      velocity: new THREE.Vector3(0, 0, 2000),
+      dest: new THREE.Vector3(0, 40, 200),
+      targetId: id!,
+      tof: 0.4,
+      alive: true,
+    });
+    sim.update(0.05);
+    expect(getHud().tracks.find((t) => t.id === id)?.assignment).toBe("ENGAGED");
   });
 });
 

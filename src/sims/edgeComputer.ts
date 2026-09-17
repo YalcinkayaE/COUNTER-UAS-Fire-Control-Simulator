@@ -36,6 +36,9 @@ export type TrackSnapshot = {
   distance: number;
   radialVelocity: number;
   timeToBreach: number;
+  slewTime: number;
+  timeOfFlight: number;
+  feasible: boolean;
 };
 
 export type FireCall = {
@@ -111,6 +114,9 @@ export class EdgeComputer {
       distance: 0,
       radialVelocity: 0,
       timeToBreach: Number.POSITIVE_INFINITY,
+      slewTime: Number.POSITIVE_INFINITY,
+      timeOfFlight: Number.POSITIVE_INFINITY,
+      feasible: false,
     };
     this.refreshDerived(track);
     return track;
@@ -144,18 +150,28 @@ export class EdgeComputer {
     const cands: Candidate[] = [];
     for (const track of this.tracks) {
       const intercept = solveIntercept(shooter, PROJECTILE_SPEED, track.position, track.velocity);
-      if (!intercept) continue;
+      if (!intercept) {
+        track.slewTime = Number.POSITIVE_INFINITY;
+        track.timeOfFlight = Number.POSITIVE_INFINITY;
+        track.feasible = false;
+        continue;
+      }
       const dist = hypot3(
         intercept.x - shooter.x,
         intercept.y - shooter.y,
         intercept.z - shooter.z,
       );
       const inRange = dist <= this.maxRange;
+      const slewTime = this.slewTime(shooter, intercept);
+      const feasible = this.isFeasible(track, intercept, shooter);
+      track.slewTime = slewTime;
+      track.timeOfFlight = intercept.t;
+      track.feasible = feasible;
       cands.push({
         track,
         intercept,
         inRange,
-        feasible: this.isFeasible(track, intercept, shooter),
+        feasible,
       });
     }
 

@@ -90,7 +90,7 @@ Do not call it a tower-defense game. The operator is the **weapons-release autho
 **Say:**
 > Detection is assumed inside the sector. The interesting problem starts after the track file exists. Every 100 ms we recompute Time-to-Breach and sort lowest first. That is Earliest Deadline First — the same idea as "First" in air defense, but in radial time, not path progress.
 
-**Gesture:** the top row (▸ Txx) is AUTO's current shot. Red TTB < 8 s is imminent.
+**Gesture:** the top row (▸ Txx) is AUTO's current shot. Red TTB < 8 s is imminent. SLEW vs TTB: if slew plus time of flight is larger than TTB the row is LATE — AUTO cannot save it. ENGAGED means rounds are already in the air; HOLD is the assigned fire call waiting to shoot.
 
 **Formula to read aloud:**
 `TTB = (horizontal range − 36 m asset) / horizontal closing speed`

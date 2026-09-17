@@ -14,7 +14,14 @@ import {
   type EffectorId,
   type EffectorSpec,
 } from "./constants";
-import { azimuthFromNorth, dist3, elevationFromGround, hypot3 } from "./math";
+import {
+  azimuthFromNorth,
+  dist3,
+  elevationFromGround,
+  hypot3,
+  trackAssignment,
+  type TrackAssignment,
+} from "./math";
 import { Ledger, type LedgerEntry, type LedgerKinematics } from "./ledger";
 import { SwarmManager } from "./swarmManager";
 import { DroneTarget } from "./droneTarget";
@@ -39,6 +46,10 @@ export type TrackRow = {
   z: number;
   y: number;
   alive: boolean;
+  slewTime: number;
+  timeOfFlight: number;
+  feasible: boolean;
+  assignment: TrackAssignment;
 };
 
 export type HudSnapshot = {
@@ -689,21 +700,33 @@ function buildHud(s: Simulation): HudSnapshot {
   return {
     phase: s.phase,
     mode: s.turret.mode,
-    tracks: s.edge.tracks.map((t) => ({
-      id: t.id,
-      kind: t.kind,
-      distance: t.distance,
-      timeToBreach: t.timeToBreach,
-      radialVelocity: t.radialVelocity,
-      speed: t.speed,
-      azimuth: t.azimuth,
-      elevation: t.elevation,
-      range: t.range,
-      x: t.position.x,
-      y: t.position.y,
-      z: t.position.z,
-      alive: true,
-    })),
+    tracks: s.edge.tracks.map((t) => {
+      const inFlight = s.projectiles.some((p) => p.alive && p.targetId === t.id);
+      return {
+        id: t.id,
+        kind: t.kind,
+        distance: t.distance,
+        timeToBreach: t.timeToBreach,
+        radialVelocity: t.radialVelocity,
+        speed: t.speed,
+        azimuth: t.azimuth,
+        elevation: t.elevation,
+        range: t.range,
+        x: t.position.x,
+        y: t.position.y,
+        z: t.position.z,
+        alive: true,
+        slewTime: t.slewTime,
+        timeOfFlight: t.timeOfFlight,
+        feasible: t.feasible,
+        assignment: trackAssignment({
+          inFlight,
+          assigned: s.edge.fireCall?.targetId === t.id,
+          feasible: t.feasible,
+          timeToBreach: t.timeToBreach,
+        }),
+      };
+    }),
     targetId,
     intercept: ic ? { x: ic.x, y: ic.y, z: ic.z, t: ic.t } : null,
     aligned: s.turret.aligned,

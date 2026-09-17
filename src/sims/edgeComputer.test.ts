@@ -196,5 +196,11 @@ describe("EdgeComputer", () => {
     const feasible = edge.ingest(radar.scan([hot, steady]), "AUTO", TURRET_POS, barrelEast);
     expect(feasible!.targetId).toBe("T-STEADY");
     expect(feasible!.autoEngage).toBe(true);
+    const hotRow = edge.tracks.find((t) => t.id === "T-HOT")!;
+    const steadyRow = edge.tracks.find((t) => t.id === "T-STEADY")!;
+    expect(hotRow.feasible).toBe(false);
+    expect(hotRow.slewTime + hotRow.timeOfFlight).toBeGreaterThanOrEqual(hotRow.timeToBreach);
+    expect(steadyRow.feasible).toBe(true);
+    expect(steadyRow.slewTime).toBeGreaterThan(0);
   });
 });
