@@ -192,8 +192,23 @@ function Perimeter() {
       <Line points={detect} color="#c9b24a" lineWidth={1.6} />
       <Line points={outer} color="#ee7f1a" lineWidth={1.5} />
       <Line points={kill} color="#e44535" lineWidth={1.4} />
+      <EffectorEnvelope />
       <SpokeLines />
       <Cardinals />
+    </group>
+  );
+}
+
+function EffectorEnvelope() {
+  const group = useRef<THREE.Group>(null);
+  const unit = useMemo(() => ringPoints(1, 0.7), []);
+  useFrame(() => {
+    const r = getSim().turret.effectiveRange;
+    if (group.current) group.current.scale.set(r, 1, r);
+  });
+  return (
+    <group ref={group}>
+      <Line points={unit} color="#9eb8a8" lineWidth={1.5} />
     </group>
   );
 }
@@ -267,41 +282,6 @@ const KHAKI = "#f0c93a";
 const KHAKI_DEEP = "#d4a41a";
 const KHAKI_LIGHT = "#ffe566";
 const KHAKI_METAL = "#e8c030";
-const KHAKI_MARK = "#3a3208";
-
-function KangalMark({
-  position,
-  rotation,
-  width,
-}: {
-  position: [number, number, number];
-  rotation: [number, number, number];
-  width: number;
-}) {
-  const texture = useMemo(() => {
-    const c = document.createElement("canvas");
-    c.width = 512;
-    c.height = 128;
-    const ctx = c.getContext("2d");
-    if (!ctx) throw new Error("KANGAL mark canvas 2D context unavailable");
-    ctx.clearRect(0, 0, 512, 128);
-    ctx.fillStyle = KHAKI_MARK;
-    ctx.font = "700 78px 'Barlow Condensed', 'Arial Narrow', sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText("KANGAL", 256, 64);
-    const tex = new THREE.CanvasTexture(c);
-    tex.anisotropy = 4;
-    tex.needsUpdate = true;
-    return tex;
-  }, []);
-  return (
-    <mesh position={position} rotation={rotation}>
-      <planeGeometry args={[width, width * 0.25]} />
-      <meshBasicMaterial map={texture} transparent depthWrite={false} />
-    </mesh>
-  );
-}
 
 function UgvInterceptor() {
   const turret = useRef<THREE.Group>(null);
@@ -384,9 +364,6 @@ function UgvInterceptor() {
           fog={false}
         />
       </mesh>
-      <KangalMark position={[4.62, 2.45, 0]} rotation={[0, Math.PI / 2, 0]} width={5.2} />
-      <KangalMark position={[-4.62, 2.45, 0]} rotation={[0, -Math.PI / 2, 0]} width={5.2} />
-      <KangalMark position={[0, 3.78, 5.2]} rotation={[-Math.PI / 2, 0, Math.PI]} width={4.6} />
       {[-5.4, 0, 5.4].flatMap((z) => [-5.35, 5.35].map((x) => wheel(x, z)))}
       <group position={[0, 5.35, -1.1]}>
         <mesh position={[0, -0.55, 0]} castShadow>
@@ -412,7 +389,6 @@ function UgvInterceptor() {
               fog={false}
             />
           </mesh>
-          <KangalMark position={[0, 1.84, 0]} rotation={[-Math.PI / 2, 0, Math.PI]} width={4.2} />
           <mesh position={[0, 0.25, 8.6]} rotation={[-Math.PI / 2, 0, 0]} castShadow>
             <cylinderGeometry args={[0.78, 0.58, 15.5, 14]} />
             <meshStandardMaterial

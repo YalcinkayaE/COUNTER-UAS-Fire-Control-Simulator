@@ -5,10 +5,12 @@ type Props = {
   tracks: TrackRow[];
   targetId: string | null;
   yaw: number;
+  effectiveRange: number;
 };
 
-export function Radar({ tracks, targetId, yaw }: Props) {
+export function Radar({ tracks, targetId, yaw, effectiveRange }: Props) {
   const scale = 96 / DETECT_RADIUS;
+  const envelopeR = Math.max(4, effectiveRange * scale);
   return (
     <svg
       viewBox="0 0 220 220"
@@ -27,6 +29,7 @@ export function Radar({ tracks, targetId, yaw }: Props) {
       <circle cx="110" cy="110" r="100" fill="none" stroke="#c9b24a" strokeWidth="1.4" />
       <circle cx="110" cy="110" r="50" fill="none" stroke="#ee7f1a" strokeWidth="1.3" />
       <circle cx="110" cy="110" r="25" fill="none" stroke="#e44535" strokeWidth="1.3" />
+      <circle cx="110" cy="110" r={envelopeR} fill="none" stroke="#9eb8a8" strokeWidth="1.2" />
       <circle cx="110" cy="110" r="75" fill="none" stroke="#252b32" strokeWidth="0.8" />
       <line x1="110" y1="8" x2="110" y2="212" stroke="#252b32" strokeWidth="0.8" />
       <line x1="8" y1="110" x2="212" y2="110" stroke="#252b32" strokeWidth="0.8" />
@@ -102,6 +105,15 @@ export function Radar({ tracks, targetId, yaw }: Props) {
       </text>
       <text x="138" y="114" fill="#e44535" fontSize="8" fontFamily="IBM Plex Mono">
         0.5
+      </text>
+      <text
+        x={110 + envelopeR + 4}
+        y={108}
+        fill="#9eb8a8"
+        fontSize="7"
+        fontFamily="IBM Plex Mono"
+      >
+        {effectiveRange >= 1000 ? `${effectiveRange / 1000}` : `${effectiveRange}m`}
       </text>
     </svg>
   );

@@ -13,7 +13,7 @@ related: []
 
 # C-UAS fire-control mathematics
 
-**KANGAL / SEM-Tech DEFENDER** desktop COUNTER-UAS FIRE CONTROL simulator.
+**SEM-Tech DEFENDER** desktop COUNTER-UAS FIRE CONTROL simulator.
 
 Formulas use GitHub / KaTeX / MathJax notation: inline `$...$`, display on their own lines as `$$...$$`. Open this file in VS Code (Markdown Math), GitHub, Obsidian, Typora, or Quarto.
 

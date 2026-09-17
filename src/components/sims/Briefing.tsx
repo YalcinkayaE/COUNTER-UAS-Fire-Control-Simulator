@@ -27,6 +27,8 @@ export function BriefingPanel({ onEngage }: { onEngage?: () => void }) {
             AUTO slews at 75°/s onto the quadratic lead from the last 10 Hz scan. Crossing 500 m
             is a breach, not a despawn: EDF keeps that track at TTB NOW and the gun stays on it
             until a kill or the asset. MANUAL is the weapons-release bypass on the same solution.
+            Select CAKIR (1350 rds/min, 400 m), HN-12 (1000 rds/min, 200 m), or PENCE-A (120 rds/min,
+            400 m). AUTO will not fire outside that envelope.
           </p>
         </div>
         <div className="mt-6 flex flex-col gap-3">

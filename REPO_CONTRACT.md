@@ -2,13 +2,13 @@
 repo_name: sem_defender
 repo_root: /Users/erkanyalcinkaya/projects/sem_defender
 repo_type: prototype
-status_date: 2026-09-16
+status_date: 2026-09-17
 branch: main
 default_branch: main
 preferred_runtime: npm run dev
 preferred_entrypoints:
   - src/main.tsx
-  - src/components/sims/GameApp.tsx
+  - src/components/sims/SimsApp.tsx
   - src/sims/simulation.ts
 authoritative_docs:
   - REPO_CONTRACT.md
@@ -22,13 +22,13 @@ authoritative_codepaths:
 verification_commands:
   - name: unit
     command: npm test
-    expected_result: 9 passed
+    expected_result: 38 passed
   - name: build
     command: npm run build
     expected_result: exit 0
   - name: dev
     command: npm run dev
-    expected_result: Vite serves http://127.0.0.1:5173 with title SEM-Tech DEFENDER
+    expected_result: Vite serves http://127.0.0.1:5173 with title SEM DEFENDER
 status_summary:
   overall_state: active
   current_focus: Desktop COUNTER-UAS FIRE CONTROL simulator (EDF fire-control)
@@ -74,12 +74,12 @@ In scope: the desktop operator console, the TypeScript simulation (`DroneTarget`
 
 ### Executable core
 - `src/main.tsx`: SPA mount.
-- `src/components/sims/GameApp.tsx`: canvas, HUD, overlays, input.
+- `src/components/sims/SimsApp.tsx`: canvas, HUD, overlays, input.
 - `src/sims/simulation.ts`: fixed-step loop, magazine, lives, waves.
 
 ### Core subsystems
 - `src/sims/math.ts`: TTB and quadratic intercept.
-- `src/sims/droneTarget.ts` / `src/sims/swarmManager.ts`: 20 tracks, 10 Hz EDF list.
+- `src/sims/droneTarget.ts` / `src/sims/swarmManager.ts`: 20 quads + 2 fixed-wing, 10 Hz EDF list (radar file holds 20).
 - `src/sims/turretController.ts`: AUTO/MANUAL slew and fire gate.
 - `src/components/sims/Scene.tsx`: battlespace, turret, drones, tracers.
 - `src/components/sims/TacticalHUD.tsx` / `Radar.tsx`: EDF table and PPI scope.
@@ -87,7 +87,7 @@ In scope: the desktop operator console, the TypeScript simulation (`DroneTarget`
 ### Supporting assets
 - `SEM-Tech DEFENDER Demo Blueprint.md`: 6-minute seated walkthrough.
 - `src/styles.css`: Tailwind v4 tokens.
-- `src/sims/math.test.ts` / `src/sims/swarmManager.test.ts`: kinematics characterisation.
+- `src/sims/*.test.ts`: kinematics, radar, turret, camera, ledger characterisation.
 
 ## 3. Current Status Boundary
 
@@ -96,9 +96,9 @@ Treat the following as the current truth:
 - This product is a desktop COUNTER-UAS FIRE CONTROL simulator, not a tower-defense game and not a fielded sensor.
 - The checkout is a Vite SPA in a desktop browser window. TanStack Start / Grok host adapters (`AuthProvider`, `PreviewHostBridge`, `/__grok/*`) are not part of the runtime.
 - `npm run dev` serves the simulator at `http://127.0.0.1:5173`.
-- Observed on 2026-09-16: briefing card with title SEM-Tech DEFENDER; Engage starts wave 1 with 20 tracks; EDF queue and PPI scope render; AUTO fires; M toggles MANUAL; Esc pauses.
-- Unit tests for TTB, intercept, spawn count, EDF sort, and breach collection passed on 2026-09-16 (`9 passed`).
-- `npm run build` exited 0 on 2026-09-16.
+- Observed on 2026-09-17: document title SEM DEFENDER; briefing and HUD wordmark SEM DEFENDER; Engage starts wave 1 (20 quads + 2 fixed-wing, EDF holds 20); EDF queue and PPI (north-up); AUTO fires; M toggles MANUAL; Esc pauses; Ledger records fire/intercept; 2D view fits the 2 km detect ring.
+- Unit tests passed on 2026-09-17 (`38 passed`, 7 files).
+- `npm run build` exited 0 on 2026-09-17.
 
 ### Current phase or milestone
 - current phase: local runnable simulator
@@ -111,6 +111,8 @@ Treat the following as the current truth:
 - Quadratic intercept and 75°/s slew
 - AUTO / MANUAL on the same solution
 - Briefing, pause, defeat overlays
+- North-locked battlespace matching the PPI; 2D view fits the 2 km detect ring
+- Simulation ledger (when / what / action / outcome + AZ, EL, RNG, V) with CSV/JSON export
 
 ### What is not complete
 - Split-raid waves, threat classes, soft-kill, track quality (blueprint “next demo”, only if asked)
@@ -148,23 +150,24 @@ Use these in order of precedence when determining live status:
 
 ## 6. Verification and Test Surface
 
-Verified locally on 2026-09-16:
+Verified locally on 2026-09-17:
 
 - unit
   - command: `npm test`
-  - result: 9 passed (2 files)
+  - result: 38 passed (7 files)
 - build
   - command: `npm run build`
   - result: exit 0
 - browser
   - command: Vite at `http://127.0.0.1:5173`
-  - result: title `SEM-Tech DEFENDER`; Engage -> WAVE 01 · 20 TRACKS; EDF QUEUE; PPI SCOPE; AUTO LOCKED/SLEW; M -> MANUAL; Esc -> Paused. 0 console errors.
+  - result: title `SEM DEFENDER`; Engage -> EDF QUEUE; PPI SCOPE north-up; AUTO LOCKED/SLEW; Ledger FIRE/INTERCEPT rows with AZ/EL/RNG/V; 2D view shows 2 km ring. 0 console errors.
 
 ### Acceptance signals
-- Title is SEM-Tech DEFENDER
-- Outer 1 km ring and inner 500 m ring visible
-- After Engage, 20 tracks appear and EDF table sorts by TTB
+- Title is SEM DEFENDER
+- 2 km detect ring, 1 km fence, and 500 m kill zone visible
+- After Engage, tracks appear and EDF table sorts by TTB
 - AUTO slews and can fire; MANUAL is available on M
+- Ledger records engage, fire, and intercept
 
 ### Failure signals
 - Missing `#app` or failed module import at startup
@@ -191,13 +194,15 @@ For the fastest orientation path, read these in order:
 3. `src/sims/constants.ts`
 4. `src/sims/math.ts`
 5. `src/sims/simulation.ts`
-6. `src/components/sims/GameApp.tsx`
+6. `src/components/sims/SimsApp.tsx`
+7. `src/sims/ledger.ts`
+8. `src/sims/camera.ts`
 
 ## 9. Workstream Map
 
 Then choose your path:
 
-- Runtime work: `src/sims/`, `src/components/sims/Scene.tsx`
+- Runtime work: `src/sims/`, `src/components/sims/Scene.tsx`, `src/components/sims/SimsApp.tsx`
 - Verification work: `src/sims/*.test.ts`, `npm test`, `npm run build`
 - Demo or stakeholder walkthrough work: `SEM-Tech DEFENDER Demo Blueprint.md`, `npm run dev`
 - Documentation maintenance work: `REPO_CONTRACT.md`, `README.md`
@@ -216,8 +221,7 @@ Treat repo materials using these classes:
 - `src/main.tsx`
 
 ### C. Verification evidence
-- `src/sims/math.test.ts`
-- `src/sims/swarmManager.test.ts`
+- `src/sims/*.test.ts`
 
 ### D. Archival or narrative
 - `SEM-Tech DEFENDER Demo Blueprint.md` (authoritative for demo numbers and talk track, not for “what is live”)
@@ -313,6 +317,7 @@ Assistants must not silently change:
 
 ## Change log
 
+- 2026-09-17: Console wordmark and document title aligned to SEM DEFENDER. `GameApp.tsx` renamed to `SimsApp.tsx`. KANGAL removed from hull marks and remaining docs. Blueprint magazine/rings/track counts refreshed to `src/sims/constants.ts`. Verification snapshot: 38 passed. Identity (SEM-Tech DEFENDER product class) unchanged.
 - 2026-09-17: Renamed `src/components/game/` to `src/components/sims/` (explicit operator instruction). Path references updated. Identity, vocabulary, and preferred runtime unchanged.
 - 2026-09-17: Renamed `src/game/` to `src/sims/` (explicit operator instruction). Path references updated. Identity, vocabulary, and preferred runtime unchanged.
 - 2026-09-16: Identity locked to desktop COUNTER-UAS FIRE CONTROL simulator (explicit operator instruction). Runtime remains a desktop browser window; packaged native app is out of scope unless requested.

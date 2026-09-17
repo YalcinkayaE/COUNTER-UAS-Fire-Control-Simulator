@@ -28,6 +28,8 @@ export class TurretController {
   readonly quaternion = new THREE.Quaternion();
   readonly barrelDir = new THREE.Vector3(0, 0, 1);
   mode: FireMode = "AUTO";
+  fireCooldown = FIRE_COOLDOWN;
+  effectiveRange = Number.POSITIVE_INFINITY;
   cooldown = 0;
   /** Seconds left in the current 0.5 s burst. */
   burstLeft = 0;
@@ -138,9 +140,21 @@ export class TurretController {
       this.aligned = ang <= ALIGN_TOLERANCE_RAD;
     }
 
+    const interceptDist = this.intercept
+      ? Math.hypot(
+          this.intercept.x - this.muzzle.x,
+          this.intercept.y - this.muzzle.y,
+          this.intercept.z - this.muzzle.z,
+        )
+      : Number.POSITIVE_INFINITY;
+    const inEnvelope = interceptDist <= this.effectiveRange;
     const autoGate = this.mode === "AUTO" && Boolean(call?.autoEngage) && this.aligned;
     const manualGate = this.mode === "MANUAL" && fireHeld && this.aligned;
-    const gate = Boolean(this.intercept) && Boolean(this.targetId) && (autoGate || manualGate);
+    const gate =
+      Boolean(this.intercept) &&
+      Boolean(this.targetId) &&
+      inEnvelope &&
+      (autoGate || manualGate);
 
     if (this.burstLeft > 0 && this.mode === "MANUAL" && !fireHeld) {
       this.burstLeft = 0;
@@ -158,7 +172,7 @@ export class TurretController {
     const id = this.burstTargetId ?? this.targetId;
     const shouldFire = this.burstLeft > 0 && this.cooldown <= 0 && Boolean(aim) && Boolean(id);
     if (shouldFire && aim && id) {
-      this.cooldown = FIRE_COOLDOWN;
+      this.cooldown = this.fireCooldown;
       return {
         from: this.muzzle.clone(),
         to: new THREE.Vector3(aim.x, aim.y, aim.z),

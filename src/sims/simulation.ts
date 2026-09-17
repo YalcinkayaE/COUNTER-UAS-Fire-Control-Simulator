@@ -1,5 +1,7 @@
 import * as THREE from "three";
 import {
+  DEFAULT_EFFECTOR_ID,
+  EFFECTORS,
   FIRE_BURST,
   FIXED_DT,
   HIGH_SCORE_KEY,
@@ -8,6 +10,9 @@ import {
   MAX_WAVES,
   RADAR_POS,
   STARTING_LIVES,
+  fireCooldownSec,
+  type EffectorId,
+  type EffectorSpec,
 } from "./constants";
 import { azimuthFromNorth, dist3, elevationFromGround, hypot3 } from "./math";
 import { Ledger, type LedgerEntry, type LedgerKinematics } from "./ledger";
@@ -58,6 +63,8 @@ export type HudSnapshot = {
   muted: boolean;
   alive: number;
   ledger: readonly LedgerEntry[];
+  effector: EffectorSpec;
+  inRange: boolean;
 };
 
 export type Projectile = {
@@ -148,6 +155,7 @@ export class Simulation {
   hasMouseAim = false;
   reducedMotion = false;
   readonly ledger = new Ledger();
+  effectorId: EffectorId = DEFAULT_EFFECTOR_ID;
 
   private acc = 0;
   private hudAcc = 0;
@@ -155,6 +163,10 @@ export class Simulation {
   private ray = new THREE.Raycaster();
   private ndc = new THREE.Vector2();
   private aimPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -70);
+
+  constructor() {
+    this.applyEffector(this.effectorId);
+  }
 
   start(): void {
     unlockAudio();
@@ -185,6 +197,14 @@ export class Simulation {
     this.shotsFired = 0;
     this.closestApproach = Infinity;
     this.ledger.reset();
+    this.applyEffector(this.effectorId);
+  }
+
+  setEffector(id: EffectorId): void {
+    const spec = EFFECTORS[id];
+    this.applyEffector(id);
+    this.record("OPERATOR", `EFFECTOR ${spec.id}`, `${spec.rpm} rds/min ${spec.range} m`);
+    emit();
   }
 
   togglePause(): void {
@@ -363,6 +383,14 @@ export class Simulation {
       this.message = this.wave >= MAX_WAVES ? "HOLDING PERIMETER" : "WAVE CLEAR";
       this.record(`WAVE ${String(this.wave).padStart(2, "0")}`, "HOLD", this.message);
     }
+  }
+
+  private applyEffector(id: EffectorId): void {
+    const spec = EFFECTORS[id];
+    this.effectorId = spec.id;
+    this.turret.fireCooldown = fireCooldownSec(spec.rpm);
+    this.turret.effectiveRange = spec.range;
+    this.edge.maxRange = spec.range;
   }
 
   private record(what: string, action: string, outcome: string): void {
@@ -609,6 +637,8 @@ function emptyHud(): HudSnapshot {
     muted: false,
     alive: 0,
     ledger: [],
+    effector: EFFECTORS[DEFAULT_EFFECTOR_ID],
+    inRange: false,
   };
 }
 
@@ -670,7 +700,19 @@ function buildHud(s: Simulation): HudSnapshot {
     muted: s.muted,
     alive: s.swarm.aliveCount(),
     ledger: s.ledger.snapshot(),
+    effector: EFFECTORS[s.effectorId],
+    inRange: interceptInRange(s),
   };
+}
+
+function interceptInRange(s: Simulation): boolean {
+  const ic = s.turret.intercept;
+  if (!ic) return false;
+  const mx = s.turret.muzzle.x;
+  const my = s.turret.muzzle.y;
+  const mz = s.turret.muzzle.z;
+  const dist = hypot3(ic.x - mx, ic.y - my, ic.z - mz);
+  return dist <= EFFECTORS[s.effectorId].range;
 }
 
 let sim = new Simulation();

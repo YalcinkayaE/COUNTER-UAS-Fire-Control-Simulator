@@ -7,6 +7,7 @@ import { type ReactNode, useState, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
 import type { ViewMode } from "@/sims/camera";
 import type { LedgerEntry } from "@/sims/ledger";
+import { EFFECTOR_IDS } from "@/sims/constants";
 import { formatBearingDeg, formatDist, formatElevDeg, formatTtb } from "@/sims/math";
 import { getHud, getSim, subscribeHud } from "@/sims/simulation";
 import { Radar } from "./Radar";
@@ -79,7 +80,12 @@ export function TacticalHUD({
               <span className="font-mono text-xs text-track">10 Hz</span>
             </div>
             <div className="aspect-square overflow-hidden rounded-md border border-line">
-              <Radar tracks={hud.tracks} targetId={hud.targetId} yaw={hud.barrel.yaw} />
+              <Radar
+                tracks={hud.tracks}
+                targetId={hud.targetId}
+                yaw={hud.barrel.yaw}
+                effectiveRange={hud.effector.range}
+              />
             </div>
           </div>
         </div>
@@ -144,7 +150,8 @@ function TrackTable({
         <span className="font-mono text-xs tracking-[0.18em] text-muted">EDF QUEUE</span>
         <span className="font-mono text-xs text-accent">{hud.mode}</span>
       </div>
-      <div className="max-h-[min(28rem,52vh)] overflow-y-auto">
+      <EffectorPicker id={hud.effector.id} rpm={hud.effector.rpm} range={hud.effector.range} />
+      <div className="mt-2 max-h-[min(28rem,52vh)] overflow-y-auto">
       <table className="w-full border-collapse font-mono text-[11px] tabular-nums">
         <thead>
           <tr className="text-dim">
@@ -303,11 +310,52 @@ function formatLedgerNum(n: number | null): string {
   return n === null ? "—" : n.toFixed(0);
 }
 
+function EffectorPicker({
+  id,
+  rpm,
+  range,
+}: {
+  id: string;
+  rpm: number;
+  range: number;
+}) {
+  return (
+    <div className="pointer-events-auto">
+      <div className="flex gap-1">
+        {EFFECTOR_IDS.map((eid) => (
+          <button
+            key={eid}
+            type="button"
+            aria-pressed={id === eid}
+            onClick={() => getSim().setEffector(eid)}
+            className={`h-8 flex-1 rounded-md border px-1 font-mono text-[10px] ${
+              id === eid
+                ? "border-khaki bg-khaki/15 text-khaki"
+                : "border-line bg-surface-2 text-muted hover:text-fg"
+            }`}
+          >
+            {eid}
+          </button>
+        ))}
+      </div>
+      <p className="mt-1 font-mono text-[10px] text-dim">
+        {rpm} rds/min · {range} m
+      </p>
+    </div>
+  );
+}
+
 function StatusStrip({ hud }: { hud: ReturnType<typeof getHud> }) {
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-lg border border-line bg-surface/90 px-3 py-2 font-mono text-xs tabular-nums">
       {hud.phase === "paused" ? <span className="text-warn">PAUSED</span> : null}
       {hud.phase === "paused" ? <span className="text-line">|</span> : null}
+      <span className="text-khaki">{hud.effector.id}</span>
+      <span className="text-line">|</span>
+      <span className={hud.inRange ? "text-accent" : "text-warn"}>
+        {hud.inRange ? "IN RANGE" : "OUT OF RANGE"}
+      </span>
+      <span className="text-line">|</span>
       <span className={hud.aligned ? "text-accent" : "text-dim"}>
         {hud.aligned ? "LOCKED" : "SLEW"}
       </span>

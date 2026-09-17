@@ -43,6 +43,7 @@ export type FireCall = {
 export class EdgeComputer {
   tracks: TrackSnapshot[] = [];
   fireCall: FireCall | null = null;
+  maxRange = Number.POSITIVE_INFINITY;
   private mode: FireMode = "AUTO";
   private shooter: Vec3 = { x: 0, y: 14, z: 0 };
 
@@ -108,22 +109,29 @@ export class EdgeComputer {
   }
 
   private refreshCall(mode: FireMode, shooter: Vec3): FireCall | null {
-    const priority = this.getPriority();
-    if (!priority) {
-      this.fireCall = null;
-      return null;
+    let fallback: FireCall | null = null;
+    for (const track of this.tracks) {
+      const intercept = solveIntercept(shooter, PROJECTILE_SPEED, track.position, track.velocity);
+      if (!intercept) continue;
+      const dist = hypot3(
+        intercept.x - shooter.x,
+        intercept.y - shooter.y,
+        intercept.z - shooter.z,
+      );
+      const inRange = dist <= this.maxRange;
+      const call: FireCall = {
+        targetId: track.id,
+        intercept,
+        track,
+        autoEngage: mode === "AUTO" && inRange,
+      };
+      if (!fallback) fallback = call;
+      if (inRange) {
+        this.fireCall = call;
+        return call;
+      }
     }
-    const intercept = solveIntercept(shooter, PROJECTILE_SPEED, priority.position, priority.velocity);
-    if (!intercept) {
-      this.fireCall = null;
-      return null;
-    }
-    this.fireCall = {
-      targetId: priority.id,
-      intercept,
-      track: priority,
-      autoEngage: mode === "AUTO",
-    };
-    return this.fireCall;
+    this.fireCall = fallback;
+    return fallback;
   }
 }

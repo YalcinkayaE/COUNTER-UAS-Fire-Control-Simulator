@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { BriefingPanel } from "@/components/sims/Briefing";
 
-const GameApp = lazy(() => import("@/components/sims/GameApp"));
+const SimsApp = lazy(() => import("@/components/sims/SimsApp"));
 
 export function Home() {
   const [ready, setReady] = useState(false);
@@ -9,7 +9,7 @@ export function Home() {
   if (!ready) return <BootScreen />;
   return (
     <Suspense fallback={<BootScreen />}>
-      <GameApp />
+      <SimsApp />
     </Suspense>
   );
 }

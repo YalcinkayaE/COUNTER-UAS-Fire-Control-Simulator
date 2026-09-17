@@ -22,7 +22,7 @@ Do not call it a tower-defense game. The operator is the **weapons-release autho
 - Live EDF track file at 10 Hz
 - Time-to-Breach = (range − 500 m) / radial closing speed
 - Quadratic 3D lead for a constant-velocity target
-- Hard slew budget (75°/s) and magazine (1.35 s cooldown, 4 in flight)
+- Hard slew budget (75°/s) and magazine (0.5 s burst at 1000 rds/min, 16 in flight)
 - AUTO vs MANUAL override on the same intercept solution
 
 **Do not claim**
@@ -35,8 +35,8 @@ Do not call it a tower-defense game. The operator is the **weapons-release autho
 
 ## 3. Pre-flight (30 s)
 
-1. Load the console. Confirm title **SEM-Tech DEFENDER**.
-2. Leave the camera as-is (facility at origin, green 1 km ring, red 500 m ring).
+1. Load the console. Confirm title **SEM DEFENDER**.
+2. Leave the camera as-is (facility at origin, khaki 2 km detect ring, orange 1 km fence, red 500 m kill zone). North is up on both the battlespace and the PPI.
 3. Optional: unmute.
 4. Know the keys before you click Engage.
 
@@ -49,6 +49,8 @@ Do not call it a tower-defense game. The operator is the **weapons-release autho
 | Mouse | Point the barrel (MANUAL) |
 | Space / click | Fire if aligned |
 | Esc / P | Pause |
+| 2D view | Top-down, north-up, 2 km ring in frame |
+| Ledger | When / what / action / outcome (AZ, EL, RNG, V) |
 
 ---
 
@@ -59,7 +61,7 @@ Do not call it a tower-defense game. The operator is the **weapons-release autho
 **Show:** Start card. Rings visible through the glass.
 
 **Say:**
-> Facility at the origin. Outer ring is the 1 000 m radar fence. Inner red ring is the 500 m kill zone. Twenty tracks spawn on the fence and close. If a track crosses 500 m we lose a life. Five lives, eight waves.
+> Facility at the origin. Gold ring is the 2 km detect volume. Orange ring is the 1 000 m fence. Inner red ring is the 500 m kill zone. Twenty quads inbound from the northwest plus two fixed-wing at 2 km east. If a track crosses 500 m we lose a life. Five lives, eight waves.
 
 **Do not:** click Engage until the rings and the TTB formula are on screen.
 
@@ -82,16 +84,16 @@ Receding or hovering tracks go to infinity. Already inside 500 m is zero — too
 **Show:** Turret at origin. Sage lead octahedron on the predicted intercept. Tracers on fire.
 
 **Say:**
-> The gun does not aim at the drone. It solves a quadratic: projectile speed 240 m/s, target position and velocity. Earliest positive time of flight is the aim point. Slew is 75 degrees per second. Align gate is under a degree. If two hot tracks are 140 degrees apart, AUTO cannot cover both before TTB expires. That is the game.
+> The gun does not aim at the drone. It solves a quadratic: projectile speed 2 000 m/s (1 km fence in 0.5 s), target position and velocity. Earliest positive time of flight is the aim point. Slew is 75 degrees per second. Align gate is under a degree. If two hot tracks are 140 degrees apart, AUTO cannot cover both before TTB expires. That is the constraint.
 
 **If a miss:** “Proximity fuse, 48 m. A miss is a spent round, not a retry.”
 
 ### Beat 3 — Magazine (2:30–3:15)
 
-**Show:** Status strip — lives, score, K, LOCKED/SLEW, cooldown bar. Max 4 rounds in flight.
+**Show:** Status strip — LOCKED/SLEW and the burst bar. Ledger if you want the shot log.
 
 **Say:**
-> 2026 C-UAS is a magazine problem. Cheap mass versus expensive interceptors. AUTO will not double-tap a track that already has a round in the air. The scarce resources are slew time, rounds, and your attention.
+> 2026 C-UAS is a magazine problem. Cheap mass versus expensive interceptors. The gun fires a 0.5 s burst at 1 000 rounds per minute, cap 16 in flight. The scarce resources are slew time, rounds, and your attention.
 
 ### Beat 4 — Override (3:15–4:15)
 
@@ -122,7 +124,7 @@ Receding or hovering tracks go to infinity. Already inside 500 m is zero — too
 
 | Prompt | Module | Role in the demo |
 |---|---|---|
-| 1. Data + EDF | `DroneTarget` + `SwarmManager` | 20 drones on a 1 km ring, 10 Hz sort by TTB |
+| 1. Data + EDF | `DroneTarget` + `SwarmManager` | 20 quads + 2 fixed-wing, 10 Hz sort by TTB |
 | 2. Kinematics | `TurretController` | Quadratic intercept, 75°/s `RotateTowards`, AUTO/MANUAL |
 | 3. UI | `TacticalHUD` + PPI + LineRenderer analogues | Polar radar, EDF table, tracers, destroy on intercept |
 
@@ -134,18 +136,20 @@ Runtime here is **TypeScript + Three.js** so it plays in the browser. The math a
 
 | Item | Value |
 |---|---|
+| Detect ring | 2 000 m |
 | Outer fence | 1 000 m |
 | Kill zone | 500 m |
-| Tracks / wave | 20 |
-| Speed | 15–30 m/s + wave boost |
-| Radar | 10 Hz |
+| Tracks / wave | 20 quads + 2 fixed-wing (EDF holds 20) |
+| Quad speed | 12–38 m/s |
+| Fixed-wing speed | 72–96 m/s |
+| Radar | 10 Hz (simulated Echodyne-class reports) |
 | Slew | 75 °/s |
 | Align | 0.85° |
-| Projectile | 240 m/s |
+| Projectile | 2 000 m/s (1 km in 0.5 s) |
 | Fuse | 48 m |
-| Cooldown | 1.35 s |
-| In flight | 4 |
-| Lives | 5 |
+| Burst | 0.5 s at 1 000 rds/min |
+| In flight | 16 |
+| Lives | 5 (sim; not on the HUD) |
 | Waves | 8 |
 
 ---
@@ -168,13 +172,13 @@ Use that table if someone asks “where is the radar algorithm?” Answer: we sk
 ## 8. Likely questions
 
 **Why 20 drones?**  
-Saturation of one turret. EDF is trivial on one track; it is the policy you want when twenty deadlines compete.
+Saturation of one turret. The wave is 20 quads plus 2 fixed-wing; the radar file holds 20. EDF is trivial on one track; it is the policy you want when twenty deadlines compete.
 
 **Why not just shoot nearest?**  
 Nearest can be slow and far from breach. TTB is the deadline. A 900 m inbound at 30 m/s can beat a 520 m crawler.
 
 **Can AUTO lose?**  
-Yes. Slew + cooldown + 4-round cap. Wave speed ramps. That is the point of MANUAL.
+Yes. Slew + 0.5 s burst + 16-round cap. Wave speed ramps. That is the point of MANUAL.
 
 **Is this Unity?**  
 The design is Unity C# (`DroneTarget`, `SwarmManager`, `TurretController`, `TacticalHUD`). This desktop simulator is the same architecture in a browser window.
@@ -206,4 +210,4 @@ Do not promise a fielded C-UAS. Promise a sharper operator loop.
 
 ## 11. Close line
 
-> SEM-Tech DEFENDER is a desktop COUNTER-UAS FIRE CONTROL simulator: EDF on a 10 Hz track file, quadratic lead, a 75-degree slew budget, and an operator who can take the shot away from AUTO.
+> SEM DEFENDER is a desktop COUNTER-UAS FIRE CONTROL simulator: EDF on a 10 Hz track file, quadratic lead, a 75-degree slew budget, and an operator who can take the shot away from AUTO.

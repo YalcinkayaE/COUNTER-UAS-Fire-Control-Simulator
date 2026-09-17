@@ -35,14 +35,38 @@ export const TURRET_SLEW_RAD = (TURRET_SLEW_DEG * Math.PI) / 180;
 export const ALIGN_TOLERANCE_DEG = 0.85;
 export const ALIGN_TOLERANCE_RAD = (ALIGN_TOLERANCE_DEG * Math.PI) / 180;
 
+export const EFFECTOR_IDS = ["CAKIR", "HN-12", "PENCE-A"] as const;
+export type EffectorId = (typeof EFFECTOR_IDS)[number];
+
+export type EffectorSpec = {
+  id: EffectorId;
+  rpm: number;
+  range: number;
+};
+
+export const EFFECTORS: Record<EffectorId, EffectorSpec> = {
+  CAKIR: { id: "CAKIR", rpm: 1350, range: 400 },
+  "HN-12": { id: "HN-12", rpm: 1000, range: 200 },
+  "PENCE-A": { id: "PENCE-A", rpm: 120, range: 400 },
+};
+
+export const DEFAULT_EFFECTOR_ID: EffectorId = "HN-12";
+
+export function fireCooldownSec(rpm: number): number {
+  if (!(rpm > 0) || !Number.isFinite(rpm)) {
+    throw new Error("effector rate of fire must be a positive finite rpm");
+  }
+  return 60 / rpm;
+}
+
 /** Outer-fence intercept completes in FIRE_BURST seconds. */
 export const FIRE_BURST = 0.5;
 export const PROJECTILE_SPEED = OUTER_RADIUS / FIRE_BURST;
 export const PROJECTILE_TTL = FIRE_BURST;
 export const HIT_RADIUS = 48;
-/** UGV gun: 1000 rounds/min, one kinetic type, 0.5 s burst. */
-export const FIRE_RPM = 1000;
-export const FIRE_COOLDOWN = 60 / FIRE_RPM;
+/** Default effector (HN-12) rate of fire. */
+export const FIRE_RPM = EFFECTORS[DEFAULT_EFFECTOR_ID].rpm;
+export const FIRE_COOLDOWN = fireCooldownSec(FIRE_RPM);
 export const MAX_IN_FLIGHT = 16;
 
 export const STARTING_LIVES = 5;

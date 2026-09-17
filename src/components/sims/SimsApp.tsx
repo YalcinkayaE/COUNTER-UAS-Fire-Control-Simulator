@@ -13,7 +13,7 @@ import { Overlays } from "./Overlays";
 import { Scene } from "./Scene";
 import { TacticalHUD } from "./TacticalHUD";
 
-export default function GameApp() {
+export default function SimsApp() {
   const rootRef = useRef<HTMLDivElement>(null);
   const [view, setView] = useState<ViewMode>("3d");
 
