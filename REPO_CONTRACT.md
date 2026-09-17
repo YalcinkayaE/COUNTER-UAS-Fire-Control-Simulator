@@ -22,7 +22,7 @@ authoritative_codepaths:
 verification_commands:
   - name: unit
     command: npm test
-    expected_result: 38 passed
+    expected_result: 47 passed
   - name: build
     command: npm run build
     expected_result: exit 0
@@ -96,9 +96,11 @@ Treat the following as the current truth:
 - This product is a desktop COUNTER-UAS FIRE CONTROL simulator, not a tower-defense game and not a fielded sensor.
 - The checkout is a Vite SPA in a desktop browser window. TanStack Start / Grok host adapters (`AuthProvider`, `PreviewHostBridge`, `/__grok/*`) are not part of the runtime.
 - `npm run dev` serves the simulator at `http://127.0.0.1:5173`.
-- Observed on 2026-09-17: document title SEM DEFENDER; briefing and HUD wordmark SEM DEFENDER; Engage starts wave 1 (20 quads + 2 fixed-wing, EDF holds 20); EDF queue and PPI (north-up); AUTO fires; M toggles MANUAL; Esc pauses; Ledger records fire/intercept; 2D view fits the 2 km detect ring.
-- Unit tests passed on 2026-09-17 (`38 passed`, 7 files).
+- Observed on 2026-09-17: document title SEM DEFENDER; briefing and HUD wordmark SEM DEFENDER; Engage starts wave 1 (8–16 quads + 2–3 fixed-wing drawn per wave, raid axis shifts each wave; EDF holds ≤ 20); EDF queue sorts by TTB and PPI is north-up; effector selector live (CAKIR / HN-12 / PENCE-A; HN-12 default; AUTO holds fire OUT OF RANGE); the kill zone follows the selected effector — HN-12 breaches ledger at 200 m, CAKIR at 400 m, and the PPI envelope label tracks the selection (200m / 400m); AUTO fires (FIRE AUTO / RELEASED); M toggles MANUAL; Esc pauses; Ledger records ENGAGE / FIRE AUTO / INTERCEPT / BREACH / IMPACT / DEFEAT rows with AZ, EL, RNG, V plus CSV/JSON export; 2D view fits the 2 km detect ring.
+- Unit tests passed on 2026-09-17 (`47 passed`, 8 files).
+- Radar model observed 2026-09-17: single Echodyne Guard-class AESA staring a 120° az × 80° el sector on a north boresight (az gate ±60°, el gate 0–80°), with ±1° az / ±1.5° el angular noise on reports. The full raid spawns inside the sector: quads 10–40° west of north, fixed-wing at ~20°/~40° az northeast. EDF queue, fire control, and kills stay live under noise; status window fixed at 40 rem with effector name, range/lock state, event message, and RDS counter.
 - `npm run build` exited 0 on 2026-09-17.
+- Environment note 2026-09-17: `npm run dev` bound `127.0.0.1:5175` because two stale node processes already held 5173/5174; 5173 remains the expected bind when free.
 
 ### Current phase or milestone
 - current phase: local runnable simulator
@@ -113,6 +115,7 @@ Treat the following as the current truth:
 - Briefing, pause, defeat overlays
 - North-locked battlespace matching the PPI; 2D view fits the 2 km detect ring
 - Simulation ledger (when / what / action / outcome + AZ, EL, RNG, V) with CSV/JSON export
+- Variable kill zone tied to effector selection: TTB, EDF order, breach check, and the battlespace ring all follow the selected effector's range (2026-09-17)
 
 ### What is not complete
 - Split-raid waves, threat classes, soft-kill, track quality (blueprint “next demo”, only if asked)
@@ -154,17 +157,17 @@ Verified locally on 2026-09-17:
 
 - unit
   - command: `npm test`
-  - result: 38 passed (7 files)
+  - result: 47 passed (8 files)
 - build
   - command: `npm run build`
   - result: exit 0
 - browser
-  - command: Vite at `http://127.0.0.1:5173`
-  - result: title `SEM DEFENDER`; Engage -> EDF QUEUE; PPI SCOPE north-up; AUTO LOCKED/SLEW; Ledger FIRE/INTERCEPT rows with AZ/EL/RNG/V; 2D view shows 2 km ring. 0 console errors.
+  - command: Vite at `http://127.0.0.1:5175` (5173/5174 occupied by stale processes this run)
+  - result: title `SEM DEFENDER`; Engage -> EDF QUEUE (20 tracks, TTB-sorted, finite TTB outside the kill zone instead of a wall of NOW); PPI SCOPE north-up (2 km / 1 / 0.5 rings + effector envelope label 200m -> 400m on switch); effector selector CAKIR / HN-12 / PENCE-A with envelope gate; AUTO LOCKED/SLEW and FIRE AUTO; M -> MANUAL and back; Esc -> PAUSED; Ledger rows incl. ENGAGE, FIRE AUTO, INTERCEPT, BREACH (200 m under HN-12, 400 m under CAKIR), IMPACT, DEFEAT with AZ/EL/RNG/V and CSV/JSON export; 2D view fits 2 km ring. 0 console errors.
 
 ### Acceptance signals
 - Title is SEM DEFENDER
-- 2 km detect ring, 1 km fence, and 500 m kill zone visible
+- 2 km detect ring, 1 km fence, and the effector-range kill zone ring visible (200 m HN-12; 400 m CAKIR / PENCE-A)
 - After Engage, tracks appear and EDF table sorts by TTB
 - AUTO slews and can fire; MANUAL is available on M
 - Ledger records engage, fire, and intercept
@@ -179,7 +182,9 @@ Verified locally on 2026-09-17:
 The main open items are:
 
 - Blueprint section 10 follow-ons are not implemented
-- Headless `window.__cuas` probe was not observed in the browser-automation harness even while play worked; treat HUD/canvas as the live check, not that probe
+- Headless `window.__cuas` probe was not observed in the browser-automation harness even while play worked; treat HUD/canvas as the live check, not that probe. Update 2026-09-17: the probe was live in the Playwright MCP harness (14 keys; counters reconciled exactly with ledger rows), so the earlier non-observation looks harness-specific, not a sim defect.
+- Contract body drift noted 2026-09-17: `src/sims/edgeComputer.ts`, `src/sims/radarSensor.ts`, `src/sims/audio.ts`, and `src/components/sims/Overlays.tsx` / `SourcePanel.tsx` are live in code and verified in the browser, but Section 2 does not list them yet. (Effector selection is now covered by status and vocabulary after the variable-kill-zone change.)
+- Narrative drift from the variable kill zone (2026-09-17): `SEM-Tech DEFENDER Demo Blueprint.md` (talk track, beat sheet, numbers table) and `docs/30_design/310_fire_control_optimization.md` (R_kz math) are still pinned to the fixed 500 m kill zone. The blueprint also assumes fixed raid composition (20 quads from the northwest, 2 fixed-wing from 2 km east); the sim now draws 8–16 quads and 2–3 fixed-wing with a per-wave raid axis inside the radar sector. Re-run demo numbers before the next walkthrough.
 
 ### Next recommended actions
 - Run `npm run dev` and walk the blueprint beat sheet
@@ -243,10 +248,10 @@ Treat repo materials using these classes:
 
 Use these terms exactly as defined in this repo:
 
-- `Time-to-Breach` / `TTB`: `(Distance − 500 m) / Radial Velocity`
+- `Time-to-Breach` / `TTB`: `(Distance − kill zone) / Radial Velocity`
 - `Earliest Deadline First` / `EDF`: sort live tracks by lowest TTB
 - `AUTO` / `MANUAL`: fire-control modes on the same intercept solution
-- `kill zone`: 500 m inner ring; a breach is a defended-volume violation, not an HP bar
+- `kill zone`: the selected effector's range (HN-12 200 m; CAKIR / PENCE-A 400 m); a breach is a defended-volume violation, not an HP bar
 - `weapons-release authority`: the operator role
 - `COUNTER-UAS FIRE CONTROL`: product class; this repo is a desktop simulator of that class
 - `simulator`: simulated tracks and fire-control loop; not a fielded weapon system
@@ -317,6 +322,12 @@ Assistants must not silently change:
 
 ## Change log
 
+- 2026-09-17: Wave randomization and full round accounting on operator instruction. Waves draw 8–16 quads and 2–3 fixed-wing with a per-wave raid axis (quad corridor 30° wide, center within ±27° of north; fixed-wing azimuth 8–34° east of north + 4° per airframe), all inside the 120° sector including maneuver wobble; drone pool is 16 + 3 and pool members start dead. Ledger: rounds resolving on an already-dead track now record INTERCEPT / SUPPRESSED, so FIRE = HIT + MISS + SUPPRESSED + in-flight reconciles exactly (verified live: 176 = 23 + 14 + 139 + 0). Battlespace shows the 120° sector wedge (subtle fill plus edge rays). Briefing updated. Verified: 47 passed (8 files), build exit 0, live run showed wave-1 axis az 11–42° and wave-2 axis az 326–354°, 0 console errors.
+- 2026-09-17: Ledger consistency audit (operator request): 725+ rows over 5 waves reconciled exactly against sim counters and HUD (FIRE == shotsFired == RDS; INTERCEPT HIT == intercepts; IMPACT == lives lost). Timestamps monotonic, no duplicate BREACH/IMPACT per track within a wave, kinematics valid and present on all track rows. Known semantic: rounds resolving on an already-dead target record no terminal row (`detonate` early return), so FIRE exceeds HIT+MISS by design; cross-target proximity kills appear as HIT rows whose id differs from the surrounding FIRE block. Open item on the `__cuas` probe amended: observed live in the Playwright MCP harness.
+- 2026-09-17: Single-radar sector per explicit operator instruction: one Echodyne Guard-class AESA stares a 120° az × 80° el sector on a north boresight, replacing the three-panel 360° assumption. Azimuth gate added to `RadarSensor.inFov`. Raid geometry moved inside the sector: fixed-wing spawn east -> northeast (~20° / ~40° az), quad corridor narrowed to 10–40° west of north so the ±40% azimuth maneuver stays in-sector. PPI draws the coverage wedge; briefing updated. Verified: 46 passed (8 files), build exit 0, live run showed F01/F02 at az 17°/39° with F02 heading the EDF queue, kills under noise, 0 console errors.
+- 2026-09-17: HUD and radar model pass on operator instruction. Status window fixed at 40 rem (effector name header, range/lock, event message, RDS counter); center-screen messages and the duplicated strip removed; rounds-fired (`shots`) exposed on the HUD snapshot. UGV and drone models detailed (glacis, skirts, AESA mast, turret shroud/baffles/optics; quad spine/strobes/motor pods; fixed-wing winglets/nozzle). Radar calculation model: three 120° × 80° staring panels (360° az coverage), 0–80° elevation gate in `RadarSensor.scan`, ±1° az / ±1.5° el uniform angular noise on reports via injectable jitter. Verified: 45 passed (8 files), build exit 0, live run showed EDF population, kills, and fixed window width under message churn; 0 console errors.
+- 2026-09-17: Kill zone made variable on explicit operator instruction: it is now the selected effector's range (HN-12 200 m; CAKIR / PENCE-A 400 m). `KILL_ZONE` constant removed; kill zone threaded through `SwarmManager`, `RadarSensor`, `EdgeComputer`, and `DroneTarget`; breach message/ledger and the battlespace ring follow the selection; briefing text updated. Vocabulary rules for `TTB` and `kill zone` updated per the instruction. Verified: 43 passed (8 files), build exit 0, browser run showed 200 m breaches under HN-12 and 400 m breaches + `400m` PPI label after switching to CAKIR, 0 console errors. Blueprint and `310_fire_control_optimization.md` still pin 500 m — flagged as open items.
+- 2026-09-17: Verification surface re-run on operator instruction. Snapshot updated: unit 41 passed (8 files, was 38/7); build exit 0; browser re-verified on `127.0.0.1:5175` (5173/5174 held by stale node processes) covering effector selector, EDF queue, PPI, AUTO/MANUAL, pause, ledger rows with kinematics and export, 2D view; 0 console errors. Open items gained a contract-body drift note for modules landed since the last status refresh. Identity, scope, authority ordering, runtime path, milestone claims, and vocabulary unchanged.
 - 2026-09-17: Console wordmark and document title aligned to SEM DEFENDER. `GameApp.tsx` renamed to `SimsApp.tsx`. KANGAL removed from hull marks and remaining docs. Blueprint magazine/rings/track counts refreshed to `src/sims/constants.ts`. Verification snapshot: 38 passed. Identity (SEM-Tech DEFENDER product class) unchanged.
 - 2026-09-17: Renamed `src/components/game/` to `src/components/sims/` (explicit operator instruction). Path references updated. Identity, vocabulary, and preferred runtime unchanged.
 - 2026-09-17: Renamed `src/game/` to `src/sims/` (explicit operator instruction). Path references updated. Identity, vocabulary, and preferred runtime unchanged.

@@ -15,20 +15,21 @@ export function BriefingPanel({ onEngage }: { onEngage?: () => void }) {
         <p className="mt-1 font-mono text-xs tracking-widest text-accent">COUNTER-UAS FIRE CONTROL</p>
         <div className="mt-6 space-y-3 font-mono text-sm leading-relaxed text-muted">
           <p>
-            Twenty quadcopters inbound from the northwest plus two small fixed-wing UAVs at 2 km
-            east — faster, so time-to-breach can beat a closer slow track. Echodyne publishes
-            azimuth, elevation, range and velocity at 10 Hz (20 tracks max, ranked by TTB). The
-            edge computer issues the fire call. MANUAL bypasses AUTO:
+            8–16 quads plus 2–3 fixed-wing at 2 km, inbound through the northern sector — the raid
+            axis shifts each wave, and the faster tracks can beat a closer slow one on
+            time-to-breach. One Echodyne Guard AESA stares north over a 120° × 80° sector (1° az /
+            1.5° el accuracy), publishing az, el, range and velocity at 10 Hz — 20 tracks max,
+            ranked by TTB. The edge computer issues the fire call.
           </p>
           <p className="rounded-md border border-line bg-bg px-3 py-2 text-fg">
-            TTB = (Distance − 500 m) / Radial Velocity
+            TTB = (Distance − Kill Zone) / Radial Velocity
           </p>
           <p>
-            AUTO slews at 75°/s onto the quadratic lead from the last 10 Hz scan. Crossing 500 m
-            is a breach, not a despawn: EDF keeps that track at TTB NOW and the gun stays on it
-            until a kill or the asset. MANUAL is the weapons-release bypass on the same solution.
-            Select CAKIR (1350 rds/min, 400 m), HN-12 (1000 rds/min, 200 m), or PENCE-A (120 rds/min,
-            400 m). AUTO will not fire outside that envelope.
+            AUTO slews at 75°/s onto the quadratic lead from the latest scan. The kill zone is the
+            selected effector's range — a crossing is a breach, not a despawn: EDF holds the track
+            at TTB NOW and the gun stays on it until a kill or the asset. CAKIR 400 m (1350
+            rds/min), HN-12 200 m (1000), PENCE-A 400 m (120). MANUAL is the weapons-release
+            bypass on the same solution; AUTO will not fire outside the envelope.
           </p>
         </div>
         <div className="mt-6 flex flex-col gap-3">

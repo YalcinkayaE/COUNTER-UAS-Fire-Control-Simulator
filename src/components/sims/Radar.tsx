@@ -33,6 +33,10 @@ export function Radar({ tracks, targetId, yaw, effectiveRange }: Props) {
       <circle cx="110" cy="110" r="75" fill="none" stroke="#252b32" strokeWidth="0.8" />
       <line x1="110" y1="8" x2="110" y2="212" stroke="#252b32" strokeWidth="0.8" />
       <line x1="8" y1="110" x2="212" y2="110" stroke="#252b32" strokeWidth="0.8" />
+      {/* Coverage wedge: single 120° az staring sector on a north boresight (±60°). */}
+      <path d="M110 110 L23.4 60 A100 100 0 0 1 196.6 60 Z" fill="#9eb8a8" opacity="0.05" />
+      <line x1="110" y1="110" x2="196.6" y2="60" stroke="#2f3840" strokeWidth="1" strokeDasharray="3 3" />
+      <line x1="110" y1="110" x2="23.4" y2="60" stroke="#2f3840" strokeWidth="1" strokeDasharray="3 3" />
       <g>
         <path d="M110 110 L110 10 A100 100 0 0 1 148 18 Z" fill="#9eb8a8" opacity="0.12">
           <animateTransform

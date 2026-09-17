@@ -1,37 +1,46 @@
 import {
   DEG,
+  DEFAULT_EFFECTOR_ID,
   DETECT_RADIUS,
   DRONE_ALT_MAX,
   DRONE_ALT_MIN,
   DRONE_SPEED_MAX,
   DRONE_SPEED_MIN,
+  EFFECTORS,
   FACILITY_RADIUS,
   FIXED_WING_ALT_MAX,
   FIXED_WING_ALT_MIN,
-  FIXED_WING_COUNT,
+  FIXED_WING_AZ_MIN_DEG,
+  FIXED_WING_AZ_SPAN_DEG,
+  FIXED_WING_COUNT_MAX,
+  FIXED_WING_COUNT_MIN,
   FIXED_WING_SPEED_MAX,
   FIXED_WING_SPEED_MIN,
-  KILL_ZONE,
   OUTER_RADIUS,
-  QUAD_COUNT,
-  SWARM_WEST_OF_NORTH_MAX_DEG,
-  SWARM_WEST_OF_NORTH_MIN_DEG,
+  QUAD_CORRIDOR_CENTER_MAX_DEG,
+  QUAD_CORRIDOR_WIDTH_DEG,
+  QUAD_COUNT_MAX,
+  QUAD_COUNT_MIN,
 } from "./constants";
 import { lerp } from "./math";
 import { DroneTarget } from "./droneTarget";
 
 /**
  * Truth swarm. Radar samples these objects; EDF ranking lives on the edge computer.
+ * The kill zone is the selected effector's range; Simulation re-points it on selection.
+ * Wave size and raid axis are drawn from `rng` at the start of each wave.
  */
 export class SwarmManager {
   readonly drones: DroneTarget[] = [];
   wave = 1;
+  killZone: number = EFFECTORS[DEFAULT_EFFECTOR_ID].range;
 
-  constructor() {
-    for (let i = 0; i < QUAD_COUNT; i++) {
+  /** `rng` returns a uniform sample in [0, 1); tests inject a fixed value. */
+  constructor(private readonly rng: () => number = Math.random) {
+    for (let i = 0; i < QUAD_COUNT_MAX; i++) {
       this.drones.push(new DroneTarget(`T${String(i + 1).padStart(2, "0")}`));
     }
-    for (let i = 0; i < FIXED_WING_COUNT; i++) {
+    for (let i = 0; i < FIXED_WING_COUNT_MAX; i++) {
       this.drones.push(new DroneTarget(`F${String(i + 1).padStart(2, "0")}`));
     }
   }
@@ -39,16 +48,24 @@ export class SwarmManager {
   spawnWave(wave = 1): void {
     this.wave = wave;
     const speedBoost = Math.min(10, (wave - 1) * 2.2);
-    for (let i = 0; i < QUAD_COUNT; i++) {
+    // Raid axis and size shift each wave, always inside the radar sector.
+    const corridorCenter = (this.rng() * 2 - 1) * QUAD_CORRIDOR_CENTER_MAX_DEG;
+    const quadCount =
+      QUAD_COUNT_MIN + Math.floor(this.rng() * (QUAD_COUNT_MAX - QUAD_COUNT_MIN + 1));
+    const fwCount =
+      FIXED_WING_COUNT_MIN +
+      Math.floor(this.rng() * (FIXED_WING_COUNT_MAX - FIXED_WING_COUNT_MIN + 1));
+    for (let i = 0; i < QUAD_COUNT_MAX; i++) {
       const d = this.drones[i]!;
-      const span = QUAD_COUNT <= 1 ? 0 : i / (QUAD_COUNT - 1);
-      const westOfNorth =
-        (SWARM_WEST_OF_NORTH_MIN_DEG +
-          span * (SWARM_WEST_OF_NORTH_MAX_DEG - SWARM_WEST_OF_NORTH_MIN_DEG)) *
-        DEG;
+      if (i >= quadCount) {
+        d.alive = false;
+        continue;
+      }
+      const span = quadCount <= 1 ? 0 : i / (quadCount - 1);
+      const offsetDeg = corridorCenter + (span - 0.5) * QUAD_CORRIDOR_WIDTH_DEG;
       d.spawn({
         kind: "quad",
-        angle: Math.PI / 2 + westOfNorth,
+        angle: (90 - offsetDeg) * DEG,
         range: OUTER_RADIUS,
         altitude: lerp(DRONE_ALT_MIN, DRONE_ALT_MAX, hash(wave * 31 + i * 3)),
         cruiseSpeed: lerp(DRONE_SPEED_MIN, DRONE_SPEED_MAX, hash(wave * 13 + i * 7)) + speedBoost,
@@ -58,13 +75,19 @@ export class SwarmManager {
         azPhase: hash(i * 19 + wave) * Math.PI * 2,
         speedFreq: 1 / (8 + hash(i * 23 + wave * 5) * 10),
         speedPhase: hash(i * 29 + wave * 7) * Math.PI * 2,
-      });
+      }, this.killZone);
     }
-    for (let i = 0; i < FIXED_WING_COUNT; i++) {
-      const d = this.drones[QUAD_COUNT + i]!;
+    for (let i = 0; i < FIXED_WING_COUNT_MAX; i++) {
+      const d = this.drones[QUAD_COUNT_MAX + i]!;
+      if (i >= fwCount) {
+        d.alive = false;
+        continue;
+      }
+      // Northeast ingress, azimuth drawn per wave: 8–34° east of north, +4° per airframe.
+      const azDeg = FIXED_WING_AZ_MIN_DEG + this.rng() * FIXED_WING_AZ_SPAN_DEG + i * 4;
       d.spawn({
         kind: "fixedWing",
-        angle: (i === 0 ? -8 : 8) * DEG,
+        angle: (90 - azDeg) * DEG,
         range: DETECT_RADIUS,
         altitude: lerp(FIXED_WING_ALT_MIN, FIXED_WING_ALT_MAX, hash(wave * 53 + i * 3)),
         cruiseSpeed:
@@ -75,12 +98,12 @@ export class SwarmManager {
         azPhase: hash(i * 51 + wave) * Math.PI * 2,
         speedFreq: 1 / (10 + hash(i * 57 + wave * 5) * 8),
         speedPhase: hash(i * 61 + wave * 7) * Math.PI * 2,
-      });
+      }, this.killZone);
     }
   }
 
   update(dt: number): void {
-    for (const d of this.drones) d.tick(dt);
+    for (const d of this.drones) d.tick(dt, this.killZone);
   }
 
   getById(id: string): DroneTarget | undefined {
@@ -95,7 +118,7 @@ export class SwarmManager {
     const hit: DroneTarget[] = [];
     for (const d of this.drones) {
       if (!d.alive || d.breached) continue;
-      if (d.distance <= KILL_ZONE) {
+      if (d.distance <= this.killZone) {
         d.breached = true;
         hit.push(d);
       }

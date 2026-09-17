@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { KILL_ZONE, PROJECTILE_SPEED } from "./constants";
+import { PROJECTILE_SPEED } from "./constants";
 import {
   azimuthFromNorth,
   elevationFromGround,
@@ -11,17 +11,19 @@ import {
 
 describe("timeToBreach", () => {
   test("is (distance − kill zone) / inbound radial speed", () => {
-    expect(timeToBreach(900, 20, KILL_ZONE)).toBeCloseTo(20, 8);
+    expect(timeToBreach(900, 20, 500)).toBeCloseTo(20, 8);
+    expect(timeToBreach(900, 20, 200)).toBeCloseTo(35, 8);
   });
 
   test("returns 0 when already inside the kill zone", () => {
-    expect(timeToBreach(499, 30, KILL_ZONE)).toBe(0);
-    expect(timeToBreach(KILL_ZONE, 30, KILL_ZONE)).toBe(0);
+    expect(timeToBreach(499, 30, 500)).toBe(0);
+    expect(timeToBreach(500, 30, 500)).toBe(0);
+    expect(timeToBreach(200, 30, 200)).toBe(0);
   });
 
   test("returns +Infinity for receding or hovering tracks", () => {
-    expect(timeToBreach(800, 0, KILL_ZONE)).toBe(Number.POSITIVE_INFINITY);
-    expect(timeToBreach(800, -4, KILL_ZONE)).toBe(Number.POSITIVE_INFINITY);
+    expect(timeToBreach(800, 0, 500)).toBe(Number.POSITIVE_INFINITY);
+    expect(timeToBreach(800, -4, 500)).toBe(Number.POSITIVE_INFINITY);
   });
 });
 

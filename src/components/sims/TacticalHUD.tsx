@@ -94,7 +94,6 @@ export function TacticalHUD({
       {live ? (
         <aside className="pointer-events-none absolute top-24 right-0 z-10 hidden w-[22rem] max-w-[calc(100%-1.5rem)] flex-col gap-3 p-4 md:top-24 md:flex">
           <TrackTable hud={hud} />
-          <StatusStrip hud={hud} />
         </aside>
       ) : null}
 
@@ -105,7 +104,7 @@ export function TacticalHUD({
       ) : null}
 
       <div className="pointer-events-none absolute bottom-0 left-1/2 z-10 hidden -translate-x-1/2 pb-4 md:block">
-        <StatusStrip hud={hud} />
+        <StatusWindow hud={hud} />
       </div>
 
       {hud.mode === "MANUAL" && hud.leadScreen?.visible ? (
@@ -122,12 +121,6 @@ export function TacticalHUD({
           className="pointer-events-none absolute z-10 size-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-fg"
           style={{ left: hud.aimScreen.x, top: hud.aimScreen.y }}
         />
-      ) : null}
-
-      {hud.message && live ? (
-        <p className="pointer-events-none absolute top-1/2 left-1/2 z-10 -translate-x-1/2 -translate-y-[4.5rem] font-display text-2xl font-semibold tracking-display text-fg">
-          {hud.message}
-        </p>
       ) : null}
 
       <MobileBar hud={hud} />
@@ -345,26 +338,35 @@ function EffectorPicker({
   );
 }
 
-function StatusStrip({ hud }: { hud: ReturnType<typeof getHud> }) {
+function StatusWindow({ hud }: { hud: ReturnType<typeof getHud> }) {
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-line bg-surface/90 px-3 py-2 font-mono text-xs tabular-nums">
-      {hud.phase === "paused" ? <span className="text-warn">PAUSED</span> : null}
-      {hud.phase === "paused" ? <span className="text-line">|</span> : null}
-      <span className="text-khaki">{hud.effector.id}</span>
-      <span className="text-line">|</span>
-      <span className={hud.inRange ? "text-accent" : "text-warn"}>
-        {hud.inRange ? "IN RANGE" : "OUT OF RANGE"}
+    <div className="flex w-[40rem] max-w-[calc(100vw-2rem)] flex-col items-center gap-1.5 rounded-lg border border-line bg-surface/90 px-4 py-2 font-mono text-xs tabular-nums">
+      <span className="font-display text-lg font-semibold leading-none tracking-display text-khaki">
+        {hud.effector.id}
       </span>
-      <span className="text-line">|</span>
-      <span className={hud.aligned ? "text-accent" : "text-dim"}>
-        {hud.aligned ? "LOCKED" : "SLEW"}
-      </span>
-      <span className="ml-auto h-1.5 w-16 overflow-hidden rounded-full bg-line">
-        <span
-          className="block h-full bg-accent"
-          style={{ width: `${Math.round((1 - hud.cooldown) * 100)}%` }}
-        />
-      </span>
+      <div className="flex items-center justify-center gap-2 whitespace-nowrap">
+        {hud.phase === "paused" ? <span className="text-warn">PAUSED</span> : null}
+        {hud.phase === "paused" ? <span className="text-line">|</span> : null}
+        <span className={hud.inRange ? "text-accent" : "text-warn"}>
+          {hud.inRange ? "IN RANGE" : "OUT OF RANGE"}
+        </span>
+        <span className="text-line">|</span>
+        <span className={hud.aligned ? "text-accent" : "text-dim"}>
+          {hud.aligned ? "LOCKED" : "SLEW"}
+        </span>
+        {hud.message ? <span className="text-line">|</span> : null}
+        {hud.message ? <span className="text-fg">{hud.message}</span> : null}
+        <span className="text-line">|</span>
+        <span className="text-muted">
+          RDS <span className="text-fg">{hud.shots}</span>
+        </span>
+        <span className="h-1.5 w-16 overflow-hidden rounded-full bg-line">
+          <span
+            className="block h-full bg-accent"
+            style={{ width: `${Math.round((1 - hud.cooldown) * 100)}%` }}
+          />
+        </span>
+      </div>
     </div>
   );
 }

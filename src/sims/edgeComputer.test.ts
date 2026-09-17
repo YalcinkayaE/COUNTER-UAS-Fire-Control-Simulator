@@ -1,12 +1,12 @@
 import { describe, expect, test } from "vitest";
-import { KILL_ZONE, PROJECTILE_SPEED, RADAR_POS, TURRET_POS } from "./constants";
+import { PROJECTILE_SPEED, RADAR_POS, TURRET_POS } from "./constants";
 import { EdgeComputer } from "./edgeComputer";
 import { timeToBreach } from "./math";
 import { RadarSensor } from "./radarSensor";
 
 describe("EdgeComputer", () => {
   test("reconstructs cartesian from az/el/range and ranks EDF by TTB", () => {
-    const radar = new RadarSensor();
+    const radar = new RadarSensor(() => 0.5);
     const far = {
       id: "T-FAR",
       alive: true,
@@ -27,12 +27,12 @@ describe("EdgeComputer", () => {
     const hot = edge.tracks[0]!;
     expect(hot.range).toBeGreaterThan(0);
     expect(hot.position.z).toBeCloseTo(560, 0);
-    const ttb = timeToBreach(hot.distance, hot.radialVelocity, KILL_ZONE);
+    const ttb = timeToBreach(hot.distance, hot.radialVelocity, edge.killZone);
     expect(hot.timeToBreach).toBeCloseTo(ttb, 5);
   });
 
   test("AUTO issues a fire call; MANUAL holds the solution without auto-engage", () => {
-    const radar = new RadarSensor();
+    const radar = new RadarSensor(() => 0.5);
     const t = {
       id: "T01",
       alive: true,
@@ -59,8 +59,8 @@ describe("EdgeComputer", () => {
     expect(manual!.targetId).toBe("T01");
   });
 
-  test("still issues a fire call after the 500 m ring (TTB is NOW)", () => {
-    const radar = new RadarSensor();
+  test("still issues a fire call inside the kill zone (TTB is NOW)", () => {
+    const radar = new RadarSensor(() => 0.5);
     const inside = {
       id: "T-IN",
       alive: true,
@@ -76,6 +76,7 @@ describe("EdgeComputer", () => {
       velocity: { x: 0, y: 0, z: -20 },
     };
     const edge = new EdgeComputer();
+    edge.killZone = 200;
     const call = edge.ingest(radar.scan([inside, outside]), "AUTO", TURRET_POS);
     expect(call).not.toBeNull();
     expect(call!.targetId).toBe("T-IN");
@@ -83,8 +84,28 @@ describe("EdgeComputer", () => {
     expect(edge.tracks[0]!.timeToBreach).toBe(0);
   });
 
+  test("TTB follows the selected effector's kill zone", () => {
+    const radar = new RadarSensor(() => 0.5);
+    const t = {
+      id: "T01",
+      alive: true,
+      position: { x: 0, y: 40, z: 300 },
+      velocity: { x: 0, y: 0, z: -20 },
+    };
+    const reports = radar.scan([t]);
+    const edge = new EdgeComputer();
+
+    edge.killZone = 200;
+    edge.ingest(reports, "AUTO", TURRET_POS);
+    expect(edge.tracks[0]!.timeToBreach).toBeGreaterThan(0);
+
+    edge.killZone = 400;
+    edge.ingest(reports, "AUTO", TURRET_POS);
+    expect(edge.tracks[0]!.timeToBreach).toBe(0);
+  });
+
   test("coasts tracks between 10 Hz scans", () => {
-    const radar = new RadarSensor();
+    const radar = new RadarSensor(() => 0.5);
     const t = {
       id: "T01",
       alive: true,

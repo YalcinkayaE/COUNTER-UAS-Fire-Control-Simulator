@@ -1,4 +1,17 @@
-import { KILL_ZONE, RADAR_DT, RADAR_MAX_TRACKS, RADAR_POS } from "./constants";
+import {
+  DEG,
+  DEFAULT_EFFECTOR_ID,
+  EFFECTORS,
+  RADAR_AZ_ACCURACY_DEG,
+  RADAR_AZ_FOV_DEG,
+  RADAR_BORESIGHT_AZ_DEG,
+  RADAR_DT,
+  RADAR_EL_ACCURACY_DEG,
+  RADAR_EL_MAX_DEG,
+  RADAR_EL_MIN_DEG,
+  RADAR_MAX_TRACKS,
+  RADAR_POS,
+} from "./constants";
 import {
   azimuthFromNorth,
   elevationFromGround,
@@ -30,14 +43,21 @@ export type RadarReport = {
 };
 
 /**
- * Simulated AESA on the UGV. Samples truth kinematics at 10 Hz and emits
- * at most 20 simultaneous tracks. Not a fielded radar DSP.
+ * Simulated Echodyne Guard-class AESA on the UGV. Samples truth kinematics
+ * at 10 Hz and emits at most 20 simultaneous tracks from inside its staring
+ * sector: 120° az (±60° around the north boresight) × 80° el. Reported
+ * angles carry datasheet noise (±1° az, ±1.5° el). Not a fielded radar DSP.
  */
 export class RadarSensor {
   readonly origin: Vec3 = { x: RADAR_POS.x, y: RADAR_POS.y, z: RADAR_POS.z };
   reports: RadarReport[] = [];
   seq = 0;
+  /** Kill zone for the TTB pre-rank: the selected effector's range. */
+  killZone: number = EFFECTORS[DEFAULT_EFFECTOR_ID].range;
   private wait = 0;
+
+  /** `jitter` returns a uniform sample in [0, 1); tests inject a fixed value. */
+  constructor(private readonly jitter: () => number = Math.random) {}
 
   update(dt: number, objects: RadarObject[]): RadarReport[] | null {
     this.wait -= dt;
@@ -48,13 +68,13 @@ export class RadarSensor {
 
   scan(objects: RadarObject[]): RadarReport[] {
     this.seq += 1;
-    const live = objects.filter((o) => o.alive);
+    const live = objects.filter((o) => o.alive && this.inFov(o));
     const ranked = live
       .map((o) => {
         const ttb = timeToBreach(
           hypot3(o.position.x, o.position.y, o.position.z),
           radialClosingSpeed(o.position, o.velocity),
-          KILL_ZONE,
+          this.killZone,
         );
         return { o, ttb };
       })
@@ -64,6 +84,24 @@ export class RadarSensor {
     return this.reports;
   }
 
+  /** Sector gate: 120° az around the boresight, 80° el above the horizon. */
+  private inFov(o: RadarObject): boolean {
+    const dx = o.position.x - this.origin.x;
+    const dy = o.position.y - this.origin.y;
+    const dz = o.position.z - this.origin.z;
+    const elDeg = (elevationFromGround(dx, dy, dz) * 180) / Math.PI;
+    if (elDeg < RADAR_EL_MIN_DEG || elDeg > RADAR_EL_MAX_DEG) return false;
+    const az = azimuthFromNorth(dx, dz);
+    const boresight = RADAR_BORESIGHT_AZ_DEG * DEG;
+    const rel = Math.atan2(Math.sin(az - boresight), Math.cos(az - boresight));
+    return Math.abs(rel) <= (RADAR_AZ_FOV_DEG / 2) * DEG;
+  }
+
+  /** Angular measurement error, uniform within the datasheet accuracy bounds. */
+  private angleNoise(accuracyDeg: number): number {
+    return (this.jitter() - 0.5) * 2 * accuracyDeg * DEG;
+  }
+
   private reportOn(o: RadarObject): RadarReport {
     const dx = o.position.x - this.origin.x;
     const dy = o.position.y - this.origin.y;
@@ -71,8 +109,8 @@ export class RadarSensor {
     const range = hypot3(dx, dy, dz);
     return {
       id: o.id,
-      azimuth: azimuthFromNorth(dx, dz),
-      elevation: elevationFromGround(dx, dy, dz),
+      azimuth: azimuthFromNorth(dx, dz) + this.angleNoise(RADAR_AZ_ACCURACY_DEG),
+      elevation: elevationFromGround(dx, dy, dz) + this.angleNoise(RADAR_EL_ACCURACY_DEG),
       range,
       velocity: { x: o.velocity.x, y: o.velocity.y, z: o.velocity.z },
       speed: hypot3(o.velocity.x, o.velocity.y, o.velocity.z),

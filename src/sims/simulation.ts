@@ -65,6 +65,7 @@ export type HudSnapshot = {
   ledger: readonly LedgerEntry[];
   effector: EffectorSpec;
   inRange: boolean;
+  shots: number;
 };
 
 export type Projectile = {
@@ -353,8 +354,9 @@ export class Simulation {
         kind: "breach",
       });
       if (!this.muted) sfxBreach();
-      this.message = `${d.id} BREACHED 500 m — GUNS TIGHT`;
-      this.record(d.id, "BREACH", "500 m");
+      const killZone = EFFECTORS[this.effectorId].range;
+      this.message = `${d.id} BREACHED ${killZone} m — GUNS TIGHT`;
+      this.record(d.id, "BREACH", `${killZone} m`);
     }
 
     const impacts = this.swarm.collectImpacts();
@@ -391,6 +393,9 @@ export class Simulation {
     this.turret.fireCooldown = fireCooldownSec(spec.rpm);
     this.turret.effectiveRange = spec.range;
     this.edge.maxRange = spec.range;
+    this.edge.killZone = spec.range;
+    this.radar.killZone = spec.range;
+    this.swarm.killZone = spec.range;
   }
 
   private record(what: string, action: string, outcome: string): void {
@@ -465,7 +470,11 @@ export class Simulation {
   private detonate(p: Projectile): void {
     p.alive = false;
     const target = this.swarm.getById(p.targetId);
-    if (!target || !target.alive) return;
+    // Full round accounting: a round resolving on an already-dead track is SUPPRESSED.
+    if (!target || !target.alive) {
+      this.record(p.targetId, "INTERCEPT", "SUPPRESSED");
+      return;
+    }
     let hit = false;
     for (const d of this.swarm.drones) {
       if (!d.alive) continue;
@@ -639,6 +648,7 @@ function emptyHud(): HudSnapshot {
     ledger: [],
     effector: EFFECTORS[DEFAULT_EFFECTOR_ID],
     inRange: false,
+    shots: 0,
   };
 }
 
@@ -702,6 +712,7 @@ function buildHud(s: Simulation): HudSnapshot {
     ledger: s.ledger.snapshot(),
     effector: EFFECTORS[s.effectorId],
     inRange: interceptInRange(s),
+    shots: s.shotsFired,
   };
 }
 

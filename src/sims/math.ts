@@ -21,8 +21,9 @@ export function radialClosingSpeed(p: Vec3, v: Vec3): number {
 
 /**
  * Earliest-Deadline-First key.
- * Time-to-Breach = (Distance − 500m) / Radial Velocity
- * Receding tracks return +Infinity. Already inside the kill zone → 0.
+ * Time-to-Breach = (Distance − kill zone) / Radial Velocity.
+ * The kill zone is the selected effector's range. Receding tracks return
+ * +Infinity. Already inside the kill zone → 0.
  */
 export function timeToBreach(
   distance: number,

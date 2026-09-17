@@ -1,4 +1,4 @@
-import { KILL_ZONE, PROJECTILE_SPEED, RADAR_POS } from "./constants";
+import { DEFAULT_EFFECTOR_ID, EFFECTORS, PROJECTILE_SPEED, RADAR_POS } from "./constants";
 import {
   azimuthFromNorth,
   elevationFromGround,
@@ -44,6 +44,8 @@ export class EdgeComputer {
   tracks: TrackSnapshot[] = [];
   fireCall: FireCall | null = null;
   maxRange = Number.POSITIVE_INFINITY;
+  /** EDF deadline ring: the selected effector's range. */
+  killZone: number = EFFECTORS[DEFAULT_EFFECTOR_ID].range;
   private mode: FireMode = "AUTO";
   private shooter: Vec3 = { x: 0, y: 14, z: 0 };
 
@@ -105,7 +107,7 @@ export class EdgeComputer {
     t.rangeRate = radialClosingSpeed({ x: dx, y: dy, z: dz }, t.velocity);
     t.distance = hypot3(t.position.x, t.position.y, t.position.z);
     t.radialVelocity = radialClosingSpeed(t.position, t.velocity);
-    t.timeToBreach = timeToBreach(t.distance, t.radialVelocity, KILL_ZONE);
+    t.timeToBreach = timeToBreach(t.distance, t.radialVelocity, this.killZone);
   }
 
   private refreshCall(mode: FireMode, shooter: Vec3): FireCall | null {

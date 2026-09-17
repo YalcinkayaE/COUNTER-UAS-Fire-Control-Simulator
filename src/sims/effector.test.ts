@@ -26,7 +26,7 @@ describe("effector catalog", () => {
 
 describe("edge computer envelope", () => {
   test("withholds AUTO engage when no intercept is inside the envelope", () => {
-    const radar = new RadarSensor();
+    const radar = new RadarSensor(() => 0.5);
     const far = {
       id: "T-FAR",
       alive: true,
@@ -44,7 +44,7 @@ describe("edge computer envelope", () => {
 
 describe("turret rate of fire", () => {
   test("PENCE-A 120 rds/min puts at most two rounds in a 0.5 s burst", () => {
-    const radar = new RadarSensor();
+    const radar = new RadarSensor(() => 0.5);
     const edge = new EdgeComputer();
     edge.maxRange = 400;
     const turret = new TurretController();

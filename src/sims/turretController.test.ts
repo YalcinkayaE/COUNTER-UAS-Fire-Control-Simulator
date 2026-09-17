@@ -13,9 +13,9 @@ describe("UGV gun", () => {
   });
 
   test("AUTO burst lasts at most 0.5 s and puts several rounds on the track", () => {
-    const swarm = new SwarmManager();
+    const swarm = new SwarmManager(() => 0.5);
     swarm.spawnWave(1);
-    const radar = new RadarSensor();
+    const radar = new RadarSensor(() => 0.5);
     const edge = new EdgeComputer();
     const turret = new TurretController();
     turret.mode = "AUTO";

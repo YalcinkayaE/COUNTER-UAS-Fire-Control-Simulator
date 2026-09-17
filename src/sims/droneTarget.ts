@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { DRONE_MANEUVER_FRAC, KILL_ZONE, OUTER_RADIUS } from "./constants";
+import { DRONE_MANEUVER_FRAC, OUTER_RADIUS } from "./constants";
 import { clamp, hypot3, radialClosingSpeed, timeToBreach } from "./math";
 
 const TWO_PI = Math.PI * 2;
@@ -34,7 +34,8 @@ export class DroneTarget {
   speed = 20;
   baseAlt = 80;
   spawnAz = 0;
-  alive = true;
+  /** Pool members start dead; spawnWave brings up only this wave's count. */
+  alive = false;
   breached = false;
   distance = OUTER_RADIUS;
   radialVelocity = 0;
@@ -52,7 +53,7 @@ export class DroneTarget {
     this.id = id;
   }
 
-  spawn(p: SwarmProfile): void {
+  spawn(p: SwarmProfile, killZone: number): void {
     this.alive = true;
     this.breached = false;
     this.kind = p.kind;
@@ -70,10 +71,10 @@ export class DroneTarget {
     this.spawnAz = Math.atan2(this.position.x, this.position.z);
     this.homeDir.set(-Math.cos(p.angle), 0, -Math.sin(p.angle)).normalize();
     this.velocity.copy(this.homeDir).multiplyScalar(this.speed);
-    this.refreshTrack();
+    this.refreshTrack(killZone);
   }
 
-  tick(dt: number): void {
+  tick(dt: number, killZone: number): void {
     if (!this.alive) return;
     this.age += dt;
     const k = DRONE_MANEUVER_FRAC;
@@ -101,12 +102,12 @@ export class DroneTarget {
       (newR * Math.cos(newAz) - this.position.z) * invDt,
     );
     this.position.set(newR * Math.sin(newAz), nextY, newR * Math.cos(newAz));
-    this.refreshTrack();
+    this.refreshTrack(killZone);
   }
 
-  refreshTrack(): void {
+  refreshTrack(killZone: number): void {
     this.distance = hypot3(this.position.x, this.position.y, this.position.z);
     this.radialVelocity = radialClosingSpeed(this.position, this.velocity);
-    this.timeToBreach = timeToBreach(this.distance, this.radialVelocity, KILL_ZONE);
+    this.timeToBreach = timeToBreach(this.distance, this.radialVelocity, killZone);
   }
 }

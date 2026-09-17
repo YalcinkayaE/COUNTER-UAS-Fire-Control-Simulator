@@ -2,16 +2,24 @@
 
 export const OUTER_RADIUS = 1000;
 export const DETECT_RADIUS = 2000;
-export const KILL_ZONE = 500;
 export const FACILITY_RADIUS = 36;
 
-export const QUAD_COUNT = 20;
-export const FIXED_WING_COUNT = 2;
-export const DRONE_COUNT = QUAD_COUNT + FIXED_WING_COUNT;
+/** Raid pools: each wave spawns a random 8–16 quads and 2–3 fixed-wing. */
+export const QUAD_COUNT_MIN = 8;
+export const QUAD_COUNT_MAX = 16;
+export const FIXED_WING_COUNT_MIN = 2;
+export const FIXED_WING_COUNT_MAX = 3;
+export const DRONE_POOL_MAX = QUAD_COUNT_MAX + FIXED_WING_COUNT_MAX;
 export const RADAR_MAX_TRACKS = 20;
-/** Compass sector: degrees west of north. 10–60° is northwest inbound. */
-export const SWARM_WEST_OF_NORTH_MIN_DEG = 10;
-export const SWARM_WEST_OF_NORTH_MAX_DEG = 60;
+/**
+ * Quad raid corridor: 30° wide; its center shifts each wave within ±27° of
+ * north so the ±40% azimuth maneuver still stays inside the radar sector.
+ */
+export const QUAD_CORRIDOR_WIDTH_DEG = 30;
+export const QUAD_CORRIDOR_CENTER_MAX_DEG = 27;
+/** Fixed-wing ingress: azimuth 8–34° east of north plus 4° per airframe. */
+export const FIXED_WING_AZ_MIN_DEG = 8;
+export const FIXED_WING_AZ_SPAN_DEG = 26;
 export const DRONE_SPEED_MIN = 12;
 export const DRONE_SPEED_MAX = 38;
 export const DRONE_ALT_MIN = 28;
@@ -26,6 +34,20 @@ export const FIXED_WING_ALT_MAX = 190;
 export const RADAR_HZ = 10;
 export const RADAR_DT = 1 / RADAR_HZ;
 export const FIXED_DT = 1 / 60;
+
+/**
+ * Single Echodyne Guard-class AESA: a 120° az × 80° el staring sector.
+ * Boresight is north, so azimuth coverage is ±60° around north and
+ * elevation coverage is the 80° window above the horizon.
+ */
+export const RADAR_AZ_FOV_DEG = 120;
+export const RADAR_EL_MIN_DEG = 0;
+export const RADAR_EL_MAX_DEG = 80;
+/** Boresight azimuth, degrees from north. */
+export const RADAR_BORESIGHT_AZ_DEG = 0;
+/** Angular measurement accuracy: azimuth within ±1°, elevation within ±1.5°. */
+export const RADAR_AZ_ACCURACY_DEG = 1;
+export const RADAR_EL_ACCURACY_DEG = 1.5;
 
 export const TURRET_POS = { x: 0, y: 14, z: 0 } as const;
 /** Echodyne-class AESA on the UGV roof. Simulated reports only. */

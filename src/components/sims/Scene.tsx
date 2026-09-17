@@ -21,12 +21,13 @@ import {
   type ViewMode,
 } from "@/sims/camera";
 import {
+  DEG,
   DETECT_RADIUS,
-  FIXED_WING_COUNT,
-  KILL_ZONE,
+  FIXED_WING_COUNT_MAX,
   MAX_IN_FLIGHT,
   OUTER_RADIUS,
-  QUAD_COUNT,
+  QUAD_COUNT_MAX,
+  RADAR_AZ_FOV_DEG,
   UAV_FIXED_WING_CONTACT,
   UAV_IMMINENT_CONTACT,
   UAV_QUAD_CONTACT,
@@ -186,20 +187,69 @@ function ringPoints(radius: number, y: number): [number, number, number][] {
 function Perimeter() {
   const detect = useMemo(() => ringPoints(DETECT_RADIUS, 0.7), []);
   const outer = useMemo(() => ringPoints(OUTER_RADIUS, 0.7), []);
-  const kill = useMemo(() => ringPoints(KILL_ZONE, 0.7), []);
   return (
     <group>
       <Line points={detect} color="#c9b24a" lineWidth={1.6} />
       <Line points={outer} color="#ee7f1a" lineWidth={1.5} />
-      <Line points={kill} color="#e44535" lineWidth={1.4} />
-      <EffectorEnvelope />
+      <KillZoneRing />
+      <RadarSector />
       <SpokeLines />
       <Cardinals />
     </group>
   );
 }
 
-function EffectorEnvelope() {
+/** The radar's 120° az staring sector on a north boresight — subtle but visible. */
+function RadarSector() {
+  const half = (RADAR_AZ_FOV_DEG / 2) * DEG;
+  const geom = useMemo(() => {
+    const g = new THREE.BufferGeometry();
+    const verts: number[] = [0, 0.35, 0];
+    const steps = 60;
+    for (let i = 0; i <= steps; i++) {
+      const az = -half + (i / steps) * half * 2;
+      verts.push(Math.sin(az) * DETECT_RADIUS, 0.35, Math.cos(az) * DETECT_RADIUS);
+    }
+    const idx: number[] = [];
+    for (let i = 1; i <= steps; i++) idx.push(0, i, i + 1);
+    g.setAttribute("position", new THREE.Float32BufferAttribute(verts, 3));
+    g.setIndex(idx);
+    return g;
+  }, [half]);
+  const edge = useMemo(
+    () => [
+      [0, 0.6, 0] as [number, number, number],
+      [
+        Math.sin(half) * DETECT_RADIUS,
+        0.6,
+        Math.cos(half) * DETECT_RADIUS,
+      ] as [number, number, number],
+    ],
+    [half],
+  );
+  const edgeWest = useMemo(
+    () => [edge[0], [-edge[1][0], edge[1][1], edge[1][2]] as [number, number, number]],
+    [edge],
+  );
+  return (
+    <group>
+      <mesh geometry={geom} renderOrder={1}>
+        <meshBasicMaterial
+          color="#9eb8a8"
+          transparent
+          opacity={0.045}
+          side={THREE.DoubleSide}
+          depthWrite={false}
+        />
+      </mesh>
+      <Line points={edge} color="#9eb8a8" lineWidth={1} transparent opacity={0.35} />
+      <Line points={edgeWest} color="#9eb8a8" lineWidth={1} transparent opacity={0.35} />
+    </group>
+  );
+}
+
+/** Kill zone = selected effector range; the ring moves when the operator switches. */
+function KillZoneRing() {
   const group = useRef<THREE.Group>(null);
   const unit = useMemo(() => ringPoints(1, 0.7), []);
   useFrame(() => {
@@ -208,7 +258,7 @@ function EffectorEnvelope() {
   });
   return (
     <group ref={group}>
-      <Line points={unit} color="#9eb8a8" lineWidth={1.5} />
+      <Line points={unit} color="#e44535" lineWidth={1.5} />
     </group>
   );
 }
@@ -364,6 +414,92 @@ function UgvInterceptor() {
           fog={false}
         />
       </mesh>
+      {/* Glacis: sloped nose plate over the front box. */}
+      <mesh position={[0, 3.3, 8.3]} rotation={[0.34, 0, 0]} castShadow>
+        <boxGeometry args={[8.8, 0.24, 2.6]} />
+        <meshStandardMaterial
+          color={KHAKI_LIGHT}
+          emissive={KHAKI_LIGHT}
+          emissiveIntensity={0.22}
+          roughness={0.36}
+          metalness={0.14}
+          fog={false}
+        />
+      </mesh>
+      {/* Side skirts over the wheel line. */}
+      {[-1, 1].map((s) => (
+        <mesh key={`skirt${s}`} position={[s * 4.85, 2.2, 0]} castShadow>
+          <boxGeometry args={[0.4, 1.5, 15]} />
+          <meshStandardMaterial
+            color={KHAKI_DEEP}
+            emissive={KHAKI}
+            emissiveIntensity={0.16}
+            roughness={0.46}
+            metalness={0.12}
+            fog={false}
+          />
+        </mesh>
+      ))}
+      {/* Rear deck exhaust grille. */}
+      <mesh position={[-2.6, 3.7, -5.8]}>
+        <boxGeometry args={[2.0, 0.3, 2.6]} />
+        <meshStandardMaterial color="#161b20" metalness={0.4} roughness={0.6} fog={false} />
+      </mesh>
+      {/* Roof hatch. */}
+      <mesh position={[2.4, 3.74, 2.8]}>
+        <cylinderGeometry args={[1.0, 1.0, 0.16, 16]} />
+        <meshStandardMaterial
+          color={KHAKI_METAL}
+          emissive={KHAKI}
+          emissiveIntensity={0.18}
+          metalness={0.28}
+          roughness={0.3}
+          fog={false}
+        />
+      </mesh>
+      {/* Echodyne-class AESA on a roof mast — the sensor that feeds the track file. */}
+      <mesh position={[0, 4.7, -5.4]} castShadow>
+        <cylinderGeometry args={[0.26, 0.34, 2.4, 10]} />
+        <meshStandardMaterial
+          color={KHAKI_METAL}
+          emissive={KHAKI}
+          emissiveIntensity={0.18}
+          metalness={0.3}
+          roughness={0.3}
+          fog={false}
+        />
+      </mesh>
+      <mesh position={[0, 6.3, -5.4]} rotation={[-0.18, 0, 0]} castShadow>
+        <boxGeometry args={[3.6, 2.2, 0.3]} />
+        <meshStandardMaterial
+          color={KHAKI_METAL}
+          emissive={KHAKI}
+          emissiveIntensity={0.2}
+          metalness={0.26}
+          roughness={0.3}
+          fog={false}
+        />
+      </mesh>
+      <mesh position={[0, 6.3, -5.22]} rotation={[-0.18, 0, 0]}>
+        <boxGeometry args={[3.2, 1.8, 0.08]} />
+        <meshStandardMaterial
+          color="#101418"
+          emissive="#1d2b26"
+          emissiveIntensity={0.5}
+          metalness={0.5}
+          roughness={0.35}
+          fog={false}
+        />
+      </mesh>
+      {/* Antenna whip with a marker tip. */}
+      <mesh position={[-3.3, 6.4, -6.8]}>
+        <cylinderGeometry args={[0.05, 0.07, 5.6, 6]} />
+        <meshStandardMaterial color="#12161a" roughness={0.7} metalness={0.2} fog={false} />
+      </mesh>
+      <mesh position={[-3.3, 9.25, -6.8]}>
+        <sphereGeometry args={[0.13, 8, 8]} />
+        <meshBasicMaterial color="#e8a04a" toneMapped={false} fog={false} />
+      </mesh>
       {[-5.4, 0, 5.4].flatMap((z) => [-5.35, 5.35].map((x) => wheel(x, z)))}
       <group position={[0, 5.35, -1.1]}>
         <mesh position={[0, -0.55, 0]} castShadow>
@@ -400,6 +536,60 @@ function UgvInterceptor() {
               fog={false}
             />
           </mesh>
+          {/* Angled cheeks flanking the gun. */}
+          {[-1, 1].map((s) => (
+            <mesh
+              key={`cheek${s}`}
+              position={[s * 2.35, 0.1, 2.6]}
+              rotation={[0, -s * 0.3, 0]}
+              castShadow
+            >
+              <boxGeometry args={[1.3, 1.7, 4.2]} />
+              <meshStandardMaterial
+                color={KHAKI}
+                emissive={KHAKI}
+                emissiveIntensity={0.26}
+                roughness={0.4}
+                metalness={0.13}
+                fog={false}
+              />
+            </mesh>
+          ))}
+          {/* Thermal shroud over the barrel root. */}
+          <mesh position={[0, 0.25, 4.6]} rotation={[-Math.PI / 2, 0, 0]} castShadow>
+            <cylinderGeometry args={[1.0, 1.05, 5.2, 14]} />
+            <meshStandardMaterial
+              color={KHAKI_METAL}
+              emissive={KHAKI}
+              emissiveIntensity={0.22}
+              metalness={0.3}
+              roughness={0.26}
+              fog={false}
+            />
+          </mesh>
+          {/* Muzzle brake baffles. */}
+          {[14.9, 15.7].map((z) => (
+            <mesh key={`baffle${z}`} position={[0, 0.25, z]}>
+              <cylinderGeometry args={[0.98, 0.98, 0.42, 12]} />
+              <meshStandardMaterial
+                color={KHAKI_METAL}
+                emissive={KHAKI}
+                emissiveIntensity={0.3}
+                metalness={0.3}
+                roughness={0.24}
+                fog={false}
+              />
+            </mesh>
+          ))}
+          {/* Gunner optics ball beside the barrel. */}
+          <mesh position={[1.75, 1.95, 2.9]}>
+            <sphereGeometry args={[0.62, 14, 12]} />
+            <meshStandardMaterial color="#0c1218" metalness={0.9} roughness={0.08} />
+          </mesh>
+          <mesh position={[1.75, 1.95, 3.42]}>
+            <sphereGeometry args={[0.2, 10, 8]} />
+            <meshBasicMaterial color="#3a6a8a" toneMapped={false} fog={false} />
+          </mesh>
           <mesh position={[0, 0.25, 16.5]}>
             <cylinderGeometry args={[0.95, 0.95, 1.3, 12]} />
             <meshStandardMaterial
@@ -421,16 +611,16 @@ function UgvInterceptor() {
 function DroneField() {
   return (
     <>
-      {Array.from({ length: QUAD_COUNT }, (_, i) => (
+      {Array.from({ length: QUAD_COUNT_MAX }, (_, i) => (
         <group key={`q${i}`}>
           <DroneMesh index={i} />
           <ContactMarker index={i} kind="quad" />
         </group>
       ))}
-      {Array.from({ length: FIXED_WING_COUNT }, (_, i) => (
+      {Array.from({ length: FIXED_WING_COUNT_MAX }, (_, i) => (
         <group key={`f${i}`}>
-          <FixedWingMesh index={QUAD_COUNT + i} />
-          <ContactMarker index={QUAD_COUNT + i} kind="fixedWing" />
+          <FixedWingMesh index={QUAD_COUNT_MAX + i} />
+          <ContactMarker index={QUAD_COUNT_MAX + i} kind="fixedWing" />
         </group>
       ))}
     </>
@@ -544,6 +734,33 @@ function FixedWingMesh({ index }: { index: number }) {
           roughness={0.4}
           fog={false}
         />
+      </mesh>
+      {/* Upturned winglets. */}
+      {[-1, 1].map((s) => (
+        <mesh
+          key={`winglet${s}`}
+          position={[s * 3.62, 0.35, -0.15]}
+          rotation={[0, 0, -s * 0.4]}
+        >
+          <boxGeometry args={[0.09, 0.7, 1.0]} />
+          <meshStandardMaterial
+            color="#c9b24a"
+            emissive={UAV_FIXED_WING_CONTACT}
+            emissiveIntensity={0.32}
+            metalness={0.28}
+            roughness={0.38}
+            fog={false}
+          />
+        </mesh>
+      ))}
+      {/* Rear engine nozzle with a faint exhaust glow. */}
+      <mesh position={[0, 0.06, -2.25]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.3, 0.24, 0.6, 12]} />
+        <meshStandardMaterial color="#161b20" metalness={0.55} roughness={0.35} />
+      </mesh>
+      <mesh position={[0, 0.06, -2.57]} rotation={[0, Math.PI, 0]}>
+        <circleGeometry args={[0.2, 12]} />
+        <meshBasicMaterial color="#e8a04a" transparent opacity={0.8} toneMapped={false} fog={false} />
       </mesh>
     </group>
   );
@@ -673,6 +890,34 @@ function DroneMesh({ index }: { index: number }) {
           fog={false}
         />
       </mesh>
+      {/* Hull spine stripe. */}
+      <mesh position={[0, 0.27, 0.15]}>
+        <boxGeometry args={[0.34, 0.06, 1.5]} />
+        <meshStandardMaterial
+          color="#173026"
+          emissive={UAV_QUAD_CONTACT}
+          emissiveIntensity={0.7}
+          roughness={0.4}
+          metalness={0.2}
+          fog={false}
+        />
+      </mesh>
+      {/* Nav strobes: red left, green right. */}
+      <mesh position={[-2.48, 0.3, 2.18]}>
+        <sphereGeometry args={[0.16, 8, 8]} />
+        <meshBasicMaterial color="#e56b5c" toneMapped={false} fog={false} />
+      </mesh>
+      <mesh position={[2.48, 0.3, 2.18]}>
+        <sphereGeometry args={[0.16, 8, 8]} />
+        <meshBasicMaterial color="#7fdca0" toneMapped={false} fog={false} />
+      </mesh>
+      {/* Motor pods at the arm tips. */}
+      {QUAD_TIPS.map((tip) => (
+        <mesh key={`pod${tip[0]}:${tip[2]}`} position={[tip[0], tip[1] + 0.16, tip[2]]}>
+          <sphereGeometry args={[0.34, 10, 8]} />
+          <meshStandardMaterial color="#2a3138" metalness={0.5} roughness={0.4} />
+        </mesh>
+      ))}
       {QUAD_TIPS.map((tip) => (
         <CarbonArm key={`${tip[0]}:${tip[2]}`} tip={tip} />
       ))}
