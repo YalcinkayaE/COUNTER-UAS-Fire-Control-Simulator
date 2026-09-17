@@ -14,6 +14,10 @@ describe("Ledger", () => {
       what: "T14",
       action: "FIRE AUTO",
       outcome: "RELEASED",
+      az: null,
+      el: null,
+      rng: null,
+      v: null,
     });
     expect(rows[1]).toMatchObject({
       seq: 2,
@@ -30,7 +34,7 @@ describe("Ledger", () => {
     log.append(0, "WAVE 01", "ENGAGE", "WEAPONS FREE");
     const csv = log.toCsv();
     const lines = csv.trim().split("\n");
-    expect(lines[0]).toBe("seq,when,wall,what,action,outcome");
+    expect(lines[0]).toBe("seq,when,wall,what,action,outcome,az,el,rng,v");
     expect(lines).toHaveLength(2);
     expect(lines[1]).toContain("WAVE 01");
     expect(lines[1]).toContain("ENGAGE");
@@ -60,5 +64,14 @@ describe("Ledger", () => {
     const line = log.toCsv().trim().split("\n")[1];
     expect(line).toContain('"T01 ""FW"""');
     expect(line).toContain('"HIT, close"');
+  });
+
+  test("stores AZ, EL, RNG, and V with the row", () => {
+    const log = new Ledger();
+    log.append(2, "T14", "FIRE AUTO", "RELEASED", { az: 315, el: 4, rng: 940, v: 38 });
+    expect(log.snapshot()[0]).toMatchObject({ az: 315, el: 4, rng: 940, v: 38 });
+    const csv = log.toCsv();
+    expect(csv).toContain("315");
+    expect(csv).toContain("940");
   });
 });

@@ -6,16 +6,17 @@ import {
   HIT_RADIUS,
   MAX_IN_FLIGHT,
   MAX_WAVES,
+  RADAR_POS,
   STARTING_LIVES,
 } from "./constants";
-import { dist3 } from "./math";
+import { azimuthFromNorth, dist3, elevationFromGround, hypot3 } from "./math";
+import { Ledger, type LedgerEntry, type LedgerKinematics } from "./ledger";
 import { SwarmManager } from "./swarmManager";
 import { DroneTarget } from "./droneTarget";
 import { RadarSensor } from "./radarSensor";
 import { EdgeComputer } from "./edgeComputer";
 import { TurretController, type FireMode } from "./turretController";
 import { resumeIfNeeded, setMuted, sfxBreach, sfxFire, sfxHit, unlockAudio } from "./audio";
-import { Ledger, type LedgerEntry } from "./ledger";
 
 export type Phase = "briefing" | "live" | "paused" | "defeat" | "wavehold";
 
@@ -365,7 +366,30 @@ export class Simulation {
   }
 
   private record(what: string, action: string, outcome: string): void {
-    this.ledger.append(this.elapsed, what, action, outcome);
+    this.ledger.append(this.elapsed, what, action, outcome, this.kinematicsFor(what));
+  }
+
+  private kinematicsFor(id: string): LedgerKinematics {
+    const t = this.edge.tracks.find((row) => row.id === id);
+    if (t) {
+      return {
+        az: wrapDeg(t.azimuth),
+        el: (t.elevation * 180) / Math.PI,
+        rng: t.range,
+        v: t.speed,
+      };
+    }
+    const d = this.swarm.getById(id);
+    if (!d) return { az: null, el: null, rng: null, v: null };
+    const dx = d.position.x - RADAR_POS.x;
+    const dy = d.position.y - RADAR_POS.y;
+    const dz = d.position.z - RADAR_POS.z;
+    return {
+      az: wrapDeg(azimuthFromNorth(dx, dz)),
+      el: (elevationFromGround(dx, dy, dz) * 180) / Math.PI,
+      rng: hypot3(dx, dy, dz),
+      v: d.speed,
+    };
   }
 
   private launch(from: THREE.Vector3, to: THREE.Vector3, targetId: string, tof: number): void {
@@ -554,6 +578,12 @@ function readHigh(): number {
   } catch {
     return 0;
   }
+}
+
+function wrapDeg(rad: number): number {
+  let d = (rad * 180) / Math.PI;
+  d = ((d % 360) + 360) % 360;
+  return d;
 }
 
 function emptyHud(): HudSnapshot {

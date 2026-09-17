@@ -263,11 +263,11 @@ function CardinalLabel({
   );
 }
 
-const KHAKI = "#c9b24a";
-const KHAKI_DEEP = "#9e8a32";
-const KHAKI_LIGHT = "#d8c45e";
-const KHAKI_METAL = "#b39a40";
-const KHAKI_MARK = "#2e2a14";
+const KHAKI = "#f0c93a";
+const KHAKI_DEEP = "#d4a41a";
+const KHAKI_LIGHT = "#ffe566";
+const KHAKI_METAL = "#e8c030";
+const KHAKI_MARK = "#3a3208";
 
 function KangalMark({
   position,
@@ -322,7 +322,14 @@ function UgvInterceptor() {
       </mesh>
       <mesh>
         <cylinderGeometry args={[0.58, 0.58, 1.22, 12]} />
-        <meshStandardMaterial color={KHAKI_METAL} metalness={0.55} roughness={0.32} />
+        <meshStandardMaterial
+          color={KHAKI_METAL}
+          emissive={KHAKI}
+          emissiveIntensity={0.18}
+          metalness={0.28}
+          roughness={0.28}
+          fog={false}
+        />
       </mesh>
     </group>
   );
@@ -335,19 +342,47 @@ function UgvInterceptor() {
       </mesh>
       <mesh position={[0, 2.35, 0]} castShadow>
         <boxGeometry args={[9.2, 2.3, 16.4]} />
-        <meshStandardMaterial color={KHAKI} roughness={0.52} metalness={0.22} />
+        <meshStandardMaterial
+          color={KHAKI}
+          emissive={KHAKI}
+          emissiveIntensity={0.28}
+          roughness={0.42}
+          metalness={0.12}
+          fog={false}
+        />
       </mesh>
       <mesh position={[0, 3.55, 0]} castShadow>
         <boxGeometry args={[8.4, 0.38, 15]} />
-        <meshStandardMaterial color={KHAKI_LIGHT} roughness={0.42} metalness={0.28} />
+        <meshStandardMaterial
+          color={KHAKI_LIGHT}
+          emissive={KHAKI_LIGHT}
+          emissiveIntensity={0.22}
+          roughness={0.36}
+          metalness={0.14}
+          fog={false}
+        />
       </mesh>
       <mesh position={[0, 2.55, 7.6]} castShadow>
         <boxGeometry args={[8.6, 1.7, 3.2]} />
-        <meshStandardMaterial color={KHAKI_DEEP} roughness={0.5} metalness={0.22} />
+        <meshStandardMaterial
+          color={KHAKI_DEEP}
+          emissive={KHAKI}
+          emissiveIntensity={0.18}
+          roughness={0.44}
+          metalness={0.12}
+          fog={false}
+        />
       </mesh>
       <mesh position={[0, 3.7, 8.2]}>
         <boxGeometry args={[3.2, 0.7, 1.4]} />
-        <meshStandardMaterial color={KHAKI_METAL} metalness={0.4} roughness={0.32} />
+        <meshStandardMaterial
+          color={KHAKI_METAL}
+          emissive={KHAKI}
+          emissiveIntensity={0.2}
+          metalness={0.22}
+          roughness={0.28}
+          fog={false}
+        />
       </mesh>
       <KangalMark position={[4.62, 2.45, 0]} rotation={[0, Math.PI / 2, 0]} width={5.2} />
       <KangalMark position={[-4.62, 2.45, 0]} rotation={[0, -Math.PI / 2, 0]} width={5.2} />
@@ -356,26 +391,48 @@ function UgvInterceptor() {
       <group position={[0, 5.35, -1.1]}>
         <mesh position={[0, -0.55, 0]} castShadow>
           <cylinderGeometry args={[2.5, 2.9, 1.15, 14]} />
-          <meshStandardMaterial color={KHAKI_METAL} metalness={0.42} roughness={0.34} />
+          <meshStandardMaterial
+            color={KHAKI_METAL}
+            emissive={KHAKI}
+            emissiveIntensity={0.22}
+            metalness={0.22}
+            roughness={0.28}
+            fog={false}
+          />
         </mesh>
         <group ref={turret}>
           <mesh castShadow>
             <boxGeometry args={[5.6, 3.6, 6.8]} />
-            <meshStandardMaterial color={KHAKI_LIGHT} metalness={0.38} roughness={0.3} />
+            <meshStandardMaterial
+              color={KHAKI_LIGHT}
+              emissive={KHAKI}
+              emissiveIntensity={0.32}
+              metalness={0.14}
+              roughness={0.28}
+              fog={false}
+            />
           </mesh>
           <KangalMark position={[0, 1.84, 0]} rotation={[-Math.PI / 2, 0, Math.PI]} width={4.2} />
           <mesh position={[0, 0.25, 8.6]} rotation={[-Math.PI / 2, 0, 0]} castShadow>
             <cylinderGeometry args={[0.78, 0.58, 15.5, 14]} />
-            <meshStandardMaterial color={KHAKI_METAL} metalness={0.55} roughness={0.22} />
+            <meshStandardMaterial
+              color={KHAKI_METAL}
+              emissive={KHAKI}
+              emissiveIntensity={0.28}
+              metalness={0.28}
+              roughness={0.22}
+              fog={false}
+            />
           </mesh>
           <mesh position={[0, 0.25, 16.5]}>
             <cylinderGeometry args={[0.95, 0.95, 1.3, 12]} />
             <meshStandardMaterial
               color={KHAKI_LIGHT}
-              emissive={KHAKI}
-              emissiveIntensity={0.35}
-              metalness={0.45}
-              roughness={0.24}
+              emissive={KHAKI_LIGHT}
+              emissiveIntensity={0.55}
+              metalness={0.22}
+              roughness={0.2}
+              fog={false}
             />
           </mesh>
           <pointLight ref={flash} position={[0, 0.2, 17.2]} color="#f3f0d8" distance={90} />

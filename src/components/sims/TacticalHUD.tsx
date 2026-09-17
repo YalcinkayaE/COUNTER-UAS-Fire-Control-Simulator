@@ -202,7 +202,7 @@ function LedgerPanel({
 }) {
   const rows = [...entries].reverse();
   return (
-    <div className="pointer-events-auto absolute inset-x-3 top-24 z-30 mx-auto max-w-3xl md:inset-x-auto md:right-4 md:left-auto md:w-[36rem]">
+    <div className="pointer-events-auto absolute inset-x-3 top-24 z-30 mx-auto max-w-4xl md:inset-x-auto md:right-4 md:left-auto md:w-[44rem]">
       <section
         className="flex max-h-[min(28rem,60vh)] flex-col rounded-xl border border-line bg-surface p-3 shadow-lg"
         aria-label="Simulation ledger"
@@ -242,12 +242,16 @@ function LedgerPanel({
                 <th className="sticky top-0 bg-surface pb-1 text-left font-medium">What</th>
                 <th className="sticky top-0 bg-surface pb-1 text-left font-medium">Action</th>
                 <th className="sticky top-0 bg-surface pb-1 text-left font-medium">Outcome</th>
+                <th className="sticky top-0 bg-surface pb-1 text-right font-medium">AZ</th>
+                <th className="sticky top-0 bg-surface pb-1 text-right font-medium">EL</th>
+                <th className="sticky top-0 bg-surface pb-1 text-right font-medium">RNG</th>
+                <th className="sticky top-0 bg-surface pb-1 text-right font-medium">V</th>
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="py-2 text-dim">
+                  <td colSpan={8} className="py-2 text-dim">
                     No events. Engage to start a run.
                   </td>
                 </tr>
@@ -257,7 +261,11 @@ function LedgerPanel({
                     <td className="py-0.5 pr-2 text-dim">{formatLedgerWhen(row.when)}</td>
                     <td className="py-0.5 pr-2 text-fg">{row.what}</td>
                     <td className="py-0.5 pr-2">{row.action}</td>
-                    <td className="py-0.5">{row.outcome}</td>
+                    <td className="py-0.5 pr-2">{row.outcome}</td>
+                    <td className="py-0.5 pr-2 text-right">{formatLedgerDeg(row.az)}</td>
+                    <td className="py-0.5 pr-2 text-right">{formatLedgerDeg(row.el)}</td>
+                    <td className="py-0.5 pr-2 text-right">{formatLedgerNum(row.rng)}</td>
+                    <td className="py-0.5 text-right">{formatLedgerNum(row.v)}</td>
                   </tr>
                 ))
               )}
@@ -285,6 +293,14 @@ function formatLedgerWhen(s: number): string {
   const m = Math.floor(s / 60);
   const r = s - m * 60;
   return `T+${String(m).padStart(2, "0")}:${r.toFixed(1).padStart(4, "0")}`;
+}
+
+function formatLedgerDeg(deg: number | null): string {
+  return deg === null ? "—" : `${deg.toFixed(0)}°`;
+}
+
+function formatLedgerNum(n: number | null): string {
+  return n === null ? "—" : n.toFixed(0);
 }
 
 function StatusStrip({ hud }: { hud: ReturnType<typeof getHud> }) {
