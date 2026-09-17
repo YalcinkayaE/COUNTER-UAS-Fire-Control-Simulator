@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
-import { unlockAudio } from "@/game/audio";
-import { getHud, getSim, subscribeHud } from "@/game/simulation";
+import { unlockAudio } from "@/sims/audio";
+import { getHud, getSim, subscribeHud } from "@/sims/simulation";
 import { BriefingPanel } from "./Briefing";
 
 export function Overlays() {

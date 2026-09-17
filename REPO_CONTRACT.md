@@ -9,14 +9,14 @@ preferred_runtime: npm run dev
 preferred_entrypoints:
   - src/main.tsx
   - src/components/game/GameApp.tsx
-  - src/game/simulation.ts
+  - src/sims/simulation.ts
 authoritative_docs:
   - REPO_CONTRACT.md
   - AGENTS.md
   - SEM-Tech DEFENDER Demo Blueprint.md
   - README.md
 authoritative_codepaths:
-  - src/game/
+  - src/sims/
   - src/components/game/
   - src/main.tsx
 verification_commands:
@@ -75,19 +75,19 @@ In scope: the desktop operator console, the TypeScript simulation (`DroneTarget`
 ### Executable core
 - `src/main.tsx`: SPA mount.
 - `src/components/game/GameApp.tsx`: canvas, HUD, overlays, input.
-- `src/game/simulation.ts`: fixed-step loop, magazine, lives, waves.
+- `src/sims/simulation.ts`: fixed-step loop, magazine, lives, waves.
 
 ### Core subsystems
-- `src/game/math.ts`: TTB and quadratic intercept.
-- `src/game/droneTarget.ts` / `src/game/swarmManager.ts`: 20 tracks, 10 Hz EDF list.
-- `src/game/turretController.ts`: AUTO/MANUAL slew and fire gate.
+- `src/sims/math.ts`: TTB and quadratic intercept.
+- `src/sims/droneTarget.ts` / `src/sims/swarmManager.ts`: 20 tracks, 10 Hz EDF list.
+- `src/sims/turretController.ts`: AUTO/MANUAL slew and fire gate.
 - `src/components/game/Scene.tsx`: battlespace, turret, drones, tracers.
 - `src/components/game/TacticalHUD.tsx` / `Radar.tsx`: EDF table and PPI scope.
 
 ### Supporting assets
 - `SEM-Tech DEFENDER Demo Blueprint.md`: 6-minute seated walkthrough.
 - `src/styles.css`: Tailwind v4 tokens.
-- `src/game/math.test.ts` / `src/game/swarmManager.test.ts`: kinematics characterisation.
+- `src/sims/math.test.ts` / `src/sims/swarmManager.test.ts`: kinematics characterisation.
 
 ## 3. Current Status Boundary
 
@@ -121,7 +121,7 @@ Treat the following as the current truth:
 Use these in order of precedence when determining live status:
 
 1. `REPO_CONTRACT.md`
-2. Runtime under `src/game/` and `src/components/game/`
+2. Runtime under `src/sims/` and `src/components/game/`
 3. `SEM-Tech DEFENDER Demo Blueprint.md` for walkthrough claims and numbers
 4. `README.md`
 
@@ -188,17 +188,17 @@ For the fastest orientation path, read these in order:
 
 1. `REPO_CONTRACT.md`
 2. `SEM-Tech DEFENDER Demo Blueprint.md`
-3. `src/game/constants.ts`
-4. `src/game/math.ts`
-5. `src/game/simulation.ts`
+3. `src/sims/constants.ts`
+4. `src/sims/math.ts`
+5. `src/sims/simulation.ts`
 6. `src/components/game/GameApp.tsx`
 
 ## 9. Workstream Map
 
 Then choose your path:
 
-- Runtime work: `src/game/`, `src/components/game/Scene.tsx`
-- Verification work: `src/game/*.test.ts`, `npm test`, `npm run build`
+- Runtime work: `src/sims/`, `src/components/game/Scene.tsx`
+- Verification work: `src/sims/*.test.ts`, `npm test`, `npm run build`
 - Demo or stakeholder walkthrough work: `SEM-Tech DEFENDER Demo Blueprint.md`, `npm run dev`
 - Documentation maintenance work: `REPO_CONTRACT.md`, `README.md`
 
@@ -211,13 +211,13 @@ Treat repo materials using these classes:
 - `AGENTS.md`
 
 ### B. Implementation truth
-- `src/game/`
+- `src/sims/`
 - `src/components/game/`
 - `src/main.tsx`
 
 ### C. Verification evidence
-- `src/game/math.test.ts`
-- `src/game/swarmManager.test.ts`
+- `src/sims/math.test.ts`
+- `src/sims/swarmManager.test.ts`
 
 ### D. Archival or narrative
 - `SEM-Tech DEFENDER Demo Blueprint.md` (authoritative for demo numbers and talk track, not for “what is live”)
@@ -275,10 +275,10 @@ If this repo exposes an external contract, treat the following as the main hando
 
 - `npm run dev` at `http://127.0.0.1:5173`
 - `SEM-Tech DEFENDER Demo Blueprint.md` beat sheet
-- Optional `window.__cuas` / `window.__controlsTest` probes in `src/game/simulation.ts` (not relied on for live status)
+- Optional `window.__cuas` / `window.__controlsTest` probes in `src/sims/simulation.ts` (not relied on for live status)
 
 ### Stability notes
-- Simulator numbers in `src/game/constants.ts` match the blueprint
+- Simulator numbers in `src/sims/constants.ts` match the blueprint
 - Not a fielded C-UAS API
 
 ## 15. Demo and Communication Surface
@@ -313,4 +313,5 @@ Assistants must not silently change:
 
 ## Change log
 
+- 2026-09-17: Renamed `src/game/` to `src/sims/` (explicit operator instruction). Path references updated. Identity, vocabulary, and preferred runtime unchanged.
 - 2026-09-16: Identity locked to desktop COUNTER-UAS FIRE CONTROL simulator (explicit operator instruction). Runtime remains a desktop browser window; packaged native app is out of scope unless requested.

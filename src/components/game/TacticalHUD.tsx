@@ -5,8 +5,8 @@ import {
 } from "lucide-react";
 import { type ReactNode, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
-import { formatBearingDeg, formatDist, formatElevDeg, formatTtb } from "@/game/math";
-import { getHud, getSim, subscribeHud } from "@/game/simulation";
+import { formatBearingDeg, formatDist, formatElevDeg, formatTtb } from "@/sims/math";
+import { getHud, getSim, subscribeHud } from "@/sims/simulation";
 import { Radar } from "./Radar";
 
 export function TacticalHUD() {

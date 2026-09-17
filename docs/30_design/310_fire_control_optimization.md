@@ -4,7 +4,7 @@ title: Fire-control optimisation (EDF, max track set, quadratic intercept)
 status: implemented
 owner: unresolved
 created: 2026-09-16
-updated: 2026-09-16
+updated: 2026-09-17
 applies_to: desktop simulator
 authority: informative
 supersedes: null
@@ -19,7 +19,7 @@ Formulas use GitHub / KaTeX / MathJax notation: inline `$...$`, display on their
 
 This note is the mathematics the simulator actually runs. It is for stakeholders who need to see that the fire order is a defined policy, not a visual heuristic. It is not a fielded radar DSP, not a mixed-integer programme, and not a claim about a production weapon.
 
-Code: `src/game/math.ts`, `src/game/radarSensor.ts`, `src/game/edgeComputer.ts`, `src/game/turretController.ts`, `src/game/constants.ts`.
+Code: `src/sims/math.ts`, `src/sims/radarSensor.ts`, `src/sims/edgeComputer.ts`, `src/sims/turretController.ts`, `src/sims/constants.ts`.
 
 ---
 

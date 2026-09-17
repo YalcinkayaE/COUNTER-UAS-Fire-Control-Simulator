@@ -1,5 +1,5 @@
-import { DETECT_RADIUS } from "@/game/constants";
-import type { TrackRow } from "@/game/simulation";
+import { DETECT_RADIUS } from "@/sims/constants";
+import type { TrackRow } from "@/sims/simulation";
 
 type Props = {
   tracks: TrackRow[];

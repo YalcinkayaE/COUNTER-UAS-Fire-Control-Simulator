@@ -9,8 +9,8 @@ import {
   MAX_IN_FLIGHT,
   OUTER_RADIUS,
   QUAD_COUNT,
-} from "@/game/constants";
-import { getSim } from "@/game/simulation";
+} from "@/sims/constants";
+import { getSim } from "@/sims/simulation";
 
 export function Scene() {
   return (

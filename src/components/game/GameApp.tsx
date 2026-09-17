@@ -1,6 +1,6 @@
 import { Canvas } from "@react-three/fiber";
 import { useEffect, useRef } from "react";
-import { bindControlsProbe, getSim } from "@/game/simulation";
+import { bindControlsProbe, getSim } from "@/sims/simulation";
 import { Overlays } from "./Overlays";
 import { Scene } from "./Scene";
 import { TacticalHUD } from "./TacticalHUD";
