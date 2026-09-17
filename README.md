@@ -32,4 +32,4 @@ npm test
 npm run build
 ```
 
-Walkthrough script: `SEM-Tech DEFENDER Demo Blueprint.md`.
+Walkthrough script: `docs/30_design/320_demo_blueprint.md`.

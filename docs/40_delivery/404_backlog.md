@@ -14,7 +14,7 @@ related:
 
 # Gap backlog: SEM DEFENDER vs the JRC-based simulator blueprint
 
-Compared: `SEM-Tech DEFENDER Demo Blueprint.md` and the code under `src/sims/`, `src/components/sims/`
+Compared: `docs/30_design/320_demo_blueprint.md` and the code under `src/sims/`, `src/components/sims/`
 against `cuas-fire-control-simulator-blueprint-2.md` (2026-09-17, external, not in the repo; referred to
 below as "BP2"). Section numbers such as §4 refer to BP2. R, V, S and F IDs are BP2's IDs.
 

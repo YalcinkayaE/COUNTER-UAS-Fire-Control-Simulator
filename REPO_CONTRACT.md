@@ -13,7 +13,7 @@ preferred_entrypoints:
 authoritative_docs:
   - REPO_CONTRACT.md
   - AGENTS.md
-  - SEM-Tech DEFENDER Demo Blueprint.md
+  - docs/30_design/320_demo_blueprint.md
   - README.md
 authoritative_codepaths:
   - src/sims/
@@ -85,7 +85,7 @@ In scope: the desktop operator console, the TypeScript simulation (`DroneTarget`
 - `src/components/sims/TacticalHUD.tsx` / `Radar.tsx`: EDF table and PPI scope.
 
 ### Supporting assets
-- `SEM-Tech DEFENDER Demo Blueprint.md`: 6-minute seated walkthrough.
+- `docs/30_design/320_demo_blueprint.md`: 6-minute seated walkthrough.
 - `src/styles.css`: Tailwind v4 tokens.
 - `src/sims/*.test.ts`: kinematics, radar, turret, camera, ledger characterisation.
 
@@ -127,7 +127,7 @@ Use these in order of precedence when determining live status:
 
 1. `REPO_CONTRACT.md`
 2. Runtime under `src/sims/` and `src/components/sims/`
-3. `SEM-Tech DEFENDER Demo Blueprint.md` for walkthrough claims and numbers
+3. `docs/30_design/320_demo_blueprint.md` for walkthrough claims and numbers
 4. `README.md`
 
 ### Authority rules
@@ -184,7 +184,7 @@ The main open items are:
 - Blueprint section 10 follow-ons are not implemented
 - Headless `window.__cuas` probe was not observed in the browser-automation harness even while play worked; treat HUD/canvas as the live check, not that probe. Update 2026-09-17: the probe was live in the Playwright MCP harness (14 keys; counters reconciled exactly with ledger rows), so the earlier non-observation looks harness-specific, not a sim defect.
 - Contract body drift noted 2026-09-17: `src/sims/edgeComputer.ts`, `src/sims/radarSensor.ts`, `src/sims/audio.ts`, and `src/components/sims/Overlays.tsx` / `SourcePanel.tsx` are live in code and verified in the browser, but Section 2 does not list them yet. (Effector selection is now covered by status and vocabulary after the variable-kill-zone change.)
-- Narrative drift from the variable kill zone (2026-09-17): `SEM-Tech DEFENDER Demo Blueprint.md` (talk track, beat sheet, numbers table) and `docs/30_design/310_fire_control_optimization.md` (R_kz math) are still pinned to the fixed 500 m kill zone. The blueprint also assumes fixed raid composition (20 quads from the northwest, 2 fixed-wing from 2 km east); the sim now draws 8–16 quads and 2–3 fixed-wing with a per-wave raid axis inside the radar sector. Re-run demo numbers before the next walkthrough.
+- Narrative drift (2026-09-17): `docs/30_design/310_fire_control_optimization.md` (R_kz math, constants table, worked examples) remains pinned to the fixed 500 m kill zone and the fixed 20 + 2 raid. The demo blueprint was brought current and moved to `docs/30_design/320_demo_blueprint.md` the same day; give 310 the same pass before reusing its numbers.
 
 ### Next recommended actions
 - Run `npm run dev` and walk the blueprint beat sheet
@@ -195,7 +195,7 @@ The main open items are:
 For the fastest orientation path, read these in order:
 
 1. `REPO_CONTRACT.md`
-2. `SEM-Tech DEFENDER Demo Blueprint.md`
+2. `docs/30_design/320_demo_blueprint.md`
 3. `src/sims/constants.ts`
 4. `src/sims/math.ts`
 5. `src/sims/simulation.ts`
@@ -209,7 +209,7 @@ Then choose your path:
 
 - Runtime work: `src/sims/`, `src/components/sims/Scene.tsx`, `src/components/sims/SimsApp.tsx`
 - Verification work: `src/sims/*.test.ts`, `npm test`, `npm run build`
-- Demo or stakeholder walkthrough work: `SEM-Tech DEFENDER Demo Blueprint.md`, `npm run dev`
+- Demo or stakeholder walkthrough work: `docs/30_design/320_demo_blueprint.md`, `npm run dev`
 - Documentation maintenance work: `REPO_CONTRACT.md`, `README.md`
 
 ## 10. Source Classes
@@ -229,7 +229,7 @@ Treat repo materials using these classes:
 - `src/sims/*.test.ts`
 
 ### D. Archival or narrative
-- `SEM-Tech DEFENDER Demo Blueprint.md` (authoritative for demo numbers and talk track, not for “what is live”)
+- `docs/30_design/320_demo_blueprint.md` (authoritative for demo numbers and talk track, not for “what is live”)
 
 ## 11. Cautions
 
@@ -283,7 +283,7 @@ Avoid these collisions or substitutions:
 If this repo exposes an external contract, treat the following as the main handoff surface:
 
 - `npm run dev` at `http://127.0.0.1:5173`
-- `SEM-Tech DEFENDER Demo Blueprint.md` beat sheet
+- `docs/30_design/320_demo_blueprint.md` beat sheet
 - Optional `window.__cuas` / `window.__controlsTest` probes in `src/sims/simulation.ts` (not relied on for live status)
 
 ### Stability notes
@@ -295,7 +295,7 @@ If this repo exposes an external contract, treat the following as the main hando
 Use these for walkthroughs or stakeholder review:
 
 - `npm run dev`: desktop COUNTER-UAS FIRE CONTROL simulator
-- `SEM-Tech DEFENDER Demo Blueprint.md`: talk track and numbers
+- `docs/30_design/320_demo_blueprint.md`: talk track and numbers
 
 Do not confuse this simulator with a fielded sensor runtime.
 
@@ -322,6 +322,7 @@ Assistants must not silently change:
 
 ## Change log
 
+- 2026-09-17: Demo blueprint updated to current truth (variable kill zone, single 120° × 80° radar sector with angular noise, 8–16 quads + 2–3 fixed-wing with per-wave raid axis, status window with RDS, ledger SUPPRESSED accounting) and moved to `docs/30_design/320_demo_blueprint.md` (DOC-320) per the docs taxonomy, on operator instruction. Inbound references updated (contract, README, DOC-404). The 310 fire-control optimisation note remains pinned to the fixed 500 m kill zone — still open. Authority ordering unchanged: the blueprint stays the demo talk-track source, not live status.
 - 2026-09-17: Wave randomization and full round accounting on operator instruction. Waves draw 8–16 quads and 2–3 fixed-wing with a per-wave raid axis (quad corridor 30° wide, center within ±27° of north; fixed-wing azimuth 8–34° east of north + 4° per airframe), all inside the 120° sector including maneuver wobble; drone pool is 16 + 3 and pool members start dead. Ledger: rounds resolving on an already-dead track now record INTERCEPT / SUPPRESSED, so FIRE = HIT + MISS + SUPPRESSED + in-flight reconciles exactly (verified live: 176 = 23 + 14 + 139 + 0). Battlespace shows the 120° sector wedge (subtle fill plus edge rays). Briefing updated. Verified: 47 passed (8 files), build exit 0, live run showed wave-1 axis az 11–42° and wave-2 axis az 326–354°, 0 console errors.
 - 2026-09-17: Ledger consistency audit (operator request): 725+ rows over 5 waves reconciled exactly against sim counters and HUD (FIRE == shotsFired == RDS; INTERCEPT HIT == intercepts; IMPACT == lives lost). Timestamps monotonic, no duplicate BREACH/IMPACT per track within a wave, kinematics valid and present on all track rows. Known semantic: rounds resolving on an already-dead target record no terminal row (`detonate` early return), so FIRE exceeds HIT+MISS by design; cross-target proximity kills appear as HIT rows whose id differs from the surrounding FIRE block. Open item on the `__cuas` probe amended: observed live in the Playwright MCP harness.
 - 2026-09-17: Single-radar sector per explicit operator instruction: one Echodyne Guard-class AESA stares a 120° az × 80° el sector on a north boresight, replacing the three-panel 360° assumption. Azimuth gate added to `RadarSensor.inFov`. Raid geometry moved inside the sector: fixed-wing spawn east -> northeast (~20° / ~40° az), quad corridor narrowed to 10–40° west of north so the ±40% azimuth maneuver stays in-sector. PPI draws the coverage wedge; briefing updated. Verified: 46 passed (8 files), build exit 0, live run showed F01/F02 at az 17°/39° with F02 heading the EDF queue, kills under noise, 0 console errors.
