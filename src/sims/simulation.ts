@@ -15,6 +15,7 @@ import { RadarSensor } from "./radarSensor";
 import { EdgeComputer } from "./edgeComputer";
 import { TurretController, type FireMode } from "./turretController";
 import { resumeIfNeeded, setMuted, sfxBreach, sfxFire, sfxHit, unlockAudio } from "./audio";
+import { Ledger, type LedgerEntry } from "./ledger";
 
 export type Phase = "briefing" | "live" | "paused" | "defeat" | "wavehold";
 
@@ -55,6 +56,7 @@ export type HudSnapshot = {
   message: string | null;
   muted: boolean;
   alive: number;
+  ledger: readonly LedgerEntry[];
 };
 
 export type Projectile = {
@@ -144,6 +146,7 @@ export class Simulation {
   readonly mouseAim = new THREE.Vector3();
   hasMouseAim = false;
   reducedMotion = false;
+  readonly ledger = new Ledger();
 
   private acc = 0;
   private hudAcc = 0;
@@ -157,6 +160,7 @@ export class Simulation {
     this.resetRun();
     this.phase = "live";
     this.message = "WEAPONS FREE";
+    this.record(`WAVE ${String(this.wave).padStart(2, "0")}`, "ENGAGE", "WEAPONS FREE");
     emit();
   }
 
@@ -179,16 +183,23 @@ export class Simulation {
     this.acc = 0;
     this.shotsFired = 0;
     this.closestApproach = Infinity;
+    this.ledger.reset();
   }
 
   togglePause(): void {
-    if (this.phase === "live") this.phase = "paused";
-    else if (this.phase === "paused") this.phase = "live";
+    if (this.phase === "live") {
+      this.phase = "paused";
+      this.record("OPERATOR", "PAUSE", "PAUSED");
+    } else if (this.phase === "paused") {
+      this.phase = "live";
+      this.record("OPERATOR", "RESUME", "LIVE");
+    }
     emit();
   }
 
   setMode(mode: FireMode): void {
     this.turret.setMode(mode);
+    this.record("OPERATOR", `MODE ${mode}`, "RECORDED");
     emit();
   }
 
@@ -259,7 +270,8 @@ export class Simulation {
     if (this.input.modeEdge) {
       this.input.modeEdge = false;
       if (this.phase === "live" || this.phase === "briefing") {
-        this.turret.toggleMode();
+        const mode = this.turret.toggleMode();
+        this.record("OPERATOR", `MODE ${mode}`, "RECORDED");
         emit();
       }
     }
@@ -274,6 +286,7 @@ export class Simulation {
         this.swarm.spawnWave(this.wave);
         this.phase = "live";
         this.message = `WAVE ${String(this.wave).padStart(2, "0")}`;
+        this.record(`WAVE ${String(this.wave).padStart(2, "0")}`, "START", "LIVE");
       }
       this.elapsed += dt;
       return;
@@ -302,6 +315,7 @@ export class Simulation {
     );
     if (shot && this.projectiles.filter((p) => p.alive).length < MAX_IN_FLIGHT) {
       this.launch(shot.from, shot.to, shot.targetId, shot.intercept.t);
+      this.record(shot.targetId, `FIRE ${this.turret.mode}`, "RELEASED");
     }
 
     this.stepProjectiles(dt);
@@ -319,6 +333,7 @@ export class Simulation {
       });
       if (!this.muted) sfxBreach();
       this.message = `${d.id} BREACHED 500 m — GUNS TIGHT`;
+      this.record(d.id, "BREACH", "500 m");
     }
 
     const impacts = this.swarm.collectImpacts();
@@ -333,9 +348,11 @@ export class Simulation {
       });
       if (!this.muted) sfxBreach();
       this.message = `${d.id} HIT ASSET`;
+      this.record(d.id, "IMPACT", "ASSET HIT");
       if (this.lives <= 0) {
         this.phase = "defeat";
         this.message = "FACILITY LOST";
+        this.record("OPERATOR", "DEFEAT", "FACILITY LOST");
       }
     }
 
@@ -343,7 +360,12 @@ export class Simulation {
       this.phase = "wavehold";
       this.holdTimer = 2.2;
       this.message = this.wave >= MAX_WAVES ? "HOLDING PERIMETER" : "WAVE CLEAR";
+      this.record(`WAVE ${String(this.wave).padStart(2, "0")}`, "HOLD", this.message);
     }
+  }
+
+  private record(what: string, action: string, outcome: string): void {
+    this.ledger.append(this.elapsed, what, action, outcome);
   }
 
   private launch(from: THREE.Vector3, to: THREE.Vector3, targetId: string, tof: number): void {
@@ -411,6 +433,7 @@ export class Simulation {
         life: 0.35,
         kind: "hit",
       });
+      this.record(p.targetId, "INTERCEPT", "MISS");
     }
   }
 
@@ -418,6 +441,7 @@ export class Simulation {
     d.alive = false;
     p.alive = false;
     this.intercepts += 1;
+    this.record(d.id, "INTERCEPT", "HIT");
     const bonus = Math.max(10, 140 - d.distance * 0.04);
     const ttbBonus = Number.isFinite(d.timeToBreach)
       ? (25 - Math.min(25, d.timeToBreach)) * 4
@@ -554,6 +578,7 @@ function emptyHud(): HudSnapshot {
     message: null,
     muted: false,
     alive: 0,
+    ledger: [],
   };
 }
 
@@ -614,6 +639,7 @@ function buildHud(s: Simulation): HudSnapshot {
     message: s.message,
     muted: s.muted,
     alive: s.swarm.aliveCount(),
+    ledger: s.ledger.snapshot(),
   };
 }
 

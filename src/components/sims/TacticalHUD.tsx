@@ -3,9 +3,10 @@ import {
   Volume2,
   VolumeX,
 } from "lucide-react";
-import { type ReactNode, useSyncExternalStore } from "react";
+import { type ReactNode, useState, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
 import type { ViewMode } from "@/sims/camera";
+import type { LedgerEntry } from "@/sims/ledger";
 import { formatBearingDeg, formatDist, formatElevDeg, formatTtb } from "@/sims/math";
 import { getHud, getSim, subscribeHud } from "@/sims/simulation";
 import { Radar } from "./Radar";
@@ -18,6 +19,7 @@ export function TacticalHUD({
   onViewChange: (view: ViewMode) => void;
 }) {
   const hud = useSyncExternalStore(subscribeHud, getHud, getHud);
+  const [ledgerOpen, setLedgerOpen] = useState(false);
   const live = hud.phase === "live" || hud.phase === "wavehold" || hud.phase === "paused";
 
   return (
@@ -39,6 +41,14 @@ export function TacticalHUD({
             T+{formatClock(hud.elapsed)}
           </div>
           <div className="pointer-events-auto flex gap-2">
+            <button
+              type="button"
+              aria-pressed={ledgerOpen}
+              onClick={() => setLedgerOpen((open) => !open)}
+              className="h-11 rounded-md border border-line bg-surface px-3 font-mono text-xs text-fg hover:bg-surface-2"
+            >
+              Ledger
+            </button>
             <button
               type="button"
               aria-pressed={view === "2d"}
@@ -115,6 +125,7 @@ export function TacticalHUD({
       ) : null}
 
       <MobileBar hud={hud} />
+      {ledgerOpen ? <LedgerPanel entries={hud.ledger} onClose={() => setLedgerOpen(false)} /> : null}
     </>
   );
 }
@@ -180,6 +191,100 @@ function TrackTable({
       </div>
     </div>
   );
+}
+
+function LedgerPanel({
+  entries,
+  onClose,
+}: {
+  entries: readonly LedgerEntry[];
+  onClose: () => void;
+}) {
+  const rows = [...entries].reverse();
+  return (
+    <div className="pointer-events-auto absolute inset-x-3 top-24 z-30 mx-auto max-w-3xl md:inset-x-auto md:right-4 md:left-auto md:w-[36rem]">
+      <section
+        className="flex max-h-[min(28rem,60vh)] flex-col rounded-xl border border-line bg-surface p-3 shadow-lg"
+        aria-label="Simulation ledger"
+      >
+        <div className="mb-2 flex items-center gap-2">
+          <h2 className="font-mono text-xs tracking-[0.18em] text-muted">LEDGER</h2>
+          <span className="font-mono text-[10px] text-dim">{entries.length} rows</span>
+          <div className="ml-auto flex gap-2">
+            <button
+              type="button"
+              className="h-8 rounded-md border border-line bg-surface-2 px-2 font-mono text-[10px] text-fg hover:bg-surface"
+              onClick={() => downloadLedger("csv")}
+            >
+              CSV
+            </button>
+            <button
+              type="button"
+              className="h-8 rounded-md border border-line bg-surface-2 px-2 font-mono text-[10px] text-fg hover:bg-surface"
+              onClick={() => downloadLedger("json")}
+            >
+              JSON
+            </button>
+            <button
+              type="button"
+              className="h-8 rounded-md border border-line bg-surface-2 px-2 font-mono text-[10px] text-fg hover:bg-surface"
+              onClick={onClose}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <table className="w-full border-collapse font-mono text-[11px] tabular-nums">
+            <thead>
+              <tr className="text-dim">
+                <th className="sticky top-0 bg-surface pb-1 text-left font-medium">When</th>
+                <th className="sticky top-0 bg-surface pb-1 text-left font-medium">What</th>
+                <th className="sticky top-0 bg-surface pb-1 text-left font-medium">Action</th>
+                <th className="sticky top-0 bg-surface pb-1 text-left font-medium">Outcome</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="py-2 text-dim">
+                    No events. Engage to start a run.
+                  </td>
+                </tr>
+              ) : (
+                rows.map((row) => (
+                  <tr key={row.seq} className="text-muted">
+                    <td className="py-0.5 pr-2 text-dim">{formatLedgerWhen(row.when)}</td>
+                    <td className="py-0.5 pr-2 text-fg">{row.what}</td>
+                    <td className="py-0.5 pr-2">{row.action}</td>
+                    <td className="py-0.5">{row.outcome}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function downloadLedger(kind: "csv" | "json"): void {
+  const sim = getSim();
+  const body = kind === "json" ? sim.ledger.toJson() : sim.ledger.toCsv();
+  const mime = kind === "json" ? "application/json" : "text/csv";
+  const href = URL.createObjectURL(new Blob([body], { type: mime }));
+  const a = document.createElement("a");
+  a.href = href;
+  a.download = `sem-defender-ledger.${kind}`;
+  a.click();
+  URL.revokeObjectURL(href);
+}
+
+function formatLedgerWhen(s: number): string {
+  const m = Math.floor(s / 60);
+  const r = s - m * 60;
+  return `T+${String(m).padStart(2, "0")}:${r.toFixed(1).padStart(4, "0")}`;
 }
 
 function StatusStrip({ hud }: { hud: ReturnType<typeof getHud> }) {
