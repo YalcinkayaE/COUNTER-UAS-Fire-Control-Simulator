@@ -1,10 +1,11 @@
 import { describe, expect, test } from "vitest";
 import {
+  DEG,
+  EFFECTORS,
   FIRE_BURST,
   FIRE_COOLDOWN,
   FIRE_RPM,
   FIXED_DT,
-  TURRET_EL_MAX_RAD,
   TURRET_POS,
 } from "./constants";
 import { EdgeComputer } from "./edgeComputer";
@@ -46,9 +47,7 @@ describe("UGV gun", () => {
     expect(afterBurst).toHaveLength(0);
   });
 
-  test("AUTO cannot elevate to 90°", () => {
-    const turret = new TurretController();
-    turret.mode = "AUTO";
+  test("AUTO clamps look-point to the selected effector elevation window", () => {
     const overhead = {
       targetId: "H01",
       intercept: { x: 0, y: 400, z: 2, t: 0.2 },
@@ -59,11 +58,31 @@ describe("UGV gun", () => {
       },
       autoEngage: true,
     };
+
+    const barrelEl = (t: TurretController) =>
+      Math.atan2(t.barrelDir.y, Math.hypot(t.barrelDir.x, t.barrelDir.z));
+
+    const cakir = new TurretController();
+    cakir.mode = "AUTO";
+    cakir.elMinRad = EFFECTORS.CAKIR.elMinDeg * DEG;
+    cakir.elMaxRad = EFFECTORS.CAKIR.elMaxDeg * DEG;
     for (let i = 0; i < 180; i++) {
-      turret.update(FIXED_DT, overhead as never, null, false, new Set());
+      cakir.update(FIXED_DT, overhead as never, null, false, new Set());
     }
-    expect(turret.pitch).toBeLessThanOrEqual(TURRET_EL_MAX_RAD + 1e-6);
-    expect(turret.pitch).toBeLessThan(Math.PI / 2 - 0.2);
+    expect(barrelEl(cakir)).toBeLessThanOrEqual(EFFECTORS.CAKIR.elMaxDeg * DEG + 1e-3);
+    expect(barrelEl(cakir)).toBeGreaterThan(60 * DEG);
+    expect(barrelEl(cakir)).toBeLessThan(80 * DEG);
+
+    const hn12 = new TurretController();
+    hn12.mode = "AUTO";
+    hn12.elMinRad = EFFECTORS["HN-12"].elMinDeg * DEG;
+    hn12.elMaxRad = EFFECTORS["HN-12"].elMaxDeg * DEG;
+    for (let i = 0; i < 180; i++) {
+      hn12.update(FIXED_DT, overhead as never, null, false, new Set());
+    }
+    expect(barrelEl(hn12)).toBeGreaterThan(80 * DEG);
+    expect(barrelEl(hn12)).toBeLessThanOrEqual(EFFECTORS["HN-12"].elMaxDeg * DEG + 1e-3);
+    expect(barrelEl(hn12)).toBeLessThan(Math.PI / 2 - 0.05);
     expect(TURRET_POS.y).toBe(14);
   });
 

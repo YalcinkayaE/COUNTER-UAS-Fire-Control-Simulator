@@ -66,7 +66,10 @@ export const RADAR_POS = { x: 0, y: 16, z: 0 } as const;
 export const TURRET_SLEW_DEG = 75;
 export const TURRET_SLEW_RAD = (TURRET_SLEW_DEG * Math.PI) / 180;
 export const ALIGN_TOLERANCE_DEG = 0.85;
-/** Gun cannot elevate to zenith; an overhead dive is outside this window. */
+/**
+ * Legacy CAKIR-class defaults. Live fire uses the selected effector's
+ * elMinDeg / elMaxDeg (HN-12 opens to 85°; CAKIR / PENCE-A stay at 70°).
+ */
 export const TURRET_EL_MIN_DEG = -8;
 export const TURRET_EL_MAX_DEG = 70;
 export const TURRET_EL_MIN_RAD = (TURRET_EL_MIN_DEG * Math.PI) / 180;
@@ -87,12 +90,16 @@ export type EffectorSpec = {
   id: EffectorId;
   rpm: number;
   range: number;
+  /** Depression limit, degrees below horizon. */
+  elMinDeg: number;
+  /** Elevation limit, degrees above horizon; zenith is outside this window. */
+  elMaxDeg: number;
 };
 
 export const EFFECTORS: Record<EffectorId, EffectorSpec> = {
-  CAKIR: { id: "CAKIR", rpm: 1350, range: 400 },
-  "HN-12": { id: "HN-12", rpm: 1000, range: 200 },
-  "PENCE-A": { id: "PENCE-A", rpm: 120, range: 400 },
+  CAKIR: { id: "CAKIR", rpm: 1350, range: 400, elMinDeg: -8, elMaxDeg: 70 },
+  "HN-12": { id: "HN-12", rpm: 1000, range: 200, elMinDeg: -5, elMaxDeg: 85 },
+  "PENCE-A": { id: "PENCE-A", rpm: 120, range: 400, elMinDeg: -8, elMaxDeg: 70 },
 };
 
 export const DEFAULT_EFFECTOR_ID: EffectorId = "HN-12";

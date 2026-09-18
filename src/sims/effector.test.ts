@@ -22,6 +22,12 @@ describe("effector catalog", () => {
     expect(FIRE_RPM).toBe(1000);
     expect(FIRE_COOLDOWN).toBeCloseTo(fireCooldownSec(1000), 10);
   });
+
+  test("elevation windows are per-effector (HN-12 opens to 85°, CAKIR/PENCE-A stay at 70°)", () => {
+    expect(EFFECTORS["HN-12"]).toMatchObject({ elMinDeg: -5, elMaxDeg: 85 });
+    expect(EFFECTORS.CAKIR).toMatchObject({ elMinDeg: -8, elMaxDeg: 70 });
+    expect(EFFECTORS["PENCE-A"]).toMatchObject({ elMinDeg: -8, elMaxDeg: 70 });
+  });
 });
 
 describe("edge computer envelope", () => {

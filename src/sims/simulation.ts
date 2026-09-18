@@ -25,6 +25,7 @@ import {
   clamp,
   dist3,
   elevationFromGround,
+  elevationSwitch,
   hypot3,
   trackAssignment,
   evadeHeadingAway,
@@ -286,7 +287,21 @@ export class Simulation {
       const call = this.edge.fireCall;
       let desired = this.ugv.heading;
       if (kamikaze) {
-        desired = evadeHeadingAway(this.ugv, { x: kamikaze.position.x, z: kamikaze.position.z });
+        const height = kamikaze.position.y - this.turret.position.y;
+        const horiz = Math.hypot(
+          kamikaze.position.x - this.ugv.x,
+          kamikaze.position.z - this.ugv.z,
+        );
+        const maxEl = this.turret.elMaxRad;
+        if (elevationSwitch(horiz, height, maxEl) > 0) {
+          desired = evadeHeadingAway(this.ugv, { x: kamikaze.position.x, z: kamikaze.position.z });
+        } else if (call) {
+          const az = azimuthFromNorth(
+            call.track.position.x - this.ugv.x,
+            call.track.position.z - this.ugv.z,
+          );
+          desired = az + Math.PI / 2;
+        }
       } else if (call) {
         const az = azimuthFromNorth(
           call.track.position.x - this.ugv.x,
@@ -311,7 +326,11 @@ export class Simulation {
   setEffector(id: EffectorId): void {
     const spec = EFFECTORS[id];
     this.applyEffector(id);
-    this.record("OPERATOR", `EFFECTOR ${spec.id}`, `${spec.rpm} rds/min ${spec.range} m`);
+    this.record(
+      "OPERATOR",
+      `EFFECTOR ${spec.id}`,
+      `${spec.rpm} rds/min ${spec.range} m el ${spec.elMinDeg}…${spec.elMaxDeg}°`,
+    );
     emit();
   }
 
@@ -539,6 +558,8 @@ export class Simulation {
     this.effectorId = spec.id;
     this.turret.fireCooldown = fireCooldownSec(spec.rpm);
     this.turret.effectiveRange = spec.range;
+    this.turret.elMinRad = (spec.elMinDeg * Math.PI) / 180;
+    this.turret.elMaxRad = (spec.elMaxDeg * Math.PI) / 180;
     this.edge.maxRange = spec.range;
     this.swarm.killZone = spec.range;
   }

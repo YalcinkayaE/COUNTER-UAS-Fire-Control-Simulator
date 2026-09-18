@@ -1,11 +1,12 @@
 import * as THREE from "three";
 import {
   ALIGN_TOLERANCE_RAD,
+  DEFAULT_EFFECTOR_ID,
+  DEG,
+  EFFECTORS,
   FIRE_BURST,
   FIRE_COOLDOWN,
   PROJECTILE_SPEED,
-  TURRET_EL_MAX_RAD,
-  TURRET_EL_MIN_RAD,
   TURRET_SLEW_RAD,
 } from "./constants";
 import { angleBetween, clamp, solveIntercept, type InterceptSolution } from "./math";
@@ -20,6 +21,8 @@ export type FireEvent = {
   intercept: InterceptSolution;
 };
 
+const DEFAULT_EL = EFFECTORS[DEFAULT_EFFECTOR_ID];
+
 /**
  * Unity analogue: TurretController.cs at Vector3.zero.
  * Consumes the edge-computer fire call, slews at 75°/s, fires on alignment.
@@ -32,6 +35,9 @@ export class TurretController {
   mode: FireMode = "AUTO";
   fireCooldown = FIRE_COOLDOWN;
   effectiveRange = Number.POSITIVE_INFINITY;
+  /** Live elevation window from the selected effector. */
+  elMinRad = DEFAULT_EL.elMinDeg * DEG;
+  elMaxRad = DEFAULT_EL.elMaxDeg * DEG;
   cooldown = 0;
   /** Seconds left in the current 0.5 s burst. */
   burstLeft = 0;
@@ -104,7 +110,7 @@ export class TurretController {
 
     if (this.mode === "AUTO" && this.intercept) {
       this._look.set(this.intercept.x, this.intercept.y, this.intercept.z);
-      clampLookElevation(this.position, this._look, TURRET_EL_MIN_RAD, TURRET_EL_MAX_RAD);
+      clampLookElevation(this.position, this._look, this.elMinRad, this.elMaxRad);
       this.slewToward(lookToQuat(this.position, this._look, this._dummy, this._aim), dt);
     } else if (this.mode === "MANUAL") {
       let steer = 0;
@@ -117,8 +123,8 @@ export class TurretController {
         this.yaw += steer * TURRET_SLEW_RAD * dt;
         this.pitch = clamp(
           this.pitch + pitchIn * TURRET_SLEW_RAD * dt,
-          TURRET_EL_MIN_RAD,
-          TURRET_EL_MAX_RAD,
+          this.elMinRad,
+          this.elMaxRad,
         );
         this.syncFromYawPitch();
       } else if (mouseAim) {

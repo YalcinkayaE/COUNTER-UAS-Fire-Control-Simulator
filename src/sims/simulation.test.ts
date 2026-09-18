@@ -146,6 +146,19 @@ describe("asset impact", () => {
   });
 });
 
+describe("per-effector elevation", () => {
+  test("setEffector pushes elevation limits into the turret", () => {
+    const sim = new Simulation();
+    sim.muted = true;
+    sim.setEffector("HN-12");
+    expect(sim.turret.elMaxRad).toBeCloseTo((85 * Math.PI) / 180, 10);
+    expect(sim.turret.elMinRad).toBeCloseTo((-5 * Math.PI) / 180, 10);
+    sim.setEffector("CAKIR");
+    expect(sim.turret.elMaxRad).toBeCloseTo((70 * Math.PI) / 180, 10);
+    expect(sim.turret.elMinRad).toBeCloseTo((-8 * Math.PI) / 180, 10);
+  });
+});
+
 describe("UGV MOVE vs HOLD on the overhead kamikaze", () => {
   test("MOVE at 30 km/h opens elevation while H01 is committed to a ground point", () => {
     expect(UGV_MOVE_KMH).toBe(30);
