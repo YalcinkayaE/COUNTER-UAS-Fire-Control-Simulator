@@ -1,6 +1,13 @@
 import * as THREE from "three";
 import { describe, expect, test } from "vitest";
-import { FIXED_DT, HIT_RADIUS, UGV_MOVE_KMH, UGV_MOVE_MPS } from "./constants";
+import {
+  FIXED_DT,
+  HIT_RADIUS,
+  HOVER_HOLD_SEC,
+  HOVER_STANDOFF_M,
+  UGV_MOVE_KMH,
+  UGV_MOVE_MPS,
+} from "./constants";
 import { getHud, getSim, resetSim, Simulation } from "./simulation";
 
 function step(sim: Simulation, seconds: number): void {
@@ -86,6 +93,30 @@ describe("UGV shoot-on-the-move", () => {
     const dist = Math.hypot(moving.ugv.x, moving.ugv.z);
     expect(dist).toBeGreaterThan(UGV_MOVE_MPS * 0.9);
     expect(dist).toBeLessThan(UGV_MOVE_MPS * 1.1);
+  });
+});
+
+describe("hover-then-dive ledger", () => {
+  test("records HOVER then DIVE for T01", () => {
+    const sim = new Simulation();
+    sim.muted = true;
+    sim.resetRun();
+    sim.phase = "live";
+    for (const d of sim.swarm.drones) d.alive = false;
+    const h = sim.swarm.getById("T01")!;
+    h.alive = true;
+    h.hoverDive = true;
+    h.hoverPhase = "ingress";
+    h.hoverLogged = false;
+    h.diveLogged = false;
+    h.position.set(0, 80, HOVER_STANDOFF_M + 8);
+    h.velocity.set(0, 0, -20);
+    step(sim, 1);
+    expect(h.hoverPhase).toBe("hover");
+    expect(sim.ledger.snapshot().some((r) => r.what === "T01" && r.action === "HOVER")).toBe(true);
+    step(sim, HOVER_HOLD_SEC + 0.2);
+    expect(h.hoverPhase).toBe("dive");
+    expect(sim.ledger.snapshot().some((r) => r.what === "T01" && r.action === "DIVE")).toBe(true);
   });
 });
 

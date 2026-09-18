@@ -69,6 +69,8 @@ export class DroneTarget {
   hoverDive = false;
   hoverPhase: HoverPhase = "ingress";
   hoverHold = 0;
+  hoverLogged = false;
+  diveLogged = false;
 
   constructor(id: string) {
     this.id = id;
@@ -81,6 +83,8 @@ export class DroneTarget {
     this.hoverDive = Boolean(p.hoverDive);
     this.hoverPhase = "ingress";
     this.hoverHold = 0;
+    this.hoverLogged = false;
+    this.diveLogged = false;
     this.cruiseSpeed = p.cruiseSpeed;
     this.speed = p.cruiseSpeed;
     this.baseAlt = p.altitude;

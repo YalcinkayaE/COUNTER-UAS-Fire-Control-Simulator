@@ -6,6 +6,8 @@ import {
   FIXED_DT,
   HIGH_SCORE_KEY,
   HIT_RADIUS,
+  HOVER_DIVE_MPS,
+  HOVER_STANDOFF_M,
   MAX_IN_FLIGHT,
   MAX_WAVES,
   RADAR_POS,
@@ -416,6 +418,7 @@ export class Simulation {
       y: this.turret.barrelDir.y,
       z: this.turret.barrelDir.z,
     };
+    this.logHoverDive();
     this.edge.setRelease(this.turret.mode, this.turret.position, barrel);
     const scan = this.radar.update(dt, this.swarm.drones);
     if (scan) this.edge.ingest(scan, this.turret.mode, this.turret.position, barrel);
@@ -534,6 +537,22 @@ export class Simulation {
       rng: hypot3(dx, dy, dz),
       v: d.speed,
     };
+  }
+
+  private logHoverDive(): void {
+    for (const d of this.swarm.drones) {
+      if (!d.alive || !d.hoverDive) continue;
+      if (d.hoverPhase === "hover" && !d.hoverLogged) {
+        d.hoverLogged = true;
+        this.message = `${d.id} HOVER ${HOVER_STANDOFF_M} m — TTB REC`;
+        this.record(d.id, "HOVER", `${HOVER_STANDOFF_M} m TTB REC`);
+      }
+      if (d.hoverPhase === "dive" && !d.diveLogged) {
+        d.diveLogged = true;
+        this.message = `${d.id} DIVE ${HOVER_DIVE_MPS} m/s`;
+        this.record(d.id, "DIVE", `${HOVER_DIVE_MPS} m/s`);
+      }
+    }
   }
 
   private launch(from: THREE.Vector3, to: THREE.Vector3, targetId: string, tof: number): void {
