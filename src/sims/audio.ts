@@ -47,29 +47,29 @@ export function isMuted(): boolean {
   return bus?.muted ?? false;
 }
 
-/** One muzzle report — short noise crack + low thump, sized for cyclic rates up to ~1350 rds/min. */
+/** One muzzle report — short bandpassed noise crack only (no low thump). */
 export function sfxFire(): void {
   const b = getBus();
   if (!b) return;
   const { ctx, sfx } = b;
   const t = ctx.currentTime;
-  const dur = 0.045;
+  const dur = 0.032;
 
   const crackGain = ctx.createGain();
   crackGain.gain.setValueAtTime(0, t);
-  crackGain.gain.linearRampToValueAtTime(0.55, t + 0.0015);
+  crackGain.gain.linearRampToValueAtTime(0.5, t + 0.001);
   crackGain.gain.exponentialRampToValueAtTime(0.0008, t + dur);
   crackGain.connect(sfx);
 
   const bp = ctx.createBiquadFilter();
   bp.type = "bandpass";
-  bp.frequency.setValueAtTime(1800, t);
-  bp.Q.value = 0.7;
+  bp.frequency.setValueAtTime(2200, t);
+  bp.Q.value = 0.85;
   bp.connect(crackGain);
 
   const hp = ctx.createBiquadFilter();
   hp.type = "highpass";
-  hp.frequency.value = 400;
+  hp.frequency.value = 900;
   hp.connect(bp);
 
   const crack = ctx.createBufferSource();
@@ -77,25 +77,6 @@ export function sfxFire(): void {
   crack.connect(hp);
   crack.start(t);
   crack.stop(t + dur + 0.01);
-
-  const thumpGain = ctx.createGain();
-  thumpGain.gain.setValueAtTime(0, t);
-  thumpGain.gain.linearRampToValueAtTime(0.28, t + 0.002);
-  thumpGain.gain.exponentialRampToValueAtTime(0.0008, t + 0.055);
-  thumpGain.connect(sfx);
-
-  const lp = ctx.createBiquadFilter();
-  lp.type = "lowpass";
-  lp.frequency.value = 220;
-  lp.connect(thumpGain);
-
-  const thump = ctx.createOscillator();
-  thump.type = "triangle";
-  thump.frequency.setValueAtTime(95, t);
-  thump.frequency.exponentialRampToValueAtTime(55, t + 0.05);
-  thump.connect(lp);
-  thump.start(t);
-  thump.stop(t + 0.06);
 }
 
 /** Kept as a no-op so callers can drop hit cues without gamey chirps. */
