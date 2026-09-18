@@ -1,5 +1,12 @@
 import { describe, expect, test } from "vitest";
-import { FIRE_BURST, FIRE_COOLDOWN, FIRE_RPM, FIXED_DT } from "./constants";
+import {
+  FIRE_BURST,
+  FIRE_COOLDOWN,
+  FIRE_RPM,
+  FIXED_DT,
+  TURRET_EL_MAX_RAD,
+  TURRET_POS,
+} from "./constants";
 import { EdgeComputer } from "./edgeComputer";
 import { RadarSensor } from "./radarSensor";
 import { SwarmManager } from "./swarmManager";
@@ -37,6 +44,27 @@ describe("UGV gun", () => {
     expect(inBurst.length).toBeGreaterThanOrEqual(6);
     expect(inBurst.at(-1)! - first).toBeLessThanOrEqual(FIRE_BURST + FIXED_DT);
     expect(afterBurst).toHaveLength(0);
+  });
+
+  test("AUTO cannot elevate to 90°", () => {
+    const turret = new TurretController();
+    turret.mode = "AUTO";
+    const overhead = {
+      targetId: "H01",
+      intercept: { x: 0, y: 400, z: 2, t: 0.2 },
+      track: {
+        id: "H01",
+        position: { x: 0, y: 400, z: 2 },
+        velocity: { x: 0, y: -20, z: 0 },
+      },
+      autoEngage: true,
+    };
+    for (let i = 0; i < 180; i++) {
+      turret.update(FIXED_DT, overhead as never, null, false, new Set());
+    }
+    expect(turret.pitch).toBeLessThanOrEqual(TURRET_EL_MAX_RAD + 1e-6);
+    expect(turret.pitch).toBeLessThan(Math.PI / 2 - 0.2);
+    expect(TURRET_POS.y).toBe(14);
   });
 
   test("resetBurst clears an in-progress burst so the next wave cannot fire it", () => {

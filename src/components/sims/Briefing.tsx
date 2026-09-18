@@ -32,9 +32,9 @@ export function BriefingPanel({ onEngage }: { onEngage?: () => void }) {
             AUTO slews at 75°/s onto the quadratic lead from the latest scan. The kill zone is the
             selected effector's range — a crossing is a breach (GUNS TIGHT), not a lost life. EDF
             ranks by time to the 36 m site around the UGV; the gun stays on a track across bursts
-            unless a hotter deadline pulls it off. Three kamikaze quads (H01–H03, HV) are not in the
-            raid: they approach from separate bearings, park outside the HN-12 200 m envelope (TTB
-            REC), then dive. A kamikaze outside the 120° sector is never spotted. CAKIR 400 m (1350
+            unless a hotter deadline pulls it off. One kamikaze (H01, HV) is not in the raid: it
+            comes down the northern sector, parks at 280 m (TTB REC), climbs, then closes from
+            overhead. The gun stops at 70° elevation — it cannot follow a 90° dive. CAKIR 400 m (1350
             rds/min), HN-12 200 m (1000), PENCE-A 400 m (120). MANUAL is the weapons-release bypass
             on the same solution; AUTO will not fire outside the envelope.
           </p>

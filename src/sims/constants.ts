@@ -10,8 +10,8 @@ export const QUAD_COUNT_MIN = 8;
 export const QUAD_COUNT_MAX = 16;
 export const FIXED_WING_COUNT_MIN = 2;
 export const FIXED_WING_COUNT_MAX = 3;
-/** Independent kamikaze quads, not in the raid corridor. */
-export const HOVER_PER_WAVE = 3;
+/** One independent kamikaze, not in the raid corridor. */
+export const HOVER_PER_WAVE = 1;
 export const DRONE_POOL_MAX = QUAD_COUNT_MAX + FIXED_WING_COUNT_MAX + HOVER_PER_WAVE;
 export const RADAR_MAX_TRACKS = 20;
 /**
@@ -29,10 +29,14 @@ export const DRONE_ALT_MIN = 28;
 export const DRONE_ALT_MAX = 165;
 /** Slow path change: altitude, azimuth, and speed each vary by up to this fraction. */
 export const DRONE_MANEUVER_FRAC = 0.4;
-/** Kamikaze standoff outside HN-12, then a dive. TTB is REC while hovering. */
+/** Kamikaze: north ingress, hover, climb, then close from above (el → 90°). */
 export const HOVER_STANDOFF_M = 280;
 export const HOVER_HOLD_SEC = 10;
 export const HOVER_DIVE_MPS = 48;
+export const HOVER_CLIMB_MPS = 40;
+export const HOVER_OVERHEAD_ALT_M = 420;
+/** Ingress azimuth from north; inside the 120° sector. */
+export const HOVER_AZ_DEG = 0;
 export const FIXED_WING_SPEED_MIN = 72;
 export const FIXED_WING_SPEED_MAX = 96;
 export const FIXED_WING_ALT_MIN = 70;
@@ -62,6 +66,11 @@ export const RADAR_POS = { x: 0, y: 16, z: 0 } as const;
 export const TURRET_SLEW_DEG = 75;
 export const TURRET_SLEW_RAD = (TURRET_SLEW_DEG * Math.PI) / 180;
 export const ALIGN_TOLERANCE_DEG = 0.85;
+/** Gun cannot elevate to zenith; an overhead dive is outside this window. */
+export const TURRET_EL_MIN_DEG = -8;
+export const TURRET_EL_MAX_DEG = 70;
+export const TURRET_EL_MIN_RAD = (TURRET_EL_MIN_DEG * Math.PI) / 180;
+export const TURRET_EL_MAX_RAD = (TURRET_EL_MAX_DEG * Math.PI) / 180;
 export const ALIGN_TOLERANCE_RAD = (ALIGN_TOLERANCE_DEG * Math.PI) / 180;
 /** Stay on the current fire-call track unless another deadline is earlier by this much. */
 export const COMMIT_HYSTERESIS_SEC = 1.5;

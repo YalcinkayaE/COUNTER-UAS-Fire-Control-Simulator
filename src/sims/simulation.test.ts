@@ -115,6 +115,8 @@ describe("hover-then-dive ledger", () => {
     expect(h.hoverPhase).toBe("hover");
     expect(sim.ledger.snapshot().some((r) => r.what === "H01" && r.action === "HOVER")).toBe(true);
     step(sim, HOVER_HOLD_SEC + 0.2);
+    expect(h.hoverPhase).toBe("climb");
+    step(sim, 12);
     expect(h.hoverPhase).toBe("dive");
     expect(sim.ledger.snapshot().some((r) => r.what === "H01" && r.action === "DIVE")).toBe(true);
   });

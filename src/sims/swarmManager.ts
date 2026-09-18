@@ -16,6 +16,7 @@ import {
   FIXED_WING_COUNT_MIN,
   FIXED_WING_SPEED_MAX,
   FIXED_WING_SPEED_MIN,
+  HOVER_AZ_DEG,
   HOVER_PER_WAVE,
   OUTER_RADIUS,
   QUAD_CORRIDOR_CENTER_MAX_DEG,
@@ -110,11 +111,10 @@ export class SwarmManager {
     const hoverBase = QUAD_COUNT_MAX + FIXED_WING_COUNT_MAX;
     for (let i = 0; i < HOVER_PER_WAVE; i++) {
       const d = this.drones[hoverBase + i]!;
-      const azDeg = wrapAzDeg((this.rng() + i / HOVER_PER_WAVE) * 360 - 180);
       d.spawn({
         kind: "quad",
         hoverDive: true,
-        angle: (90 - azDeg) * DEG,
+        angle: (90 - HOVER_AZ_DEG) * DEG,
         range: OUTER_RADIUS,
         altitude: lerp(DRONE_ALT_MIN, DRONE_ALT_MAX, hash(wave * 71 + i * 5)),
         cruiseSpeed: lerp(DRONE_SPEED_MIN, DRONE_SPEED_MAX, hash(wave * 73 + i * 11)) + speedBoost,
@@ -173,9 +173,4 @@ function hash(n: number): number {
   return s - Math.floor(s);
 }
 
-function wrapAzDeg(deg: number): number {
-  let a = deg % 360;
-  if (a > 180) a -= 360;
-  if (a <= -180) a += 360;
-  return a;
-}
+

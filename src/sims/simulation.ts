@@ -6,7 +6,6 @@ import {
   FIXED_DT,
   HIGH_SCORE_KEY,
   HIT_RADIUS,
-  HOVER_DIVE_MPS,
   HOVER_STANDOFF_M,
   MAX_IN_FLIGHT,
   MAX_WAVES,
@@ -549,8 +548,8 @@ export class Simulation {
       }
       if (d.hoverPhase === "dive" && !d.diveLogged) {
         d.diveLogged = true;
-        this.message = `${d.id} DIVE ${HOVER_DIVE_MPS} m/s`;
-        this.record(d.id, "DIVE", `${HOVER_DIVE_MPS} m/s`);
+        this.message = `${d.id} DIVE OVERHEAD`;
+        this.record(d.id, "DIVE", "OVERHEAD");
       }
     }
   }

@@ -24,7 +24,7 @@ describe("SwarmManager", () => {
     const swarm = new SwarmManager(fixedRng);
     swarm.spawnWave(1);
     expect(swarm.drones).toHaveLength(DRONE_POOL_MAX);
-    expect(swarm.aliveCount()).toBe(12 + 3 + 3);
+    expect(swarm.aliveCount()).toBe(12 + 3 + 1);
     expect(swarm.drones.filter((d) => d.alive && d.kind === "quad" && !d.hoverDive)).toHaveLength(12);
     const wings = swarm.drones.filter((d) => d.alive && d.kind === "fixedWing");
     expect(wings).toHaveLength(FIXED_WING_COUNT_MAX);
@@ -117,11 +117,10 @@ describe("SwarmManager", () => {
     const swarm = new SwarmManager(fixedRng);
     swarm.spawnWave(1);
     const divers = swarm.drones.filter((d) => d.hoverDive && d.alive);
-    expect(divers).toHaveLength(3);
-    const bearings = divers.map((d) => azFromNorthDeg(d.position.x, d.position.z));
-    expect(new Set(bearings.map((b) => Math.round(b))).size).toBe(3);
+    expect(divers).toHaveLength(1);
     const h = swarm.getById("H01")!;
     expect(h.hoverDive).toBe(true);
+    expect(Math.abs(azFromNorthDeg(h.position.x, h.position.z))).toBeLessThan(5);
     expect(h.hoverPhase).toBe("ingress");
 
     for (let i = 0; i < 45 * 60 && h.hoverPhase !== "hover"; i++) swarm.update(FIXED_DT);
@@ -132,11 +131,15 @@ describe("SwarmManager", () => {
     expect(h.distance).toBeGreaterThan(EFFECTORS["HN-12"].range);
 
     for (let i = 0; i < Math.ceil(HOVER_HOLD_SEC / FIXED_DT) + 1; i++) swarm.update(FIXED_DT);
+    expect(h.hoverPhase).toBe("climb");
+    for (let i = 0; i < 20 * 60 && h.hoverPhase !== "dive"; i++) swarm.update(FIXED_DT);
     expect(h.hoverPhase).toBe("dive");
-    for (let i = 0; i < Math.ceil(0.5 / FIXED_DT); i++) swarm.update(FIXED_DT);
-    expect(h.timeToBreach).toBeGreaterThan(0);
-    expect(Number.isFinite(h.timeToBreach)).toBe(true);
-    expect(Math.hypot(h.position.x, h.position.z)).toBeLessThan(HOVER_STANDOFF_M - 5);
+    expect(h.position.y).toBeGreaterThan(400);
+    for (let i = 0; i < Math.ceil(4 / FIXED_DT); i++) swarm.update(FIXED_DT);
+    const r = Math.hypot(h.position.x, h.position.z);
+    expect(r).toBeLessThan(HOVER_STANDOFF_M - 50);
+    const elDeg = (Math.atan2(h.position.y - 14, r) * 180) / Math.PI;
+    expect(elDeg).toBeGreaterThan(70);
   });
 
   test("collectBreaches flags the kill zone but keeps the track shootable", () => {

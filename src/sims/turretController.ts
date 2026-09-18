@@ -4,6 +4,8 @@ import {
   FIRE_BURST,
   FIRE_COOLDOWN,
   PROJECTILE_SPEED,
+  TURRET_EL_MAX_RAD,
+  TURRET_EL_MIN_RAD,
   TURRET_SLEW_RAD,
 } from "./constants";
 import { angleBetween, clamp, solveIntercept, type InterceptSolution } from "./math";
@@ -102,6 +104,7 @@ export class TurretController {
 
     if (this.mode === "AUTO" && this.intercept) {
       this._look.set(this.intercept.x, this.intercept.y, this.intercept.z);
+      clampLookElevation(this.position, this._look, TURRET_EL_MIN_RAD, TURRET_EL_MAX_RAD);
       this.slewToward(lookToQuat(this.position, this._look, this._dummy, this._aim), dt);
     } else if (this.mode === "MANUAL") {
       let steer = 0;
@@ -112,7 +115,11 @@ export class TurretController {
       if (keys.has("KeyS") || keys.has("ArrowDown")) pitchIn -= 1;
       if (steer !== 0 || pitchIn !== 0) {
         this.yaw += steer * TURRET_SLEW_RAD * dt;
-        this.pitch = clamp(this.pitch + pitchIn * TURRET_SLEW_RAD * dt, -0.15, 1.15);
+        this.pitch = clamp(
+          this.pitch + pitchIn * TURRET_SLEW_RAD * dt,
+          TURRET_EL_MIN_RAD,
+          TURRET_EL_MAX_RAD,
+        );
         this.syncFromYawPitch();
       } else if (mouseAim) {
         this.slewToward(lookToQuat(this.position, mouseAim, this._dummy, this._aim), dt);
@@ -203,6 +210,28 @@ export class TurretController {
     this.quaternion.setFromEuler(euler);
     this.barrelDir.set(0, 0, 1).applyQuaternion(this.quaternion);
   }
+}
+
+function clampLookElevation(
+  from: THREE.Vector3,
+  to: THREE.Vector3,
+  minEl: number,
+  maxEl: number,
+): void {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const dz = to.z - from.z;
+  const r = Math.hypot(dx, dz);
+  if (r < 1e-3) {
+    to.x = from.x;
+    to.z = from.z + 1;
+    to.y = from.y + Math.tan(maxEl);
+    return;
+  }
+  const el = Math.atan2(dy, r);
+  const clamped = clamp(el, minEl, maxEl);
+  if (clamped === el) return;
+  to.y = from.y + Math.tan(clamped) * r;
 }
 
 function lookToQuat(

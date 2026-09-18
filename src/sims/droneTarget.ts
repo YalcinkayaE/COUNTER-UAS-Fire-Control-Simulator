@@ -2,8 +2,10 @@ import * as THREE from "three";
 import {
   DRONE_MANEUVER_FRAC,
   FACILITY_RADIUS,
+  HOVER_CLIMB_MPS,
   HOVER_DIVE_MPS,
   HOVER_HOLD_SEC,
+  HOVER_OVERHEAD_ALT_M,
   HOVER_STANDOFF_M,
   OUTER_RADIUS,
 } from "./constants";
@@ -21,7 +23,7 @@ const WORLD_ORIGIN: Vec3 = { x: 0, y: 0, z: 0 };
 const TWO_PI = Math.PI * 2;
 
 export type ThreatClass = "quad" | "fixedWing";
-export type HoverPhase = "ingress" | "hover" | "dive";
+export type HoverPhase = "ingress" | "hover" | "climb" | "dive";
 
 export type SwarmProfile = {
   kind: ThreatClass;
@@ -110,8 +112,8 @@ export class DroneTarget {
     if (!this.alive) return;
     this.age += dt;
     const k = DRONE_MANEUVER_FRAC;
-    if (this.hoverDive && this.hoverPhase === "hover") {
-      this.speed = 0;
+    if (this.hoverDive && (this.hoverPhase === "hover" || this.hoverPhase === "climb")) {
+      this.speed = this.hoverPhase === "climb" ? HOVER_CLIMB_MPS : 0;
     } else if (this.hoverDive && this.hoverPhase === "dive") {
       this.speed = HOVER_DIVE_MPS;
     } else {
@@ -141,19 +143,35 @@ export class DroneTarget {
         this.hoverHold += dt;
         newR = HOVER_STANDOFF_M;
         newAz = curAz;
-        if (this.hoverHold >= HOVER_HOLD_SEC) this.hoverPhase = "dive";
+        if (this.hoverHold >= HOVER_HOLD_SEC) this.hoverPhase = "climb";
+      } else if (this.hoverPhase === "climb") {
+        newR = HOVER_STANDOFF_M;
+        newAz = curAz;
+        if (this.position.y >= HOVER_OVERHEAD_ALT_M - 1) this.hoverPhase = "dive";
       } else {
         newR = Math.max(1, r - HOVER_DIVE_MPS * dt);
         newAz = curAz;
       }
     }
 
-    const targetY = this.baseAlt * (1 + k * Math.sin(this.age * this.altFreq * TWO_PI + this.altPhase));
-    const nextY = clamp(
-      this.position.y + clamp((targetY - this.position.y) * 0.55, -10, 10) * dt,
-      this.baseAlt * (1 - k),
-      this.baseAlt * (1 + k),
-    );
+    let nextY: number;
+    if (this.hoverDive && (this.hoverPhase === "climb" || this.hoverPhase === "dive")) {
+      const dy = clamp(
+        HOVER_OVERHEAD_ALT_M - this.position.y,
+        -HOVER_CLIMB_MPS * dt,
+        HOVER_CLIMB_MPS * dt,
+      );
+      nextY = this.position.y + dy;
+    } else if (this.hoverDive && this.hoverPhase === "hover") {
+      nextY = this.position.y;
+    } else {
+      const targetY = this.baseAlt * (1 + k * Math.sin(this.age * this.altFreq * TWO_PI + this.altPhase));
+      nextY = clamp(
+        this.position.y + clamp((targetY - this.position.y) * 0.55, -10, 10) * dt,
+        this.baseAlt * (1 - k),
+        this.baseAlt * (1 + k),
+      );
+    }
 
     const nx = origin.x + newR * Math.sin(newAz);
     const nz = origin.z + newR * Math.cos(newAz);
