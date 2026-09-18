@@ -135,9 +135,10 @@ describe("fuse radius", () => {
     sim.resetRun();
     sim.phase = "live";
     for (const d of sim.swarm.drones) d.alive = false;
-    const d = sim.swarm.getById("T01")!;
+    const d = sim.swarm.getById("T02")!;
     d.alive = true;
     d.breached = false;
+    d.hoverDive = false;
     d.position.set(0, 40, 120);
     d.velocity.set(0, 0, -18);
     d.refreshTrack(sim.swarm.killZone);
@@ -149,7 +150,7 @@ describe("fuse radius", () => {
       if (
         sim.ledger
           .snapshot()
-          .some((r) => r.action === "INTERCEPT" && r.what === "T01" && r.outcome === "HIT")
+          .some((r) => r.action === "INTERCEPT" && r.what === "T02" && r.outcome === "HIT")
       ) {
         hit = true;
         break;

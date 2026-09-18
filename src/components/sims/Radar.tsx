@@ -91,7 +91,13 @@ export function Radar({
         const y = 110 - (t.z - originZ) * scale;
         const imminent = Number.isFinite(t.timeToBreach) && t.timeToBreach < 8;
         const isTarget = t.id === targetId;
-        const fill = imminent ? "#c45c4a" : t.kind === "fixedWing" ? "#c9b24a" : "#9eb8a8";
+        const fill = imminent
+          ? "#c45c4a"
+          : t.kind === "fixedWing"
+            ? "#c9b24a"
+            : t.hoverDive
+              ? "#7ec8e8"
+              : "#9eb8a8";
         return (
           <g key={t.id}>
             {isTarget ? (
@@ -102,6 +108,8 @@ export function Radar({
                 points={`${x},${y - 4} ${x + 3.2},${y + 2.4} ${x - 3.2},${y + 2.4}`}
                 fill={fill}
               />
+            ) : t.hoverDive ? (
+              <rect x={x - 3} y={y - 3} width="6" height="6" fill={fill} />
             ) : (
               <circle cx={x} cy={y} r={isTarget ? 3.4 : 2.4} fill={fill} />
             )}

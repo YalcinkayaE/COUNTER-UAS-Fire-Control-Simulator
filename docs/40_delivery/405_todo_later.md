@@ -21,10 +21,6 @@ Work parked after designate-priority. AUTO stays the default fire mode. Do these
 
 Two clusters at opposite edges of the 120° northern sector (not 180°). Blueprint §10.1. A 180° split needs a trainable sector or a second radar; that is a product conversation, not a silent feature.
 
-## 4. Hover-then-dive class
-
-One class that parks (TTB = REC) then dives. Breaks “EDF always wins” without a new sensor. Today every track always closes.
-
 ## 5. Pd + coast + AUTO quality gate
 
 Missed scans, coast between hits, drop after a miss streak. AUTO fires only on a confirmed track (hit-streak gate). MANUAL can still shoot a tentative. Turns 10 Hz into a simulated sensor; not fielded DSP. AUTO remains the default mode.
@@ -33,3 +29,4 @@ Missed scans, coast between hits, drop after a miss streak. AUTO fires only on a
 
 1. HUD: slew vs TTB + ENGAGED
 2. Designate-priority (AUTO stays default)
+4. Hover-then-dive class (T01 parks at 280 m / TTB REC, then dives — HN-12 short window)

@@ -41,6 +41,7 @@ export type Phase = "briefing" | "live" | "paused" | "defeat" | "wavehold";
 export type TrackRow = {
   id: string;
   kind: "quad" | "fixedWing";
+  hoverDive: boolean;
   distance: number;
   timeToBreach: number;
   radialVelocity: number;
@@ -786,6 +787,7 @@ function buildHud(s: Simulation): HudSnapshot {
       return {
         id: t.id,
         kind: t.kind,
+        hoverDive: t.hoverDive,
         distance: t.distance,
         timeToBreach: t.timeToBreach,
         radialVelocity: t.radialVelocity,

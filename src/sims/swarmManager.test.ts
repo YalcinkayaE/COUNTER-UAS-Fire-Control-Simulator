@@ -3,7 +3,11 @@ import {
   DETECT_RADIUS,
   DRONE_POOL_MAX,
   DRONE_SPEED_MAX,
+  EFFECTORS,
+  FIXED_DT,
   FIXED_WING_COUNT_MAX,
+  HOVER_HOLD_SEC,
+  HOVER_STANDOFF_M,
   QUAD_COUNT_MAX,
 } from "./constants";
 import { SwarmManager } from "./swarmManager";
@@ -104,6 +108,31 @@ describe("SwarmManager", () => {
     expect(maxAlt).toBeLessThanOrEqual(0.401);
     expect(maxAz).toBeGreaterThan(0.05);
     expect(maxAz).toBeLessThanOrEqual(0.45);
+  });
+
+  test("hover-then-dive parks outside HN-12 with TTB REC, then dives", () => {
+    expect(HOVER_STANDOFF_M).toBeGreaterThan(EFFECTORS["HN-12"].range);
+    expect(HOVER_STANDOFF_M).toBeLessThan(EFFECTORS.CAKIR.range);
+
+    const swarm = new SwarmManager(fixedRng);
+    swarm.spawnWave(1);
+    const h = swarm.getById("T01")!;
+    expect(h.hoverDive).toBe(true);
+    expect(h.hoverPhase).toBe("ingress");
+
+    for (let i = 0; i < 45 * 60 && h.hoverPhase !== "hover"; i++) swarm.update(FIXED_DT);
+    expect(h.alive).toBe(true);
+    expect(h.hoverPhase).toBe("hover");
+    expect(Math.hypot(h.position.x, h.position.z)).toBeCloseTo(HOVER_STANDOFF_M, 0);
+    expect(h.timeToBreach).toBe(Number.POSITIVE_INFINITY);
+    expect(h.distance).toBeGreaterThan(EFFECTORS["HN-12"].range);
+
+    for (let i = 0; i < Math.ceil(HOVER_HOLD_SEC / FIXED_DT) + 1; i++) swarm.update(FIXED_DT);
+    expect(h.hoverPhase).toBe("dive");
+    for (let i = 0; i < Math.ceil(0.5 / FIXED_DT); i++) swarm.update(FIXED_DT);
+    expect(h.timeToBreach).toBeGreaterThan(0);
+    expect(Number.isFinite(h.timeToBreach)).toBe(true);
+    expect(Math.hypot(h.position.x, h.position.z)).toBeLessThan(HOVER_STANDOFF_M - 5);
   });
 
   test("collectBreaches flags the kill zone but keeps the track shootable", () => {

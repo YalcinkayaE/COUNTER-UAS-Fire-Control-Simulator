@@ -221,6 +221,7 @@ Start screen → View source. Copy one file, or Folders: download zip. Copy all 
 - **MANUAL miss:** fire off-align; round flies to the old lead.
 - **Wrong gun:** switch to PENCE-A late in a wave — 120 rds/min cannot service the queue even with a 400 m envelope.
 - **HN-12 ceiling:** a high fixed-wing can stay outside the 200 m sphere and still run the 36 m asset. TTB keeps counting down; AUTO stays OUT OF RANGE. Switch to CAKIR.
+- **Hover-then-dive:** T01 (HV, cyan square on the PPI) parks at 280 m — outside HN-12, TTB REC, AUTO ignores it. After 10 s it dives at 48 m/s; the 200 m gun’s window is a few seconds. CAKIR (400 m) can engage while it hovers.
 - **Pause freeze-frame (Esc):** walk TTB vs distance on the table without the swarm moving.
 
 ---

@@ -16,6 +16,7 @@ import {
   FIXED_WING_COUNT_MIN,
   FIXED_WING_SPEED_MAX,
   FIXED_WING_SPEED_MIN,
+  HOVER_PER_WAVE,
   OUTER_RADIUS,
   QUAD_CORRIDOR_CENTER_MAX_DEG,
   QUAD_CORRIDOR_WIDTH_DEG,
@@ -68,6 +69,7 @@ export class SwarmManager {
       const offsetDeg = corridorCenter + (span - 0.5) * QUAD_CORRIDOR_WIDTH_DEG;
       d.spawn({
         kind: "quad",
+        hoverDive: i < HOVER_PER_WAVE,
         angle: (90 - offsetDeg) * DEG,
         range: OUTER_RADIUS,
         altitude: lerp(DRONE_ALT_MIN, DRONE_ALT_MAX, hash(wave * 31 + i * 3)),

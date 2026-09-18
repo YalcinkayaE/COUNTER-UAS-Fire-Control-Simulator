@@ -29,6 +29,7 @@ import {
   QUAD_COUNT_MAX,
   RADAR_AZ_FOV_DEG,
   UAV_FIXED_WING_CONTACT,
+  UAV_HOVER_CONTACT,
   UAV_IMMINENT_CONTACT,
   UAV_QUAD_CONTACT,
 } from "@/sims/constants";
@@ -664,8 +665,9 @@ function DroneField() {
   );
 }
 
-function contactColor(kind: "quad" | "fixedWing", imminent: boolean): string {
+function contactColor(kind: "quad" | "fixedWing", imminent: boolean, hoverDive: boolean): string {
   if (imminent) return UAV_IMMINENT_CONTACT;
+  if (hoverDive) return UAV_HOVER_CONTACT;
   return kind === "fixedWing" ? UAV_FIXED_WING_CONTACT : UAV_QUAD_CONTACT;
 }
 
@@ -686,7 +688,7 @@ function ContactMarker({ index, kind }: { index: number; kind: "quad" | "fixedWi
     m.scale.set(s, s, 1);
     if (mat.current) {
       const hot = Number.isFinite(d.timeToBreach) && d.timeToBreach < 8;
-      mat.current.color.set(contactColor(kind, hot));
+      mat.current.color.set(contactColor(kind, hot, d.hoverDive));
     }
   });
   return (

@@ -27,6 +27,11 @@ export const DRONE_ALT_MIN = 28;
 export const DRONE_ALT_MAX = 165;
 /** Slow path change: altitude, azimuth, and speed each vary by up to this fraction. */
 export const DRONE_MANEUVER_FRAC = 0.4;
+/** One quad per wave parks outside HN-12 range, then dives. TTB is REC while hovering. */
+export const HOVER_PER_WAVE = 1;
+export const HOVER_STANDOFF_M = 280;
+export const HOVER_HOLD_SEC = 10;
+export const HOVER_DIVE_MPS = 48;
 export const FIXED_WING_SPEED_MIN = 72;
 export const FIXED_WING_SPEED_MAX = 96;
 export const FIXED_WING_ALT_MIN = 70;
@@ -109,4 +114,5 @@ export const DEG = Math.PI / 180;
 /** Unlit contact colours against the dark battlespace; match PPI class colours, brighter. */
 export const UAV_QUAD_CONTACT = "#b5e8c8";
 export const UAV_FIXED_WING_CONTACT = "#e8cc55";
+export const UAV_HOVER_CONTACT = "#7ec8e8";
 export const UAV_IMMINENT_CONTACT = "#e56b5c";

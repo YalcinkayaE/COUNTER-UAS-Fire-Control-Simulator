@@ -197,7 +197,7 @@ function TrackTable({
                   <td className="py-0.5">
                     {designated ? "★ " : hot ? "▸ " : `${i + 1} `}
                     {t.id}
-                    {t.kind === "fixedWing" ? " FW" : ""}
+                    {t.kind === "fixedWing" ? " FW" : t.hoverDive ? " HV" : ""}
                   </td>
                   <td className="text-right">{formatBearingDeg(t.azimuth)}</td>
                   <td className="text-right">{formatElevDeg(t.elevation)}</td>

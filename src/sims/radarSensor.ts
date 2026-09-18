@@ -28,6 +28,7 @@ export type RadarObject = {
   position: Vec3;
   velocity: Vec3;
   kind?: "quad" | "fixedWing";
+  hoverDive?: boolean;
 };
 
 /** One Echodyne-class track report: az/el/range plus cartesian velocity. */
@@ -41,6 +42,7 @@ export type RadarReport = {
   rangeRate: number;
   seq: number;
   kind: "quad" | "fixedWing";
+  hoverDive: boolean;
 };
 
 /**
@@ -119,6 +121,7 @@ export class RadarSensor {
       ),
       seq: this.seq,
       kind: o.kind ?? "quad",
+      hoverDive: Boolean(o.hoverDive),
     };
   }
 }

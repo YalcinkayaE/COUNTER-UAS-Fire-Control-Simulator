@@ -1,5 +1,12 @@
 import * as THREE from "three";
-import { DRONE_MANEUVER_FRAC, FACILITY_RADIUS, OUTER_RADIUS } from "./constants";
+import {
+  DRONE_MANEUVER_FRAC,
+  FACILITY_RADIUS,
+  HOVER_DIVE_MPS,
+  HOVER_HOLD_SEC,
+  HOVER_STANDOFF_M,
+  OUTER_RADIUS,
+} from "./constants";
 import {
   clamp,
   hypot3,
@@ -14,6 +21,7 @@ const WORLD_ORIGIN: Vec3 = { x: 0, y: 0, z: 0 };
 const TWO_PI = Math.PI * 2;
 
 export type ThreatClass = "quad" | "fixedWing";
+export type HoverPhase = "ingress" | "hover" | "dive";
 
 export type SwarmProfile = {
   kind: ThreatClass;
@@ -27,6 +35,7 @@ export type SwarmProfile = {
   azPhase: number;
   speedFreq: number;
   speedPhase: number;
+  hoverDive?: boolean;
 };
 
 /**
@@ -57,6 +66,9 @@ export class DroneTarget {
   speedPhase = 0;
   age = 0;
   rotor = 0;
+  hoverDive = false;
+  hoverPhase: HoverPhase = "ingress";
+  hoverHold = 0;
 
   constructor(id: string) {
     this.id = id;
@@ -66,6 +78,9 @@ export class DroneTarget {
     this.alive = true;
     this.breached = false;
     this.kind = p.kind;
+    this.hoverDive = Boolean(p.hoverDive);
+    this.hoverPhase = "ingress";
+    this.hoverHold = 0;
     this.cruiseSpeed = p.cruiseSpeed;
     this.speed = p.cruiseSpeed;
     this.baseAlt = p.altitude;
@@ -91,7 +106,13 @@ export class DroneTarget {
     if (!this.alive) return;
     this.age += dt;
     const k = DRONE_MANEUVER_FRAC;
-    this.speed = this.cruiseSpeed * (1 + k * Math.sin(this.age * this.speedFreq * TWO_PI + this.speedPhase));
+    if (this.hoverDive && this.hoverPhase === "hover") {
+      this.speed = 0;
+    } else if (this.hoverDive && this.hoverPhase === "dive") {
+      this.speed = HOVER_DIVE_MPS;
+    } else {
+      this.speed = this.cruiseSpeed * (1 + k * Math.sin(this.age * this.speedFreq * TWO_PI + this.speedPhase));
+    }
     this.rotor += dt * (18 + this.speed * 0.4);
 
     const dx = this.position.x - origin.x;
@@ -100,8 +121,28 @@ export class DroneTarget {
     const curAz = Math.atan2(dx, dz);
     const targetAz = this.spawnAz * (1 + k * Math.sin(this.age * this.azFreq * TWO_PI + this.azPhase));
     const maxDaz = (12 / Math.max(r, 40)) * dt;
-    const newAz = curAz + clamp(targetAz - curAz, -maxDaz, maxDaz);
-    const newR = Math.max(1, r - this.speed * dt);
+    let newAz = curAz + clamp(targetAz - curAz, -maxDaz, maxDaz);
+    let newR = Math.max(1, r - this.speed * dt);
+
+    if (this.hoverDive) {
+      if (this.hoverPhase === "ingress") {
+        newR = Math.max(HOVER_STANDOFF_M, r - this.speed * dt);
+        if (newR <= HOVER_STANDOFF_M + 0.5) {
+          this.hoverPhase = "hover";
+          this.hoverHold = 0;
+          newR = HOVER_STANDOFF_M;
+          newAz = curAz;
+        }
+      } else if (this.hoverPhase === "hover") {
+        this.hoverHold += dt;
+        newR = HOVER_STANDOFF_M;
+        newAz = curAz;
+        if (this.hoverHold >= HOVER_HOLD_SEC) this.hoverPhase = "dive";
+      } else {
+        newR = Math.max(1, r - HOVER_DIVE_MPS * dt);
+        newAz = curAz;
+      }
+    }
 
     const targetY = this.baseAlt * (1 + k * Math.sin(this.age * this.altFreq * TWO_PI + this.altPhase));
     const nextY = clamp(
@@ -115,6 +156,10 @@ export class DroneTarget {
     const invDt = dt > 1e-8 ? 1 / dt : 0;
     this.velocity.set((nx - this.position.x) * invDt, (nextY - this.position.y) * invDt, (nz - this.position.z) * invDt);
     this.position.set(nx, nextY, nz);
+    if (this.hoverDive && this.hoverPhase === "hover") {
+      this.velocity.x = 0;
+      this.velocity.z = 0;
+    }
     this.refreshTrack(killZone, origin);
   }
 

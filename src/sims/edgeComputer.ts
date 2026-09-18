@@ -26,6 +26,7 @@ type FireMode = "AUTO" | "MANUAL";
 export type TrackSnapshot = {
   id: string;
   kind: "quad" | "fixedWing";
+  hoverDive: boolean;
   azimuth: number;
   elevation: number;
   range: number;
@@ -114,6 +115,7 @@ export class EdgeComputer {
     const track: TrackSnapshot = {
       id: r.id,
       kind: r.kind,
+      hoverDive: r.hoverDive,
       azimuth: r.azimuth,
       elevation: r.elevation,
       range: r.range,

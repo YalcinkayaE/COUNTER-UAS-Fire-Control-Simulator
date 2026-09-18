@@ -32,9 +32,10 @@ export function BriefingPanel({ onEngage }: { onEngage?: () => void }) {
             AUTO slews at 75°/s onto the quadratic lead from the latest scan. The kill zone is the
             selected effector's range — a crossing is a breach (GUNS TIGHT), not a lost life. EDF
             ranks by time to the 36 m site around the UGV; the gun stays on a track across bursts
-            unless a hotter deadline pulls it off. CAKIR 400 m (1350 rds/min), HN-12 200 m (1000),
-            PENCE-A 400 m (120). MANUAL is the weapons-release bypass on the same solution; AUTO
-            will not fire outside the envelope.
+            unless a hotter deadline pulls it off. One quad (HV) parks outside the HN-12 200 m
+            envelope (TTB REC) then dives — the short gun can miss the window. CAKIR 400 m (1350
+            rds/min), HN-12 200 m (1000), PENCE-A 400 m (120). MANUAL is the weapons-release bypass
+            on the same solution; AUTO will not fire outside the envelope.
           </p>
         </div>
         <div className="mt-6 flex flex-col gap-3">
