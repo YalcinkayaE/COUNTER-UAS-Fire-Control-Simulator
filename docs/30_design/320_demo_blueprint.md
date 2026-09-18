@@ -79,7 +79,7 @@ Do not call it a tower-defense game. The operator is the **weapons-release autho
 **Show:** Start card. Rings and the sector wedge visible through the glass.
 
 **Say:**
-> Facility at the origin. Gold ring is the 2 km detect volume, orange is the 1 km fence, red is the kill zone — the selected gun's range: 200 m on the HN-12, 400 m on CAKIR or PENCE-A. That ring is where AUTO is allowed to fire, not the EDF deadline. The pale wedge is the radar: one Echodyne Guard staring north, 120 by 80 degrees. The raid is eight to sixteen quads from 1 km plus two or three fixed-wing from 2 km, axis shifting each wave; they weave in azimuth and altitude. Crossing the red ring is GUNS TIGHT. You lose a life if a track overflies the 36 m site around the UGV. Five lives, eight waves.
+> Facility at the origin. Gold ring is the 2 km detect volume, orange is the 1 km fence, red is the kill zone — the selected gun's range: 200 m on the HN-12, 400 m on CAKIR or PENCE-A. That ring is where AUTO is allowed to fire, not the EDF deadline. The pale wedge is the radar: one Echodyne Guard staring north, 120 by 80 degrees. The raid is eight to sixteen quads from 1 km plus two or three fixed-wing from 2 km, axis shifting each wave; they weave in azimuth and altitude. Crossing the red ring is GUNS TIGHT. One overflight of the 36 m site is UGV HIT — the run stops.
 
 **Do not:** click Engage until the rings and the TTB formula are on screen.
 

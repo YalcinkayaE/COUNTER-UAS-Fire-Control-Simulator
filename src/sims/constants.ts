@@ -114,7 +114,8 @@ export const FIRE_RPM = EFFECTORS[DEFAULT_EFFECTOR_ID].rpm;
 export const FIRE_COOLDOWN = fireCooldownSec(FIRE_RPM);
 export const MAX_IN_FLIGHT = 16;
 
-export const STARTING_LIVES = 5;
+/** One IMPACT ends the run. Kept as 1 so existing HUD/probe fields stay valid. */
+export const STARTING_LIVES = 1;
 export const MAX_WAVES = 8;
 
 export const HIGH_SCORE_KEY = "sentinel-cuas-v1";

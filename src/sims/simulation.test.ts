@@ -122,6 +122,28 @@ describe("hover-then-dive ledger", () => {
   });
 });
 
+describe("asset impact", () => {
+  test("one overflight of the 36 m site stops the run", () => {
+    const sim = new Simulation();
+    sim.muted = true;
+    sim.resetRun();
+    sim.phase = "live";
+    for (const d of sim.swarm.drones) d.alive = false;
+    const d = sim.swarm.getById("T02")!;
+    d.alive = true;
+    d.hoverDive = false;
+    d.position.set(0, 40, 10);
+    d.velocity.set(0, 0, 0);
+    sim.update(FIXED_DT);
+    expect(sim.phase).toBe("defeat");
+    expect(sim.message).toBe("UGV HIT");
+    expect(sim.lives).toBe(0);
+    expect(sim.ledger.snapshot().some((r) => r.action === "IMPACT" && r.outcome === "UGV HIT")).toBe(
+      true,
+    );
+  });
+});
+
 describe("designate priority", () => {
   test("does not change the default AUTO mode", () => {
     const sim = new Simulation();

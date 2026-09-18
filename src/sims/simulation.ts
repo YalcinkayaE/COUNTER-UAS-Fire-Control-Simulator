@@ -319,6 +319,12 @@ export class Simulation {
     emit();
   }
 
+  returnToBriefing(): void {
+    this.resetRun();
+    this.phase = "briefing";
+    emit();
+  }
+
   toggleMute(): void {
     this.muted = !this.muted;
     setMuted(this.muted);
@@ -462,24 +468,29 @@ export class Simulation {
     }
 
     const impacts = this.swarm.collectImpacts(this.defendedPoint());
-    for (const d of impacts) {
-      this.lives = Math.max(0, this.lives - 1);
+    if (impacts.length > 0 && this.phase === "live") {
+      const d = impacts[0]!;
+      this.lives = 0;
+      this.bursts.push({
+        id: this.nextId++,
+        position: new THREE.Vector3(this.ugv.x, this.turret.position.y, this.ugv.z),
+        age: 0,
+        life: 2.8,
+        kind: "hit",
+      });
       this.bursts.push({
         id: this.nextId++,
         position: d.position.clone(),
         age: 0,
-        life: 1.1,
+        life: 2.2,
         kind: "breach",
       });
       if (!this.muted) sfxBreach();
-      this.message = `${d.id} HIT ASSET`;
-      this.record(d.id, "IMPACT", "ASSET HIT");
-      if (this.lives <= 0) {
-        this.phase = "defeat";
-        this.message = "FACILITY LOST";
-        this.record("OPERATOR", "DEFEAT", "FACILITY LOST");
-        this.abortEngagement();
-      }
+      this.message = "UGV HIT";
+      this.record(d.id, "IMPACT", "UGV HIT");
+      this.record("OPERATOR", "DEFEAT", "UGV HIT");
+      this.phase = "defeat";
+      this.abortEngagement();
     }
 
     if (this.swarm.aliveCount() === 0 && this.phase === "live") {
