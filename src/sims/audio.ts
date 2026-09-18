@@ -47,41 +47,42 @@ export function isMuted(): boolean {
   return bus?.muted ?? false;
 }
 
-/** One muzzle report — short bandpassed noise crack only (no low thump). */
+/** One muzzle report — very short high crack only (TRRRT at cyclic rate). */
 export function sfxFire(): void {
   const b = getBus();
   if (!b) return;
   const { ctx, sfx } = b;
   const t = ctx.currentTime;
-  const dur = 0.032;
+  const dur = 0.018;
 
   const crackGain = ctx.createGain();
   crackGain.gain.setValueAtTime(0, t);
-  crackGain.gain.linearRampToValueAtTime(0.5, t + 0.001);
+  crackGain.gain.linearRampToValueAtTime(0.42, t + 0.0008);
   crackGain.gain.exponentialRampToValueAtTime(0.0008, t + dur);
   crackGain.connect(sfx);
 
   const bp = ctx.createBiquadFilter();
   bp.type = "bandpass";
-  bp.frequency.setValueAtTime(2200, t);
-  bp.Q.value = 0.85;
+  bp.frequency.setValueAtTime(3200, t);
+  bp.Q.value = 1.2;
   bp.connect(crackGain);
 
   const hp = ctx.createBiquadFilter();
   hp.type = "highpass";
-  hp.frequency.value = 900;
+  hp.frequency.value = 1500;
   hp.connect(bp);
 
   const crack = ctx.createBufferSource();
   crack.buffer = noiseBuffer(ctx);
   crack.connect(hp);
   crack.start(t);
-  crack.stop(t + dur + 0.01);
+  crack.stop(t + dur + 0.005);
 }
 
 /** Kept as a no-op so callers can drop hit cues without gamey chirps. */
 export function sfxHit(): void {}
 
+/** Kill-zone BREACH cue — short mid ping, not a low whoosh (that was the hu-hu-hu). */
 export function sfxBreach(): void {
   const b = getBus();
   if (!b) return;
@@ -90,21 +91,21 @@ export function sfxBreach(): void {
 
   const g = ctx.createGain();
   g.gain.setValueAtTime(0, t);
-  g.gain.linearRampToValueAtTime(0.22, t + 0.01);
-  g.gain.exponentialRampToValueAtTime(0.0008, t + 0.35);
+  g.gain.linearRampToValueAtTime(0.12, t + 0.002);
+  g.gain.exponentialRampToValueAtTime(0.0008, t + 0.08);
   g.connect(sfx);
 
   const osc = ctx.createOscillator();
-  osc.type = "sawtooth";
-  osc.frequency.setValueAtTime(180, t);
-  osc.frequency.exponentialRampToValueAtTime(90, t + 0.3);
-  const lp = ctx.createBiquadFilter();
-  lp.type = "lowpass";
-  lp.frequency.value = 480;
-  osc.connect(lp);
-  lp.connect(g);
+  osc.type = "square";
+  osc.frequency.setValueAtTime(880, t);
+  osc.frequency.exponentialRampToValueAtTime(660, t + 0.07);
+  const hp = ctx.createBiquadFilter();
+  hp.type = "highpass";
+  hp.frequency.value = 500;
+  osc.connect(hp);
+  hp.connect(g);
   osc.start(t);
-  osc.stop(t + 0.36);
+  osc.stop(t + 0.09);
 }
 
 export function sfxPing(): void {
