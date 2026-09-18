@@ -169,14 +169,14 @@ $$
 
 Zenith is $\varepsilon=\pi/2$ when $\rho=0$.
 
-To keep $\varepsilon\le\varepsilon_{\max}$ (70° for the gun; 80° for the radar):
+To keep $\varepsilon\le\varepsilon_{\max}$ (per effector: HN-12 85°, CAKIR / PENCE-A 70°; radar 80°):
 
 $$
 \rho_{\min} = \frac{h}{\tan\varepsilon_{\max}}
 \qquad\texttt{minHorizForElevation}
 $$
 
-Worked: $h=406$ m (420 m AGL − 14 m muzzle), $\varepsilon_{\max}=70^\circ$ $\Rightarrow$ $\rho_{\min}\approx 148$ m.
+Worked: $h=406$ m (420 m AGL − 14 m muzzle), $\varepsilon_{\max}=70^\circ$ $\Rightarrow$ $\rho_{\min}\approx 148$ m. Under HN-12 ($85^\circ$) the same height needs only $\rho_{\min}\approx 36$ m.
 
 Switching function (`elevationSwitch`):
 
@@ -189,9 +189,9 @@ $$
 
 Bang-bang heading (`evadeHeadingAway`): unit ground direction $-\hat{\rho}$ (increase $\rho$).
 
-**UGV HOLD:** $u=0$. H01 climbs then dives on the hull’s last ground point. Elevation goes toward 90°. Gun stays at 70°. One overflight of the 36 m cylinder is **UGV HIT**; the run stops.
+**UGV HOLD:** $u=0$. H01 climbs then dives on the hull’s last ground point. Elevation goes toward 90°. The selected effector’s elevation max (HN-12 85°; CAKIR / PENCE-A 70°) leaves a zenith blind cone. One overflight of the 36 m cylinder is **UGV HIT**; the run stops.
 
-**UGV MOVE:** $v_{\mathrm{ugv}}=30$ km/h $= 30/3.6$ m/s. While H01 is in climb/dive, heading is `evadeHeadingAway`. Otherwise heading is 90° off the fire-call azimuth. H01 does not chase the hull after commit; it dives on the frozen ground aim. Opening $\rho$ can bring $\varepsilon$ back into the radar and gun windows.
+**UGV MOVE:** $v_{\mathrm{ugv}}=30$ km/h $= 30/3.6$ m/s. While H01 is in climb/dive and $\sigma>0$ for the selected $\varepsilon_{\max}$, heading is `evadeHeadingAway`. Otherwise heading is 90° off the fire-call azimuth. H01 does not chase the hull after commit; it dives on the frozen ground aim. Opening $\rho$ can bring $\varepsilon$ back into the radar and gun windows.
 
 This is **not** a full Hamiltonian. There is no adjoint $\lambda(t)$, no $H=\lambda^\top f-L$, and no differential game. The four functions above are the closed-form switch for that one bounded-speed problem.
 
@@ -236,7 +236,7 @@ Sector: 120° az × 80° el, north boresight. Noise: ±1° az / ±1.5° el. Velo
 | Truth / wave | 8–16 quads + 2–3 fixed-wing + H01 |
 | Slew | 75°/s |
 | Align | 0.85° |
-| Gun elevation | −8° … **70°** |
+| Gun elevation | Per effector: HN-12 −5°…**85°**; CAKIR / PENCE-A −8°…**70°** |
 | $v_p$ | 2000 m/s |
 | Burst | 0.5 s at effector rpm, then 0.5 s recovery |
 | Fuse | 48 m |

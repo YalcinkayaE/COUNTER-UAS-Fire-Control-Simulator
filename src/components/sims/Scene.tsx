@@ -200,10 +200,67 @@ function Perimeter() {
       <Line points={detect} color="#c9b24a" lineWidth={1.6} />
       <Line points={outer} color="#ee7f1a" lineWidth={1.5} />
       <KillZoneRing />
+      <BlindCone />
       <RadarSector />
       <SpokeLines />
       <Cardinals />
     </group>
+  );
+}
+
+/**
+ * Zenith blind zone above the selected effector's elevation max.
+ * White tint; opacity rises when any live track sits inside the cone.
+ */
+function BlindCone() {
+  const mesh = useRef<THREE.Mesh>(null);
+  const mat = useRef<THREE.MeshBasicMaterial>(null);
+  const geoRef = useRef<THREE.SphereGeometry | null>(null);
+  const lastMax = useRef(-1);
+  const radius = 900;
+
+  useFrame(() => {
+    const sim = getSim();
+    const maxEl = sim.turret.elMaxRad;
+    const open = Math.PI / 2 - maxEl;
+    if (!geoRef.current || Math.abs(lastMax.current - maxEl) > 1e-4) {
+      geoRef.current?.dispose();
+      geoRef.current = new THREE.SphereGeometry(radius, 48, 24, 0, Math.PI * 2, 0, Math.max(0.02, open));
+      lastMax.current = maxEl;
+      if (mesh.current) mesh.current.geometry = geoRef.current;
+    }
+    const m = mesh.current;
+    if (!m) return;
+    // Perimeter group is already at the UGV ground point; cone sits on the turret height.
+    m.position.set(0, sim.turret.position.y, 0);
+    let occupied = false;
+    for (const d of sim.swarm.drones) {
+      if (!d.alive) continue;
+      const dx = d.position.x - sim.turret.position.x;
+      const dy = d.position.y - sim.turret.position.y;
+      const dz = d.position.z - sim.turret.position.z;
+      const el = Math.atan2(dy, Math.hypot(dx, dz));
+      if (el > maxEl + 1e-3) {
+        occupied = true;
+        break;
+      }
+    }
+    if (mat.current) mat.current.opacity = occupied ? 0.16 : 0.055;
+  });
+
+  return (
+    <mesh ref={mesh} renderOrder={2}>
+      <sphereGeometry args={[radius, 48, 24, 0, Math.PI * 2, 0, 0.35]} />
+      <meshBasicMaterial
+        ref={mat}
+        color="#f2f4f6"
+        transparent
+        opacity={0.055}
+        side={THREE.DoubleSide}
+        depthWrite={false}
+        toneMapped={false}
+      />
+    </mesh>
   );
 }
 

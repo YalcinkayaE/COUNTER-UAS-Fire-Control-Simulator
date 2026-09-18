@@ -2,7 +2,7 @@
 repo_name: sem_defender
 repo_root: /Users/erkanyalcinkaya/projects/sem_defender
 repo_type: prototype
-status_date: 2026-09-17
+status_date: 2026-09-18
 branch: main
 default_branch: main
 preferred_runtime: npm run dev
@@ -22,7 +22,7 @@ authoritative_codepaths:
 verification_commands:
   - name: unit
     command: npm test
-    expected_result: 56 passed
+    expected_result: 80 passed
   - name: build
     command: npm run build
     expected_result: exit 0
@@ -116,6 +116,7 @@ Treat the following as the current truth:
 - North-locked battlespace matching the PPI; 2D view fits the 2 km detect ring
 - Simulation ledger (when / what / action / outcome + AZ, EL, RNG, V) with CSV/JSON export
 - Variable kill zone tied to effector selection: envelope, BREACH alarm, and the battlespace ring follow the selected effector's range (2026-09-17)
+- Per-effector gun elevation windows: HN-12 −5°…+85°; CAKIR / PENCE-A −8°…+70°. Look-point clamp and MANUAL pitch follow the selection; white zenith blind-cone tint intensifies when a live track is above max el (2026-09-18)
 - EDF TTB is time to the 36 m asset cylinder, not the gun envelope (2026-09-17)
 - AUTO commits to a track across bursts (1.5 s hysteresis) and skips a track when slew + time of flight exceeds TTB (2026-09-17)
 - Wave-clear aborts leftover burst and in-flight rounds as SUPPRESSED (2026-09-17)
@@ -156,17 +157,14 @@ Use these in order of precedence when determining live status:
 
 ## 6. Verification and Test Surface
 
-Verified locally on 2026-09-17:
+Verified locally on 2026-09-18:
 
 - unit
   - command: `npm test`
-  - result: 56 passed (9 files)
+  - result: 80 passed (9 files)
 - build
   - command: `npm run build`
   - result: exit 0
-- browser
-  - command: Vite at `http://127.0.0.1:5175` (5173/5174 occupied by stale processes this run)
-  - result: title `SEM DEFENDER`; Engage -> EDF QUEUE (20 tracks, TTB-sorted, finite TTB outside the kill zone instead of a wall of NOW); PPI SCOPE north-up (2 km / 1 / 0.5 rings + effector envelope label 200m -> 400m on switch); effector selector CAKIR / HN-12 / PENCE-A with envelope gate; AUTO LOCKED/SLEW and FIRE AUTO; M -> MANUAL and back; Esc -> PAUSED; Ledger rows incl. ENGAGE, FIRE AUTO, INTERCEPT, BREACH (200 m under HN-12, 400 m under CAKIR), IMPACT, DEFEAT with AZ/EL/RNG/V and CSV/JSON export; 2D view fits 2 km ring. 0 console errors.
 
 ### Acceptance signals
 - Title is SEM DEFENDER
@@ -254,6 +252,7 @@ Use these terms exactly as defined in this repo:
 - `Earliest Deadline First` / `EDF`: sort live tracks by lowest TTB
 - `AUTO` / `MANUAL`: fire-control modes on the same intercept solution
 - `kill zone`: the selected effector's range (HN-12 200 m; CAKIR / PENCE-A 400 m); the AUTO fire envelope and the red ring; a BREACH is envelope entry (GUNS TIGHT), not a lost life
+- `blind cone`: zenith region above the selected effector's elevation max (HN-12 85°; CAKIR / PENCE-A 70°); white battlespace tint; UGV MOVE can open ground range to bring a track back into the window
 - `asset`: 36 m horizontal cylinder; IMPACT here costs a life
 - `weapons-release authority`: the operator role
 - `COUNTER-UAS FIRE CONTROL`: product class; this repo is a desktop simulator of that class
@@ -325,6 +324,7 @@ Assistants must not silently change:
 
 ## Change log
 
+- 2026-09-18: Per-effector elevation windows and zenith blind-cone tint on operator instruction (continue from Mac handoff). `EffectorSpec` gains `elMinDeg` / `elMaxDeg` (HN-12 −5°…+85°; CAKIR / PENCE-A −8°…+70°); `applyEffector` drives turret look-point clamp; UGV MOVE bang-bang uses `elevationSwitch` against the selected max el; white translucent cone above max el intensifies when a live track is inside. Briefing, DOC-310, DOC-320, and vocabulary updated. Verified: 80 passed (9 files), build exit 0.
 - 2026-09-17: Fire-control deadline split on operator instruction (suggested order from the scoring review). TTB is time to the 36 m asset cylinder; the selected effector's range remains the kill-zone envelope (fire gate, red ring, BREACH). AUTO commits across bursts (1.5 s hysteresis) and skips a track when slew + time of flight exceeds TTB. Wave-clear aborts leftover burst and in-flight rounds as SUPPRESSED. Fuse stays 48 m. DOC-310 rewritten to the live constants; DOC-320 talk-track and briefing corrected. Vocabulary for TTB / kill zone / asset updated per that instruction. Verified: 56 passed (9 files), build exit 0.
 - 2026-09-17: Demo blueprint updated to current truth (variable kill zone, single 120° × 80° radar sector with angular noise, 8–16 quads + 2–3 fixed-wing with per-wave raid axis, status window with RDS, ledger SUPPRESSED accounting) and moved to `docs/30_design/320_demo_blueprint.md` (DOC-320) per the docs taxonomy, on operator instruction. Inbound references updated (contract, README, DOC-404). The 310 fire-control optimisation note remains pinned to the fixed 500 m kill zone — still open. Authority ordering unchanged: the blueprint stays the demo talk-track source, not live status.
 - 2026-09-17: Wave randomization and full round accounting on operator instruction. Waves draw 8–16 quads and 2–3 fixed-wing with a per-wave raid axis (quad corridor 30° wide, center within ±27° of north; fixed-wing azimuth 8–34° east of north + 4° per airframe), all inside the 120° sector including maneuver wobble; drone pool is 16 + 3 and pool members start dead. Ledger: rounds resolving on an already-dead track now record INTERCEPT / SUPPRESSED, so FIRE = HIT + MISS + SUPPRESSED + in-flight reconciles exactly (verified live: 176 = 23 + 14 + 139 + 0). Battlespace shows the 120° sector wedge (subtle fill plus edge rays). Briefing updated. Verified: 47 passed (8 files), build exit 0, live run showed wave-1 axis az 11–42° and wave-2 axis az 326–354°, 0 console errors.

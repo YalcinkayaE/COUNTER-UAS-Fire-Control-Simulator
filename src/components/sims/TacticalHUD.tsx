@@ -95,13 +95,13 @@ export function TacticalHUD({
       ) : null}
 
       {live ? (
-        <aside className="pointer-events-none absolute top-24 right-0 z-10 hidden w-[28rem] max-w-[calc(100%-1.5rem)] flex-col gap-3 p-4 md:top-24 md:flex">
+        <aside className="pointer-events-none absolute top-24 left-0 z-10 hidden w-[28rem] max-w-[calc(100%-1.5rem)] flex-col gap-3 p-3 md:flex md:p-4">
           <TrackTable hud={hud} />
         </aside>
       ) : null}
 
       {live ? (
-        <div className="pointer-events-none absolute right-0 bottom-24 z-10 w-full p-3 md:hidden">
+        <div className="pointer-events-none absolute top-24 left-0 z-10 w-full max-w-md p-3 md:hidden">
           <TrackTable hud={hud} compact />
         </div>
       ) : null}
