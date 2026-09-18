@@ -120,7 +120,7 @@ Receding or hovering tracks go to infinity. NOW means the track is over the asse
 **Say:**
 > AUTO is the duty officer. MANUAL is you stealing a shot AUTO would waste — or holding fire. Real C2 is one operator supervising the scheduler, not painting every track by hand.
 
-**Do:** slew onto a second-priority track, fire, switch back to AUTO. Optional: switch effector mid-wave and watch the red kill-zone ring move — that is the fire envelope. The EDF column does not re-sort; TTB is still time to the asset. Optional: **UGV MOVE** (4 km/h) — the hull crabs off the inbound axis while the gun keeps firing; TTB, radar, and the rings follow the vehicle.
+**Do:** slew onto a second-priority track, fire, switch back to AUTO. Or click an EDF row to designate — AUTO stays on, but the fire call pins to that track (★). Click again to clear. Optional: switch effector mid-wave and watch the red kill-zone ring move — that is the fire envelope. The EDF column does not re-sort; TTB is still time to the asset. Optional: **UGV MOVE** (4 km/h) — the hull crabs off the inbound axis while the gun keeps firing; TTB, radar, and the rings follow the vehicle.
 
 ### Beat 5 — Leak and reset (4:15–5:00)
 

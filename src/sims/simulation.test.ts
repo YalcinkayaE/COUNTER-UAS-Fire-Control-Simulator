@@ -89,6 +89,21 @@ describe("UGV shoot-on-the-move", () => {
   });
 });
 
+describe("designate priority", () => {
+  test("does not change the default AUTO mode", () => {
+    const sim = new Simulation();
+    sim.muted = true;
+    sim.resetRun();
+    expect(sim.turret.mode).toBe("AUTO");
+    sim.designateTrack("T01");
+    expect(sim.turret.mode).toBe("AUTO");
+    expect(sim.edge.designatedId).toBe("T01");
+    sim.designateTrack("T01");
+    expect(sim.edge.designatedId).toBeNull();
+    expect(sim.turret.mode).toBe("AUTO");
+  });
+});
+
 describe("EDF row assignment", () => {
   test("marks a track ENGAGED while a round is in flight to it", () => {
     resetSim();

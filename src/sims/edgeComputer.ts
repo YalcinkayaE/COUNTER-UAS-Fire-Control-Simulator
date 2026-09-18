@@ -63,6 +63,7 @@ export class EdgeComputer {
   private shooter: Vec3 = { x: 0, y: 14, z: 0 };
   private barrelDir: Vec3 | null = null;
   private committedId: string | null = null;
+  designatedId: string | null = null;
 
   setRelease(mode: FireMode, shooter: Vec3, barrelDir?: Vec3): void {
     this.mode = mode;
@@ -72,6 +73,12 @@ export class EdgeComputer {
 
   resetCommitment(): void {
     this.committedId = null;
+    this.designatedId = null;
+  }
+
+  /** Pin AUTO to this track, or clear if it is already designated. Does not change fire mode. */
+  designate(id: string): void {
+    this.designatedId = this.designatedId === id ? null : id;
   }
 
   ingest(
@@ -184,12 +191,18 @@ export class EdgeComputer {
 
     const feasible = cands.filter((c) => c.feasible);
     const inRangeFeasible = feasible.filter((c) => c.inRange);
+    const designated = this.designatedId
+      ? cands.find((c) => c.track.id === this.designatedId)
+      : undefined;
+    if (this.designatedId && !designated) this.designatedId = null;
     const committed = this.committedId
       ? cands.find((c) => c.track.id === this.committedId)
       : undefined;
 
     let chosen: Candidate | undefined;
-    if (committed?.feasible) {
+    if (designated) {
+      chosen = designated;
+    } else if (committed?.feasible) {
       const challenger = feasible.find((c) => c.track.id !== committed.track.id);
       const switchForDeadline =
         challenger !== undefined &&
@@ -209,7 +222,10 @@ export class EdgeComputer {
       targetId: chosen.track.id,
       intercept: chosen.intercept,
       track: chosen.track,
-      autoEngage: mode === "AUTO" && chosen.inRange && chosen.feasible,
+      autoEngage:
+        mode === "AUTO" &&
+        chosen.inRange &&
+        (chosen.feasible || this.designatedId === chosen.track.id),
     };
     this.fireCall = call;
     return call;

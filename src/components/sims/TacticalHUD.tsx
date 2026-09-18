@@ -149,7 +149,7 @@ function TrackTable({
       <EffectorPicker id={hud.effector.id} rpm={hud.effector.rpm} range={hud.effector.range} />
       <UgvMoveToggle on={hud.ugvMove} />
       <p className="mt-1 font-mono text-[10px] text-dim">
-        SLEW vs TTB · ENG rounds in air · HOLD assigned · LATE cannot save
+        Click a row to designate AUTO · ENG in air · HOLD assigned · LATE cannot save
       </p>
       <div className="mt-2 max-h-[min(28rem,52vh)] overflow-y-auto">
       <table className="w-full border-collapse font-mono text-[11px] tabular-nums">
@@ -175,17 +175,27 @@ function TrackTable({
           ) : (
             rows.map((t, i) => {
               const hot = t.id === hud.targetId;
+              const designated = t.id === hud.designatedId;
               const imminent = Number.isFinite(t.timeToBreach) && t.timeToBreach < 8;
               const late = t.assignment === "LATE";
               return (
                 <tr
                   key={t.id}
-                  className={
-                    hot ? "text-fg" : late ? "text-warn" : imminent ? "text-danger" : "text-muted"
-                  }
+                  className={`pointer-events-auto cursor-pointer ${
+                    designated
+                      ? "text-khaki"
+                      : hot
+                        ? "text-fg"
+                        : late
+                          ? "text-warn"
+                          : imminent
+                            ? "text-danger"
+                            : "text-muted"
+                  }`}
+                  onClick={() => getSim().designateTrack(t.id)}
                 >
                   <td className="py-0.5">
-                    {hot ? "▸ " : `${i + 1} `}
+                    {designated ? "★ " : hot ? "▸ " : `${i + 1} `}
                     {t.id}
                     {t.kind === "fixedWing" ? " FW" : ""}
                   </td>

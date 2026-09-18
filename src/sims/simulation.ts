@@ -63,6 +63,7 @@ export type HudSnapshot = {
   mode: FireMode;
   tracks: TrackRow[];
   targetId: string | null;
+  designatedId: string | null;
   intercept: { x: number; y: number; z: number; t: number } | null;
   aligned: boolean;
   cooldown: number;
@@ -212,6 +213,7 @@ export class Simulation {
     this.turret.cooldown = 0;
     this.turret.resetBurst();
     this.turret.mode = "AUTO";
+    this.edge.resetCommitment();
     this.swarm.spawnWave(1);
     this.trauma = 0;
     this.holdTimer = 0;
@@ -234,6 +236,14 @@ export class Simulation {
 
   toggleUgvMove(): void {
     this.setUgvMove(!this.ugvMove);
+  }
+
+  /** Pin AUTO to a track. Clicking the same id clears. Does not leave AUTO. */
+  designateTrack(id: string): void {
+    this.edge.designate(id);
+    const pinned = this.edge.designatedId;
+    this.record("OPERATOR", pinned ? `DESIGNATE ${pinned}` : "DESIGNATE OFF", "AUTO");
+    emit();
   }
 
   private defendedPoint(): { x: number; y: number; z: number } {
@@ -730,6 +740,7 @@ function emptyHud(): HudSnapshot {
     mode: "AUTO",
     tracks: [],
     targetId: null,
+    designatedId: null,
     intercept: null,
     aligned: false,
     cooldown: 0,
@@ -798,6 +809,7 @@ function buildHud(s: Simulation): HudSnapshot {
       };
     }),
     targetId,
+    designatedId: s.edge.designatedId,
     intercept: ic ? { x: ic.x, y: ic.y, z: ic.z, t: ic.t } : null,
     aligned: s.turret.aligned,
     cooldown:

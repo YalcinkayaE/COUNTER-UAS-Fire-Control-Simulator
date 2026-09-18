@@ -203,4 +203,35 @@ describe("EdgeComputer", () => {
     expect(steadyRow.feasible).toBe(true);
     expect(steadyRow.slewTime).toBeGreaterThan(0);
   });
+
+  test("designate pins AUTO to that track without leaving AUTO", () => {
+    const radar = new RadarSensor(() => 0.5);
+    const edge = new EdgeComputer();
+    const a = {
+      id: "T-A",
+      alive: true,
+      position: { x: 0, y: 40, z: 120 },
+      velocity: { x: 0, y: 0, z: -25 },
+    };
+    const b = {
+      id: "T-B",
+      alive: true,
+      position: { x: 0, y: 40, z: 400 },
+      velocity: { x: 0, y: 0, z: -20 },
+    };
+    const edf = edge.ingest(radar.scan([a, b]), "AUTO", TURRET_POS);
+    expect(edf!.targetId).toBe("T-A");
+    expect(edf!.autoEngage).toBe(true);
+
+    edge.designate("T-B");
+    const pinned = edge.ingest(radar.scan([a, b]), "AUTO", TURRET_POS);
+    expect(pinned!.targetId).toBe("T-B");
+    expect(pinned!.autoEngage).toBe(true);
+    expect(edge.designatedId).toBe("T-B");
+
+    edge.designate("T-B");
+    expect(edge.designatedId).toBeNull();
+    const back = edge.ingest(radar.scan([a, b]), "AUTO", TURRET_POS);
+    expect(back!.targetId).toBe("T-A");
+  });
 });
