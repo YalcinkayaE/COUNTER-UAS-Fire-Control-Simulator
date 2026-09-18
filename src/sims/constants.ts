@@ -67,8 +67,8 @@ export const TURRET_SLEW_DEG = 75;
 export const TURRET_SLEW_RAD = (TURRET_SLEW_DEG * Math.PI) / 180;
 export const ALIGN_TOLERANCE_DEG = 0.85;
 /**
- * Placeholder gun elevation window, used for PENCE-A until a per-effector spec
- * arrives. The gun cannot elevate to zenith; an overhead dive is outside it.
+ * Legacy PENCE-A placeholder defaults (−8°/+70°). Live fire uses the selected
+ * effector's elMinDeg / elMaxDeg (HN-12 −5°/+85°; CAKIR −15°/+70°).
  */
 export const TURRET_EL_MIN_DEG = -8;
 export const TURRET_EL_MAX_DEG = 70;
@@ -90,8 +90,9 @@ export type EffectorSpec = {
   id: EffectorId;
   rpm: number;
   range: number;
-  /** Per-effector gun elevation window (degrees). Traverse is unlimited for all three. */
+  /** Depression limit, degrees below horizon. */
   elMinDeg: number;
+  /** Elevation limit, degrees above horizon; zenith is outside this window. */
   elMaxDeg: number;
 };
 

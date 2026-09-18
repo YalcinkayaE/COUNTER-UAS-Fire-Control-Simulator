@@ -26,6 +26,7 @@ import {
   clamp,
   dist3,
   elevationFromGround,
+  elevationSwitch,
   hypot3,
   trackAssignment,
   evadeHeadingAway,
@@ -38,7 +39,7 @@ import { DroneTarget } from "./droneTarget";
 import { RadarSensor } from "./radarSensor";
 import { EdgeComputer } from "./edgeComputer";
 import { TurretController, type FireMode } from "./turretController";
-import { resumeIfNeeded, setMuted, sfxBreach, sfxFire, sfxHit, unlockAudio } from "./audio";
+import { resumeIfNeeded, setMuted, sfxBreach, sfxFire, unlockAudio } from "./audio";
 
 export type Phase = "briefing" | "live" | "paused" | "defeat" | "wavehold";
 
@@ -287,7 +288,21 @@ export class Simulation {
       const call = this.edge.fireCall;
       let desired = this.ugv.heading;
       if (kamikaze) {
-        desired = evadeHeadingAway(this.ugv, { x: kamikaze.position.x, z: kamikaze.position.z });
+        const height = kamikaze.position.y - this.turret.position.y;
+        const horiz = Math.hypot(
+          kamikaze.position.x - this.ugv.x,
+          kamikaze.position.z - this.ugv.z,
+        );
+        const maxEl = this.turret.elMax;
+        if (elevationSwitch(horiz, height, maxEl) > 0) {
+          desired = evadeHeadingAway(this.ugv, { x: kamikaze.position.x, z: kamikaze.position.z });
+        } else {
+          const threatAz = azimuthFromNorth(
+            kamikaze.position.x - this.ugv.x,
+            kamikaze.position.z - this.ugv.z,
+          );
+          desired = threatAz + Math.PI / 2;
+        }
       } else if (call) {
         const az = azimuthFromNorth(
           call.track.position.x - this.ugv.x,
@@ -312,7 +327,11 @@ export class Simulation {
   setEffector(id: EffectorId): void {
     const spec = EFFECTORS[id];
     this.applyEffector(id);
-    this.record("OPERATOR", `EFFECTOR ${spec.id}`, `${spec.rpm} rds/min ${spec.range} m`);
+    this.record(
+      "OPERATOR",
+      `EFFECTOR ${spec.id}`,
+      `${spec.rpm} rds/min ${spec.range} m el ${spec.elMinDeg}…${spec.elMaxDeg}°`,
+    );
     emit();
   }
 
@@ -609,7 +628,7 @@ export class Simulation {
       alive: true,
     });
     this.shotsFired += 1;
-    if (!this.muted && this.shotsFired % 4 === 1) sfxFire();
+    if (!this.muted) sfxFire();
   }
 
   private stepProjectiles(dt: number): void {
@@ -688,7 +707,6 @@ export class Simulation {
       kind: "hit",
     });
     this.hitstop = 0;
-    if (!this.muted) sfxHit();
     this.message = `${d.id} KILL`;
     this.commitHigh();
   }

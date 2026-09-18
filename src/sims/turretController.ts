@@ -1,11 +1,12 @@
 import * as THREE from "three";
 import {
   ALIGN_TOLERANCE_RAD,
+  DEFAULT_EFFECTOR_ID,
+  DEG,
+  EFFECTORS,
   FIRE_BURST,
   FIRE_COOLDOWN,
   PROJECTILE_SPEED,
-  TURRET_EL_MAX_RAD,
-  TURRET_EL_MIN_RAD,
   TURRET_SLEW_RAD,
 } from "./constants";
 import { angleBetween, clamp, solveIntercept, type InterceptSolution } from "./math";
@@ -20,6 +21,8 @@ export type FireEvent = {
   intercept: InterceptSolution;
 };
 
+const DEFAULT_EL = EFFECTORS[DEFAULT_EFFECTOR_ID];
+
 /**
  * Unity analogue: TurretController.cs at Vector3.zero.
  * Consumes the edge-computer fire call, slews at 75°/s, fires on alignment.
@@ -32,9 +35,9 @@ export class TurretController {
   mode: FireMode = "AUTO";
   fireCooldown = FIRE_COOLDOWN;
   effectiveRange = Number.POSITIVE_INFINITY;
-  /** Per-effector elevation window; applyEffector pushes the selected spec. */
-  elMin = TURRET_EL_MIN_RAD;
-  elMax = TURRET_EL_MAX_RAD;
+  /** Live elevation window from the selected effector (geometric degrees, positive = up). */
+  elMin = DEFAULT_EL.elMinDeg * DEG;
+  elMax = DEFAULT_EL.elMaxDeg * DEG;
   cooldown = 0;
   /** Seconds left in the current 0.5 s burst. */
   burstLeft = 0;
@@ -119,6 +122,7 @@ export class TurretController {
       if (keys.has("KeyS") || keys.has("ArrowDown")) pitchIn -= 1;
       if (steer !== 0 || pitchIn !== 0) {
         this.yaw += steer * TURRET_SLEW_RAD * dt;
+        // pitch is YXZ euler.x — the negation of geometric elevation.
         this.pitch = clamp(
           this.pitch + pitchIn * TURRET_SLEW_RAD * dt,
           -this.elMax,
