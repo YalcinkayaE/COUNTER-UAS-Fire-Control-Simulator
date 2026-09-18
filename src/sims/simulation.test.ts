@@ -71,9 +71,9 @@ describe("ledger", () => {
 });
 
 describe("UGV shoot-on-the-move", () => {
-  test("is 4 km/h when the option is on, and stays put when off", () => {
-    expect(UGV_MOVE_KMH).toBe(4);
-    expect(UGV_MOVE_MPS).toBeCloseTo(4 / 3.6, 10);
+  test("is 30 km/h when the option is on, and stays put when off", () => {
+    expect(UGV_MOVE_KMH).toBe(30);
+    expect(UGV_MOVE_MPS).toBeCloseTo(30 / 3.6, 10);
 
     const parked = new Simulation();
     parked.muted = true;
@@ -141,6 +141,50 @@ describe("asset impact", () => {
     expect(sim.ledger.snapshot().some((r) => r.action === "IMPACT" && r.outcome === "UGV HIT")).toBe(
       true,
     );
+  });
+});
+
+describe("UGV MOVE vs HOLD on the overhead kamikaze", () => {
+  test("MOVE at 30 km/h opens elevation while H01 is committed to a ground point", () => {
+    expect(UGV_MOVE_KMH).toBe(30);
+    const sim = new Simulation();
+    sim.muted = true;
+    sim.resetRun();
+    sim.phase = "live";
+    sim.setUgvMove(true);
+    for (const d of sim.swarm.drones) d.alive = false;
+    const h = sim.swarm.getById("H01")!;
+    h.alive = true;
+    h.hoverDive = true;
+    h.hoverPhase = "climb";
+    h.diveLogged = true;
+    h.commitDiveAim({ x: 0, y: 0, z: 0 }, 0, HOVER_STANDOFF_M);
+    h.position.set(0, 200, HOVER_STANDOFF_M);
+    h.velocity.set(0, 0, 0);
+    step(sim, 2);
+    expect(h.hoverPhase).toBe("climb");
+    expect(h.position.z).toBeCloseTo(HOVER_STANDOFF_M, 0);
+    expect(Math.hypot(sim.ugv.x, sim.ugv.z)).toBeGreaterThan(UGV_MOVE_MPS);
+    const rho = Math.hypot(h.position.x - sim.ugv.x, h.position.z - sim.ugv.z);
+    expect(rho).toBeGreaterThan(HOVER_STANDOFF_M);
+  });
+
+  test("HOLD leaves the overhead blind spot and the UGV is hit", () => {
+    const sim = new Simulation();
+    sim.muted = true;
+    sim.resetRun();
+    sim.phase = "live";
+    sim.setUgvMove(false);
+    for (const d of sim.swarm.drones) d.alive = false;
+    const h = sim.swarm.getById("H01")!;
+    h.alive = true;
+    h.hoverDive = true;
+    h.hoverPhase = "dive";
+    h.commitDiveAim({ x: 0, y: 0, z: 0 }, 0, 80);
+    h.position.set(0, 420, 80);
+    step(sim, 3);
+    expect(sim.phase).toBe("defeat");
+    expect(sim.message).toBe("UGV HIT");
   });
 });
 

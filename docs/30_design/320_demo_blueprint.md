@@ -120,7 +120,7 @@ Receding or hovering tracks go to infinity. NOW means the track is over the asse
 **Say:**
 > AUTO is the duty officer. MANUAL is you stealing a shot AUTO would waste — or holding fire. Real C2 is one operator supervising the scheduler, not painting every track by hand.
 
-**Do:** slew onto a second-priority track, fire, switch back to AUTO. Or click an EDF row to designate — AUTO stays on, but the fire call pins to that track (★). Click again to clear. Optional: switch effector mid-wave and watch the red kill-zone ring move — that is the fire envelope. The EDF column does not re-sort; TTB is still time to the asset. Optional: **UGV MOVE** (4 km/h) — the hull crabs off the inbound axis while the gun keeps firing; TTB, radar, and the rings follow the vehicle.
+**Do:** slew onto a second-priority track, fire, switch back to AUTO. Or click an EDF row to designate — AUTO stays on, but the fire call pins to that track (★). Click again to clear. Optional: switch effector mid-wave and watch the red kill-zone ring move — that is the fire envelope. The EDF column does not re-sort; TTB is still time to the asset. **UGV HOLD** vs **UGV MOVE** (30 km/h): HOLD keeps the 70° elevation blind spot (H01 overhead → UGV HIT). MOVE can open ground range so radar and turret see the kamikaze.
 
 ### Beat 5 — Leak and reset (4:15–5:00)
 
@@ -221,7 +221,7 @@ Start screen → View source. Copy one file, or Folders: download zip. Copy all 
 - **MANUAL miss:** fire off-align; round flies to the old lead.
 - **Wrong gun:** switch to PENCE-A late in a wave — 120 rds/min cannot service the queue even with a 400 m envelope.
 - **HN-12 ceiling:** a high fixed-wing can stay outside the 200 m sphere and still run the 36 m asset. TTB keeps counting down; AUTO stays OUT OF RANGE. Switch to CAKIR.
-- **Hover-then-dive:** one kamikaze H01 (HV, cyan) comes from the north (in the 120° sector), parks at 280 m (TTB REC), climbs to ~420 m, then closes from overhead. Turret elevation tops out at 70°; a ~90° attack is outside the gun. IMPACT is the 36 m cylinder even at high altitude.
+- **Hover-then-dive:** one kamikaze H01 (HV, cyan) comes from the north (in the 120° sector), parks at 280 m (TTB REC), climbs to ~420 m, then dives on the hull’s last ground position. Turret elevation tops out at 70°. **UGV HOLD** → blind spot → UGV HIT. **UGV MOVE** (30 km/h) can open the angle so the gun and radar can still see it.
 - **Pause freeze-frame (Esc):** walk TTB vs distance on the table without the swarm moving.
 
 ---

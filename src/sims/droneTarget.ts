@@ -73,6 +73,12 @@ export class DroneTarget {
   hoverHold = 0;
   hoverLogged = false;
   diveLogged = false;
+  /** World-fixed ground aim once the overhead strike is committed. */
+  diveAimX = 0;
+  diveAimZ = 0;
+  holdX = 0;
+  holdZ = 0;
+  diveAimSet = false;
 
   constructor(id: string) {
     this.id = id;
@@ -87,6 +93,7 @@ export class DroneTarget {
     this.hoverHold = 0;
     this.hoverLogged = false;
     this.diveLogged = false;
+    this.diveAimSet = false;
     this.cruiseSpeed = p.cruiseSpeed;
     this.speed = p.cruiseSpeed;
     this.baseAlt = p.altitude;
@@ -106,6 +113,15 @@ export class DroneTarget {
     this.homeDir.set(-Math.cos(p.angle), 0, -Math.sin(p.angle)).normalize();
     this.velocity.copy(this.homeDir).multiplyScalar(this.speed);
     this.refreshTrack(killZone, origin);
+  }
+
+  /** Commit the overhead strike to the hull's ground position at that instant. */
+  commitDiveAim(origin: Vec3, holdX: number, holdZ: number): void {
+    this.diveAimX = origin.x;
+    this.diveAimZ = origin.z;
+    this.holdX = holdX;
+    this.holdZ = holdZ;
+    this.diveAimSet = true;
   }
 
   tick(dt: number, killZone: number, origin: Vec3 = WORLD_ORIGIN): void {
@@ -143,14 +159,15 @@ export class DroneTarget {
         this.hoverHold += dt;
         newR = HOVER_STANDOFF_M;
         newAz = curAz;
-        if (this.hoverHold >= HOVER_HOLD_SEC) this.hoverPhase = "climb";
+        if (this.hoverHold >= HOVER_HOLD_SEC) {
+          this.commitDiveAim(origin, this.position.x, this.position.z);
+          this.hoverPhase = "climb";
+        }
       } else if (this.hoverPhase === "climb") {
-        newR = HOVER_STANDOFF_M;
-        newAz = curAz;
+        if (!this.diveAimSet) this.commitDiveAim(origin, this.position.x, this.position.z);
         if (this.position.y >= HOVER_OVERHEAD_ALT_M - 1) this.hoverPhase = "dive";
       } else {
-        newR = Math.max(1, r - HOVER_DIVE_MPS * dt);
-        newAz = curAz;
+        if (!this.diveAimSet) this.commitDiveAim(origin, this.position.x, this.position.z);
       }
     }
 
@@ -173,8 +190,26 @@ export class DroneTarget {
       );
     }
 
-    const nx = origin.x + newR * Math.sin(newAz);
-    const nz = origin.z + newR * Math.cos(newAz);
+    let nx = origin.x + newR * Math.sin(newAz);
+    let nz = origin.z + newR * Math.cos(newAz);
+    if (this.hoverDive && this.diveAimSet && (this.hoverPhase === "climb" || this.hoverPhase === "dive")) {
+      if (this.hoverPhase === "climb") {
+        nx = this.holdX;
+        nz = this.holdZ;
+      } else {
+        const ax = this.position.x - this.diveAimX;
+        const az = this.position.z - this.diveAimZ;
+        const ar = Math.hypot(ax, az);
+        const step = HOVER_DIVE_MPS * dt;
+        if (ar <= step) {
+          nx = this.diveAimX;
+          nz = this.diveAimZ;
+        } else {
+          nx = this.position.x - (ax / ar) * step;
+          nz = this.position.z - (az / ar) * step;
+        }
+      }
+    }
     const invDt = dt > 1e-8 ? 1 / dt : 0;
     this.velocity.set((nx - this.position.x) * invDt, (nextY - this.position.y) * invDt, (nz - this.position.z) * invDt);
     this.position.set(nx, nextY, nz);

@@ -34,7 +34,8 @@ export function BriefingPanel({ onEngage }: { onEngage?: () => void }) {
             ranks by time to the 36 m site around the UGV; the gun stays on a track across bursts
             unless a hotter deadline pulls it off. One kamikaze (H01, HV) is not in the raid: it
             comes down the northern sector, parks at 280 m (TTB REC), climbs, then closes from
-            overhead. The gun stops at 70° elevation — it cannot follow a 90° dive. CAKIR 400 m (1350
+            overhead. The gun stops at 70° elevation. UGV HOLD: that blind spot remains — UGV HIT.
+            UGV MOVE (30 km/h): the hull can open a visible angle. CAKIR 400 m (1350
             rds/min), HN-12 200 m (1000), PENCE-A 400 m (120). MANUAL is the weapons-release bypass
             on the same solution; AUTO will not fire outside the envelope.
           </p>

@@ -150,6 +150,33 @@ export function elevationFromGround(dx: number, dy: number, dz: number): number 
   return Math.atan2(dy, horiz);
 }
 
+export function elevationFromHorizontal(height: number, horiz: number): number {
+  return Math.atan2(height, horiz);
+}
+
+/**
+ * Smallest ground range at which elevation is ≤ maxEl.
+ * ρ ≥ h / tan(ε_max). Used by the bang-bang hull evade (PMP on |u|≤v).
+ */
+export function minHorizForElevation(height: number, maxEl: number): number {
+  const t = Math.tan(maxEl);
+  if (t <= 1e-8) return Number.POSITIVE_INFINITY;
+  return Math.abs(height) / t;
+}
+
+/** σ = ρ_need − ρ. σ > 0: too high in elevation; run away at v_max. */
+export function elevationSwitch(horiz: number, height: number, maxEl: number): number {
+  return minHorizForElevation(height, maxEl) - horiz;
+}
+
+/** Heading (from north, toward east) that increases ground range to the target. */
+export function evadeHeadingAway(
+  ugv: { x: number; z: number },
+  target: { x: number; z: number },
+): number {
+  return azimuthFromNorth(ugv.x - target.x, ugv.z - target.z);
+}
+
 export function sphericalToCartesian(
   azimuth: number,
   elevation: number,

@@ -3,7 +3,11 @@ import { FACILITY_RADIUS, PROJECTILE_SPEED } from "./constants";
 import {
   azimuthFromNorth,
   elevationFromGround,
+  elevationFromHorizontal,
+  elevationSwitch,
+  evadeHeadingAway,
   formatSlew,
+  minHorizForElevation,
   formatTtb,
   horizontalClosingFrom,
   horizontalClosingSpeed,
@@ -55,6 +59,30 @@ describe("horizontal range and closing", () => {
     const ttb = timeToBreach(horizontalRange(p), horizontalClosingSpeed(p, v), FACILITY_RADIUS);
     expect(ttb).toBeCloseTo((100 - 36) / 20, 8);
     expect(Math.hypot(p.x, p.y, p.z)).toBeGreaterThan(200);
+  });
+});
+
+describe("elevation window and bang-bang evade", () => {
+  test("minimum ground range for 70° at 406 m above the muzzle", () => {
+    const h = 406;
+    const maxEl = (70 * Math.PI) / 180;
+    const rho = minHorizForElevation(h, maxEl);
+    expect(rho).toBeCloseTo(h / Math.tan(maxEl), 8);
+    expect(elevationFromHorizontal(h, rho)).toBeCloseTo(maxEl, 8);
+  });
+
+  test("switching function is positive when the target is too high in elevation", () => {
+    const h = 406;
+    const maxEl = (70 * Math.PI) / 180;
+    const need = minHorizForElevation(h, maxEl);
+    expect(elevationSwitch(50, h, maxEl)).toBeGreaterThan(0);
+    expect(elevationSwitch(need + 10, h, maxEl)).toBeLessThan(0);
+  });
+
+  test("bang-bang heading is away from the target on the ground", () => {
+    const heading = evadeHeadingAway({ x: 0, z: 0 }, { x: 0, z: 280 });
+    expect(Math.sin(heading)).toBeCloseTo(0, 8);
+    expect(Math.cos(heading)).toBeCloseTo(-1, 8);
   });
 });
 

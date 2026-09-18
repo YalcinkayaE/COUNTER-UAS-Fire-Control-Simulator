@@ -26,6 +26,7 @@ import {
   elevationFromGround,
   hypot3,
   trackAssignment,
+  evadeHeadingAway,
   wrapTwoPi,
   type TrackAssignment,
 } from "./math";
@@ -273,16 +274,25 @@ export class Simulation {
 
   private stepUgv(dt: number): void {
     if (this.ugvMove) {
+      const kamikaze = this.swarm.drones.find(
+        (d) =>
+          d.alive &&
+          d.hoverDive &&
+          (d.hoverPhase === "climb" || d.hoverPhase === "dive"),
+      );
       const call = this.edge.fireCall;
-      if (call) {
+      let desired = this.ugv.heading;
+      if (kamikaze) {
+        desired = evadeHeadingAway(this.ugv, { x: kamikaze.position.x, z: kamikaze.position.z });
+      } else if (call) {
         const az = azimuthFromNorth(
           call.track.position.x - this.ugv.x,
           call.track.position.z - this.ugv.z,
         );
-        const desired = az + Math.PI / 2;
-        const d = wrapTwoPi(desired - this.ugv.heading + Math.PI) - Math.PI;
-        this.ugv.heading += clamp(d, -UGV_TURN_RAD * dt, UGV_TURN_RAD * dt);
+        desired = az + Math.PI / 2;
       }
+      const d = wrapTwoPi(desired - this.ugv.heading + Math.PI) - Math.PI;
+      this.ugv.heading += clamp(d, -UGV_TURN_RAD * dt, UGV_TURN_RAD * dt);
       this.ugv.x += Math.sin(this.ugv.heading) * UGV_MOVE_MPS * dt;
       this.ugv.z += Math.cos(this.ugv.heading) * UGV_MOVE_MPS * dt;
     }

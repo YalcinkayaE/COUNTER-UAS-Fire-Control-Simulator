@@ -74,8 +74,8 @@ export const TURRET_EL_MAX_RAD = (TURRET_EL_MAX_DEG * Math.PI) / 180;
 export const ALIGN_TOLERANCE_RAD = (ALIGN_TOLERANCE_DEG * Math.PI) / 180;
 /** Stay on the current fire-call track unless another deadline is earlier by this much. */
 export const COMMIT_HYSTERESIS_SEC = 1.5;
-/** Optional shoot-on-the-move: UGV crabs at this speed to displace the asset. */
-export const UGV_MOVE_KMH = 4;
+/** UGV MOVE: 30 km/h. HOLD keeps the overhead blind spot; MOVE can open elevation. */
+export const UGV_MOVE_KMH = 30;
 export const UGV_MOVE_MPS = UGV_MOVE_KMH / 3.6;
 export const UGV_TURN_DEG = 20;
 export const UGV_TURN_RAD = (UGV_TURN_DEG * Math.PI) / 180;
