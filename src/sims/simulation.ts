@@ -84,7 +84,7 @@ export type HudSnapshot = {
   inRange: boolean;
   shots: number;
   ugvMove: boolean;
-  ugv: { x: number; z: number };
+  ugv: { x: number; z: number; heading: number };
 };
 
 export type Projectile = {
@@ -751,7 +751,7 @@ function emptyHud(): HudSnapshot {
     inRange: false,
     shots: 0,
     ugvMove: false,
-    ugv: { x: 0, z: 0 },
+    ugv: { x: 0, z: 0, heading: Math.PI / 2 },
   };
 }
 
@@ -829,7 +829,7 @@ function buildHud(s: Simulation): HudSnapshot {
     inRange: interceptInRange(s),
     shots: s.shotsFired,
     ugvMove: s.ugvMove,
-    ugv: { x: s.ugv.x, z: s.ugv.z },
+    ugv: { x: s.ugv.x, z: s.ugv.z, heading: s.ugv.heading },
   };
 }
 

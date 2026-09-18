@@ -87,6 +87,7 @@ export function TacticalHUD({
                 effectiveRange={hud.effector.range}
                 originX={hud.ugv.x}
                 originZ={hud.ugv.z}
+                heading={hud.ugv.heading}
               />
             </div>
           </div>
@@ -401,7 +402,9 @@ function StatusWindow({ hud }: { hud: ReturnType<typeof getHud> }) {
         </span>
         {hud.ugvMove ? <span className="text-line">|</span> : null}
         {hud.ugvMove ? (
-          <span className="text-khaki">MOVE {UGV_MOVE_KMH} km/h</span>
+          <span className="text-khaki">
+            MOVE {UGV_MOVE_KMH} km/h · {Math.hypot(hud.ugv.x, hud.ugv.z).toFixed(0)} m
+          </span>
         ) : null}
         <span className="h-1.5 w-16 overflow-hidden rounded-full bg-line">
           <span

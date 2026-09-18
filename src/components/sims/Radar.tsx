@@ -8,9 +8,18 @@ type Props = {
   effectiveRange: number;
   originX?: number;
   originZ?: number;
+  heading?: number;
 };
 
-export function Radar({ tracks, targetId, yaw, effectiveRange, originX = 0, originZ = 0 }: Props) {
+export function Radar({
+  tracks,
+  targetId,
+  yaw,
+  effectiveRange,
+  originX = 0,
+  originZ = 0,
+  heading = 0,
+}: Props) {
   const scale = 96 / DETECT_RADIUS;
   const envelopeR = Math.max(4, effectiveRange * scale);
   return (
@@ -61,6 +70,14 @@ export function Radar({ tracks, targetId, yaw, effectiveRange, originX = 0, orig
           />
         </line>
       </g>
+      <line
+        x1="110"
+        y1="110"
+        x2={110 + Math.sin(heading) * 18}
+        y2={110 - Math.cos(heading) * 18}
+        stroke="#c9b24a"
+        strokeWidth="1.6"
+      />
       <g
         transform={`translate(110 110) rotate(${(-yaw * 180) / Math.PI})`}
         stroke="#d7dce2"

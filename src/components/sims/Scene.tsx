@@ -1,6 +1,6 @@
 import { Grid, Html, Line, OrbitControls, Stars } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import {
@@ -59,6 +59,7 @@ export function Scene({ view }: { view: ViewMode }) {
       <pointLight position={[0, 36, 0]} intensity={14} distance={220} color="#d7dde4" />
       <Stars radius={8000} depth={90} count={900} factor={3} saturation={0} fade speed={0.2} />
       <Ground />
+      <UgvTrail />
       <Perimeter />
       <UgvInterceptor />
       <DroneField />
@@ -119,15 +120,8 @@ function NorthLockedControls({ view }: { view: ViewMode }) {
   }, [view, size.width, size.height]);
 
   useFrame(() => {
-    const controls = ref.current;
-    if (!controls) return;
-    const s = getSim();
-    const polar = controls.getPolarAngle();
-    const radius = controls.getDistance();
-    const [cx, cy, cz] = northLockedCameraPosition(polar, radius);
-    controls.target.set(s.ugv.x, CAMERA_TARGET_Y, s.ugv.z);
-    controls.object.position.set(cx + s.ugv.x, cy, cz + s.ugv.z);
-    applyPpiProjection(controls.object);
+    const cam = ref.current?.object;
+    if (cam) applyPpiProjection(cam);
   });
 
   return (
@@ -344,6 +338,32 @@ const KHAKI = "#f0c93a";
 const KHAKI_DEEP = "#d4a41a";
 const KHAKI_LIGHT = "#ffe566";
 const KHAKI_METAL = "#e8c030";
+
+function UgvTrail() {
+  const [pts, setPts] = useState<[number, number, number][]>([[0, 0.5, 0]]);
+  const acc = useRef(0);
+  useFrame((_, dt) => {
+    const s = getSim();
+    if (!s.ugvMove) {
+      acc.current = 0;
+      setPts((prev) => (prev.length <= 1 ? prev : [[s.ugv.x, 0.5, s.ugv.z]]));
+      return;
+    }
+    acc.current += dt;
+    if (acc.current < 0.2) return;
+    acc.current = 0;
+    setPts((prev) => {
+      const next: [number, number, number] = [s.ugv.x, 0.5, s.ugv.z];
+      const last = prev[prev.length - 1];
+      if (last && Math.hypot(next[0] - last[0], next[2] - last[2]) < 0.4) return prev;
+      const out = prev.length > 240 ? prev.slice(prev.length - 239) : prev.slice();
+      out.push(next);
+      return out;
+    });
+  });
+  if (pts.length < 2) return null;
+  return <Line points={pts} color="#c9b24a" lineWidth={2.4} />;
+}
 
 function UgvInterceptor() {
   const hull = useRef<THREE.Group>(null);
