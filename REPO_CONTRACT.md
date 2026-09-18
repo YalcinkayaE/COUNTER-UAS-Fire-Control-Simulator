@@ -2,7 +2,7 @@
 repo_name: sem_defender
 repo_root: /Users/erkanyalcinkaya/projects/sem_defender
 repo_type: prototype
-status_date: 2026-09-17
+status_date: 2026-09-18
 branch: main
 default_branch: main
 preferred_runtime: npm run dev
@@ -22,7 +22,7 @@ authoritative_codepaths:
 verification_commands:
   - name: unit
     command: npm test
-    expected_result: 56 passed
+    expected_result: 93 passed
   - name: build
     command: npm run build
     expected_result: exit 0
@@ -97,7 +97,7 @@ Treat the following as the current truth:
 - The checkout is a Vite SPA in a desktop browser window. TanStack Start / Grok host adapters (`AuthProvider`, `PreviewHostBridge`, `/__grok/*`) are not part of the runtime.
 - `npm run dev` serves the simulator at `http://127.0.0.1:5173`.
 - Observed on 2026-09-17: document title SEM DEFENDER; briefing and HUD wordmark SEM DEFENDER; Engage starts wave 1 (8–16 quads + 2–3 fixed-wing drawn per wave, raid axis shifts each wave; EDF holds ≤ 20); EDF queue sorts by TTB and PPI is north-up; effector selector live (CAKIR / HN-12 / PENCE-A; HN-12 default; AUTO holds fire OUT OF RANGE); the kill zone follows the selected effector — HN-12 breaches ledger at 200 m, CAKIR at 400 m, and the PPI envelope label tracks the selection (200m / 400m); AUTO fires (FIRE AUTO / RELEASED); M toggles MANUAL; Esc pauses; Ledger records ENGAGE / FIRE AUTO / INTERCEPT / BREACH / IMPACT / DEFEAT rows with AZ, EL, RNG, V plus CSV/JSON export; 2D view fits the 2 km detect ring.
-- Unit tests passed on 2026-09-17 (`56 passed`, 9 files).
+- Unit tests passed on 2026-09-18 (`93 passed`, 10 files).
 - Radar model observed 2026-09-17: single Echodyne Guard-class AESA staring a 120° az × 80° el sector on a north boresight (az gate ±60°, el gate 0–80°), with ±1° az / ±1.5° el angular noise on reports. The full raid spawns inside the sector: quads 10–40° west of north, fixed-wing at ~20°/~40° az northeast. EDF queue, fire control, and kills stay live under noise; status window fixed at 40 rem with effector name, range/lock state, event message, and RDS counter.
 - `npm run build` exited 0 on 2026-09-17.
 - Environment note 2026-09-17: `npm run dev` bound `127.0.0.1:5175` because two stale node processes already held 5173/5174; 5173 remains the expected bind when free.
@@ -119,6 +119,13 @@ Treat the following as the current truth:
 - EDF TTB is time to the 36 m asset cylinder, not the gun envelope (2026-09-17)
 - AUTO commits to a track across bursts (1.5 s hysteresis) and skips a track when slew + time of flight exceeds TTB (2026-09-17)
 - Wave-clear aborts leftover burst and in-flight rounds as SUPPRESSED (2026-09-17)
+- One northern kamikaze per wave (H01): in-sector ingress, 280 m hover (TTB REC), climb to 420 m, then an overhead dive committed to the hull's ground position at climb start (2026-09-18)
+- Per-effector turret elevation window in AUTO and MANUAL, following the selected effector like the kill zone: CAKIR −15°/+70°, HN-12 −5°/+85°, PENCE-A placeholder −8°/+70° (specs pending); a ~90° overhead attack is outside the gun (2026-09-18)
+- Battlespace highlights the overhead blind cone: amber engagement cone (half-angle 90° − selected effector's max elevation) plus a subtler red dashed 10° radar-gate cone, apex at the turret (2026-09-18)
+- Pitch sign fix: `TurretController.pitch` is the negation of geometric elevation; the previous MANUAL clamp enforced an inverted window and is now mapped correctly in both modes (2026-09-18)
+- One IMPACT on the 36 m asset ends the run: UGV HIT overlay, simulation halted; five-life scoring removed (2026-09-18)
+- Impact visibility: 2.5 s battlespace freeze before the defeat alert; CLIMB / DIVE / UGV HIT highlighted in the status window; kamikaze stalk line and larger contact (2026-09-18)
+- UGV MOVE at 30 km/h: bang-bang heading away from a climbing/diving kamikaze to open the elevation angle; fire-call perpendicular otherwise (2026-09-18)
 
 ### What is not complete
 - Split-raid waves, threat classes, soft-kill, track quality (blueprint “next demo”, only if asked)
@@ -156,11 +163,11 @@ Use these in order of precedence when determining live status:
 
 ## 6. Verification and Test Surface
 
-Verified locally on 2026-09-17:
+Verified locally on 2026-09-17; unit + build re-verified 2026-09-18:
 
 - unit
   - command: `npm test`
-  - result: 56 passed (9 files)
+  - result: 93 passed (10 files)
 - build
   - command: `npm run build`
   - result: exit 0
@@ -185,6 +192,9 @@ Verified locally on 2026-09-17:
 The main open items are:
 
 - Blueprint section 10 follow-ons are not implemented
+- Blueprint Beat 5 drift noted 2026-09-18: the talk-track still says "A lost life is HIT ASSET" — stale after the terminal-UGV-HIT change (five-life scoring removed; status and ledger now record UGV HIT). Flagged, not edited.
+- PENCE-A traverse/elevation specs pending operator (placeholder −8°/+70° in code).
+- W/S pitch direction inverted vs FPS convention — operator decision pending.
 - Headless `window.__cuas` probe was not observed in the browser-automation harness even while play worked; treat HUD/canvas as the live check, not that probe. Update 2026-09-17: the probe was live in the Playwright MCP harness (14 keys; counters reconciled exactly with ledger rows), so the earlier non-observation looks harness-specific, not a sim defect.
 - Contract body drift noted 2026-09-17: `src/sims/edgeComputer.ts`, `src/sims/radarSensor.ts`, `src/sims/audio.ts`, and `src/components/sims/Overlays.tsx` / `SourcePanel.tsx` are live in code and verified in the browser, but Section 2 does not list them yet. (Effector selection is now covered by status and vocabulary after the variable-kill-zone change.)
 
@@ -325,6 +335,9 @@ Assistants must not silently change:
 
 ## Change log
 
+- 2026-09-18: Per-effector turret specs on operator instruction, and the blind-cone battlespace highlight on operator request (working tree, pending operator commit — no commit hashes yet). Elevation window is now per effector and follows the selector like the kill zone: CAKIR −15°/+70° (traverse n×360°), HN-12 −5°/+85° (traverse 360°), PENCE-A placeholder −8°/+70° (traverse/elevation specs pending). `applyEffector` pushes the window to the turret and re-clamps pitch. Pitch-sign fix: `TurretController.pitch` is the negation of geometric elevation (YXZ euler.x; pitch −70° = barrel at +70°); the previous MANUAL clamp enforced an inverted window and is now mapped correctly in both modes. Battlespace highlights the overhead blind cone: an amber engagement cone (half-angle 90° − selected effector's max elevation, resizing on effector switch) plus a subtler red dashed 10° radar-gate cone, apex at the turret (`src/sims/blindCone.ts`). Verified: 93 passed (10 files), build exit 0, live run showed the cone resizing on effector switch with 0 console errors.
+- 2026-09-18: Overhead kamikaze, terminal impact, and the UGV MOVE blind-spot run (commits c66683f, 10b4ac9, 9ca27e0, c942fb7). One kamikaze per wave (H01; was three): northern ingress inside the 120° sector, 280 m hover (TTB REC), climb to 420 m, then a dive committed to the hull's ground position at climb start. Turret elevation capped at −8°/+70° in AUTO (look-point clamp) and MANUAL (pitch clamp), so a ~90° attack is outside the gun. One IMPACT on the 36 m asset ends the run — UGV HIT overlay, simulation halted, five-life scoring removed (`STARTING_LIVES` 5 → 1). UGV MOVE now runs 30 km/h (was 4 km/h): while a kamikaze climbs or dives, the hull steers a bang-bang heading directly away from it (`evadeHeadingAway`, `minHorizForElevation` / `elevationSwitch` in `math.ts`) to open ground range past the 70° limit; otherwise it keeps the fire-call perpendicular. Visibility: 2.5 s battlespace freeze on impact before the defeat alert; CLIMB / DIVE / UGV HIT danger-highlighted in the status window; kamikaze ground-to-air stalk line and a larger contact/mesh. Ledger gains CLIMB; DIVE records OVERHEAD; IMPACT / DEFEAT record UGV HIT. Briefing and blueprint updated in the same commits. Verified: 78 passed (9 files), build exit 0.
+- 2026-09-18: DOC-310 rewritten to match `math.ts` (commit 2c1d1f2): every export mapped, TTB to the 36 m hull cylinder, frozen-muzzle intercept, and the reduced PMP switch for UGV MOVE at 30 km/h; no full-Hamiltonian claim. Closes the 2026-09-17 open item — the note no longer pins the fixed 500 m kill zone (kill zone documented as the selected effector's range: HN-12 200 m; CAKIR / PENCE-A 400 m). Verified: 78 passed (9 files), build exit 0.
 - 2026-09-17: Fire-control deadline split on operator instruction (suggested order from the scoring review). TTB is time to the 36 m asset cylinder; the selected effector's range remains the kill-zone envelope (fire gate, red ring, BREACH). AUTO commits across bursts (1.5 s hysteresis) and skips a track when slew + time of flight exceeds TTB. Wave-clear aborts leftover burst and in-flight rounds as SUPPRESSED. Fuse stays 48 m. DOC-310 rewritten to the live constants; DOC-320 talk-track and briefing corrected. Vocabulary for TTB / kill zone / asset updated per that instruction. Verified: 56 passed (9 files), build exit 0.
 - 2026-09-17: Demo blueprint updated to current truth (variable kill zone, single 120° × 80° radar sector with angular noise, 8–16 quads + 2–3 fixed-wing with per-wave raid axis, status window with RDS, ledger SUPPRESSED accounting) and moved to `docs/30_design/320_demo_blueprint.md` (DOC-320) per the docs taxonomy, on operator instruction. Inbound references updated (contract, README, DOC-404). The 310 fire-control optimisation note remains pinned to the fixed 500 m kill zone — still open. Authority ordering unchanged: the blueprint stays the demo talk-track source, not live status.
 - 2026-09-17: Wave randomization and full round accounting on operator instruction. Waves draw 8–16 quads and 2–3 fixed-wing with a per-wave raid axis (quad corridor 30° wide, center within ±27° of north; fixed-wing azimuth 8–34° east of north + 4° per airframe), all inside the 120° sector including maneuver wobble; drone pool is 16 + 3 and pool members start dead. Ledger: rounds resolving on an already-dead track now record INTERCEPT / SUPPRESSED, so FIRE = HIT + MISS + SUPPRESSED + in-flight reconciles exactly (verified live: 176 = 23 + 14 + 139 + 0). Battlespace shows the 120° sector wedge (subtle fill plus edge rays). Briefing updated. Verified: 47 passed (8 files), build exit 0, live run showed wave-1 axis az 11–42° and wave-2 axis az 326–354°, 0 console errors.

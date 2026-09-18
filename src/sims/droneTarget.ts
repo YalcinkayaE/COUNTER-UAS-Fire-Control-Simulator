@@ -174,13 +174,17 @@ export class DroneTarget {
     }
 
     let nextY: number;
-    if (this.hoverDive && (this.hoverPhase === "climb" || this.hoverPhase === "dive")) {
+    if (this.hoverDive && this.hoverPhase === "climb") {
       const dy = clamp(
         HOVER_OVERHEAD_ALT_M - this.position.y,
         -HOVER_CLIMB_MPS * dt,
         HOVER_CLIMB_MPS * dt,
       );
       nextY = this.position.y + dy;
+    } else if (this.hoverDive && this.hoverPhase === "dive") {
+      // The dive descends on the committed ground point; IMPACT resolves on
+      // horizontal overflight of the asset cylinder before it reaches the deck.
+      nextY = Math.max(0, this.position.y - HOVER_DIVE_MPS * dt);
     } else if (this.hoverDive && this.hoverPhase === "hover") {
       nextY = this.position.y;
     } else {

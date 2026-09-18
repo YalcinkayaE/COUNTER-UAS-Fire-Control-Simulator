@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import {
   DEFAULT_EFFECTOR_ID,
+  DEG,
   EFFECTORS,
   FIRE_BURST,
   FIXED_DT,
@@ -539,6 +540,10 @@ export class Simulation {
     this.effectorId = spec.id;
     this.turret.fireCooldown = fireCooldownSec(spec.rpm);
     this.turret.effectiveRange = spec.range;
+    this.turret.elMin = spec.elMinDeg * DEG;
+    this.turret.elMax = spec.elMaxDeg * DEG;
+    this.turret.pitch = clamp(this.turret.pitch, -this.turret.elMax, -this.turret.elMin);
+    this.turret.syncFromYawPitch();
     this.edge.maxRange = spec.range;
     this.swarm.killZone = spec.range;
   }

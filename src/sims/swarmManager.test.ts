@@ -7,6 +7,7 @@ import {
   FIXED_DT,
   FIXED_WING_COUNT_MAX,
   HOVER_HOLD_SEC,
+  HOVER_OVERHEAD_ALT_M,
   HOVER_STANDOFF_M,
   QUAD_COUNT_MAX,
 } from "./constants";
@@ -138,8 +139,12 @@ describe("SwarmManager", () => {
     for (let i = 0; i < Math.ceil(4 / FIXED_DT); i++) swarm.update(FIXED_DT);
     const r = Math.hypot(h.position.x, h.position.z);
     expect(r).toBeLessThan(HOVER_STANDOFF_M - 50);
+    // The dive actually descends: ≈48 m/s down from the 420 m apex while closing in.
+    expect(h.position.y).toBeLessThan(HOVER_OVERHEAD_ALT_M - 150);
+    expect(h.position.y).toBeGreaterThan(100);
     const elDeg = (Math.atan2(h.position.y - 14, r) * 180) / Math.PI;
-    expect(elDeg).toBeGreaterThan(70);
+    expect(elDeg).toBeGreaterThan(55);
+    expect(elDeg).toBeLessThan(70);
   });
 
   test("collectBreaches flags the kill zone but keeps the track shootable", () => {

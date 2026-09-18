@@ -66,7 +66,10 @@ export const RADAR_POS = { x: 0, y: 16, z: 0 } as const;
 export const TURRET_SLEW_DEG = 75;
 export const TURRET_SLEW_RAD = (TURRET_SLEW_DEG * Math.PI) / 180;
 export const ALIGN_TOLERANCE_DEG = 0.85;
-/** Gun cannot elevate to zenith; an overhead dive is outside this window. */
+/**
+ * Placeholder gun elevation window, used for PENCE-A until a per-effector spec
+ * arrives. The gun cannot elevate to zenith; an overhead dive is outside it.
+ */
 export const TURRET_EL_MIN_DEG = -8;
 export const TURRET_EL_MAX_DEG = 70;
 export const TURRET_EL_MIN_RAD = (TURRET_EL_MIN_DEG * Math.PI) / 180;
@@ -87,12 +90,24 @@ export type EffectorSpec = {
   id: EffectorId;
   rpm: number;
   range: number;
+  /** Per-effector gun elevation window (degrees). Traverse is unlimited for all three. */
+  elMinDeg: number;
+  elMaxDeg: number;
 };
 
 export const EFFECTORS: Record<EffectorId, EffectorSpec> = {
-  CAKIR: { id: "CAKIR", rpm: 1350, range: 400 },
-  "HN-12": { id: "HN-12", rpm: 1000, range: 200 },
-  "PENCE-A": { id: "PENCE-A", rpm: 120, range: 400 },
+  // CAKIR: traverse n×360°, elevation −15°/+70°.
+  CAKIR: { id: "CAKIR", rpm: 1350, range: 400, elMinDeg: -15, elMaxDeg: 70 },
+  // HN-12: traverse 360°, elevation −5°/+85°.
+  "HN-12": { id: "HN-12", rpm: 1000, range: 200, elMinDeg: -5, elMaxDeg: 85 },
+  // PENCE-A traverse/elevation not specified — placeholder window −8°/+70°.
+  "PENCE-A": {
+    id: "PENCE-A",
+    rpm: 120,
+    range: 400,
+    elMinDeg: TURRET_EL_MIN_DEG,
+    elMaxDeg: TURRET_EL_MAX_DEG,
+  },
 };
 
 export const DEFAULT_EFFECTOR_ID: EffectorId = "HN-12";

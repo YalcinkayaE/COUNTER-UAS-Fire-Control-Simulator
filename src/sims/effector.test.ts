@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import {
   DEFAULT_EFFECTOR_ID,
+  DEG,
   EFFECTORS,
   FIRE_BURST,
   FIRE_COOLDOWN,
@@ -11,6 +12,7 @@ import {
 } from "./constants";
 import { EdgeComputer } from "./edgeComputer";
 import { RadarSensor } from "./radarSensor";
+import { Simulation } from "./simulation";
 import { TurretController } from "./turretController";
 
 describe("effector catalog", () => {
@@ -21,6 +23,37 @@ describe("effector catalog", () => {
     expect(DEFAULT_EFFECTOR_ID).toBe("HN-12");
     expect(FIRE_RPM).toBe(1000);
     expect(FIRE_COOLDOWN).toBeCloseTo(fireCooldownSec(1000), 10);
+  });
+
+  test("per-effector elevation windows match the operator spec", () => {
+    expect(EFFECTORS.CAKIR).toMatchObject({ elMinDeg: -15, elMaxDeg: 70 });
+    expect(EFFECTORS["HN-12"]).toMatchObject({ elMinDeg: -5, elMaxDeg: 85 });
+    // PENCE-A traverse/elevation not specified — placeholder −8°/+70°.
+    expect(EFFECTORS["PENCE-A"]).toMatchObject({ elMinDeg: -8, elMaxDeg: 70 });
+  });
+
+  test("switching effector pushes the elevation window onto the turret", () => {
+    const sim = new Simulation();
+    sim.setEffector("HN-12");
+    expect(sim.turret.elMin).toBeCloseTo(-5 * DEG, 12);
+    expect(sim.turret.elMax).toBeCloseTo(85 * DEG, 12);
+    sim.setEffector("CAKIR");
+    expect(sim.turret.elMin).toBeCloseTo(-15 * DEG, 12);
+    expect(sim.turret.elMax).toBeCloseTo(70 * DEG, 12);
+    sim.setEffector("PENCE-A");
+    expect(sim.turret.elMin).toBeCloseTo(-8 * DEG, 12);
+    expect(sim.turret.elMax).toBeCloseTo(70 * DEG, 12);
+  });
+
+  test("switching effector clamps a stale pitch into the new window", () => {
+    const sim = new Simulation();
+    sim.setEffector("HN-12");
+    sim.turret.pitch = -85 * DEG; // barrel at +85° elevation — legal under HN-12 only
+    sim.setEffector("CAKIR");
+    expect(sim.turret.pitch).toBeCloseTo(-70 * DEG, 12);
+    sim.turret.pitch = 15 * DEG; // barrel at −15° elevation — legal under CAKIR only
+    sim.setEffector("HN-12");
+    expect(sim.turret.pitch).toBeCloseTo(5 * DEG, 12);
   });
 });
 
