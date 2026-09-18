@@ -102,7 +102,7 @@ export function TacticalHUD({
 
       {live ? (
         <div className="pointer-events-none absolute top-24 left-0 z-10 w-full max-w-md p-3 md:hidden">
-          <TrackTable hud={hud} compact />
+          <TrackTable hud={hud} />
         </div>
       ) : null}
 
@@ -132,14 +132,8 @@ export function TacticalHUD({
   );
 }
 
-function TrackTable({
-  hud,
-  compact = false,
-}: {
-  hud: ReturnType<typeof getHud>;
-  compact?: boolean;
-}) {
-  const rows = compact ? hud.tracks.slice(0, 8) : hud.tracks.slice(0, 20);
+function TrackTable({ hud }: { hud: ReturnType<typeof getHud> }) {
+  const rows = hud.tracks.slice(0, 5);
   return (
     <div className="rounded-xl border border-line bg-surface/90 p-3">
       <div className="mb-2 flex items-center justify-between">
@@ -151,7 +145,7 @@ function TrackTable({
       <p className="mt-1 font-mono text-[10px] text-dim">
         Click a row to designate AUTO · ENG in air · HOLD assigned · LATE cannot save
       </p>
-      <div className="mt-2 max-h-[min(28rem,52vh)] overflow-y-auto">
+      <div className="mt-2">
       <table className="w-full border-collapse font-mono text-[11px] tabular-nums">
         <thead>
           <tr className="text-dim">
