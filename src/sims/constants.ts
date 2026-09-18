@@ -10,7 +10,9 @@ export const QUAD_COUNT_MIN = 8;
 export const QUAD_COUNT_MAX = 16;
 export const FIXED_WING_COUNT_MIN = 2;
 export const FIXED_WING_COUNT_MAX = 3;
-export const DRONE_POOL_MAX = QUAD_COUNT_MAX + FIXED_WING_COUNT_MAX;
+/** Independent kamikaze quads, not in the raid corridor. */
+export const HOVER_PER_WAVE = 3;
+export const DRONE_POOL_MAX = QUAD_COUNT_MAX + FIXED_WING_COUNT_MAX + HOVER_PER_WAVE;
 export const RADAR_MAX_TRACKS = 20;
 /**
  * Quad raid corridor: 30° wide; its center shifts each wave within ±27° of
@@ -27,8 +29,7 @@ export const DRONE_ALT_MIN = 28;
 export const DRONE_ALT_MAX = 165;
 /** Slow path change: altitude, azimuth, and speed each vary by up to this fraction. */
 export const DRONE_MANEUVER_FRAC = 0.4;
-/** One quad per wave parks outside HN-12 range, then dives. TTB is REC while hovering. */
-export const HOVER_PER_WAVE = 1;
+/** Kamikaze standoff outside HN-12, then a dive. TTB is REC while hovering. */
 export const HOVER_STANDOFF_M = 280;
 export const HOVER_HOLD_SEC = 10;
 export const HOVER_DIVE_MPS = 48;

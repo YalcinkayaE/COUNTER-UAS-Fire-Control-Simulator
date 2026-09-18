@@ -24,6 +24,7 @@ import {
   DEG,
   DETECT_RADIUS,
   FIXED_WING_COUNT_MAX,
+  HOVER_PER_WAVE,
   MAX_IN_FLIGHT,
   OUTER_RADIUS,
   QUAD_COUNT_MAX,
@@ -659,6 +660,12 @@ function DroneField() {
         <group key={`f${i}`}>
           <FixedWingMesh index={QUAD_COUNT_MAX + i} />
           <ContactMarker index={QUAD_COUNT_MAX + i} kind="fixedWing" />
+        </group>
+      ))}
+      {Array.from({ length: HOVER_PER_WAVE }, (_, i) => (
+        <group key={`h${i}`}>
+          <DroneMesh index={QUAD_COUNT_MAX + FIXED_WING_COUNT_MAX + i} />
+          <ContactMarker index={QUAD_COUNT_MAX + FIXED_WING_COUNT_MAX + i} kind="quad" />
         </group>
       ))}
     </>

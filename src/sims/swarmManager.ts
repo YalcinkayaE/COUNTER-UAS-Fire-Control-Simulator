@@ -47,6 +47,9 @@ export class SwarmManager {
     for (let i = 0; i < FIXED_WING_COUNT_MAX; i++) {
       this.drones.push(new DroneTarget(`F${String(i + 1).padStart(2, "0")}`));
     }
+    for (let i = 0; i < HOVER_PER_WAVE; i++) {
+      this.drones.push(new DroneTarget(`H${String(i + 1).padStart(2, "0")}`));
+    }
   }
 
   spawnWave(wave = 1, origin: Vec3 = WORLD_ORIGIN): void {
@@ -69,7 +72,6 @@ export class SwarmManager {
       const offsetDeg = corridorCenter + (span - 0.5) * QUAD_CORRIDOR_WIDTH_DEG;
       d.spawn({
         kind: "quad",
-        hoverDive: i < HOVER_PER_WAVE,
         angle: (90 - offsetDeg) * DEG,
         range: OUTER_RADIUS,
         altitude: lerp(DRONE_ALT_MIN, DRONE_ALT_MAX, hash(wave * 31 + i * 3)),
@@ -103,6 +105,25 @@ export class SwarmManager {
         azPhase: hash(i * 51 + wave) * Math.PI * 2,
         speedFreq: 1 / (10 + hash(i * 57 + wave * 5) * 8),
         speedPhase: hash(i * 61 + wave * 7) * Math.PI * 2,
+      }, this.killZone, origin);
+    }
+    const hoverBase = QUAD_COUNT_MAX + FIXED_WING_COUNT_MAX;
+    for (let i = 0; i < HOVER_PER_WAVE; i++) {
+      const d = this.drones[hoverBase + i]!;
+      const azDeg = wrapAzDeg((this.rng() + i / HOVER_PER_WAVE) * 360 - 180);
+      d.spawn({
+        kind: "quad",
+        hoverDive: true,
+        angle: (90 - azDeg) * DEG,
+        range: OUTER_RADIUS,
+        altitude: lerp(DRONE_ALT_MIN, DRONE_ALT_MAX, hash(wave * 71 + i * 5)),
+        cruiseSpeed: lerp(DRONE_SPEED_MIN, DRONE_SPEED_MAX, hash(wave * 73 + i * 11)) + speedBoost,
+        altFreq: 1 / (10 + hash(i * 31 + wave) * 12),
+        altPhase: hash(i * 37 + wave) * Math.PI * 2,
+        azFreq: 1 / (12 + hash(i * 41 + wave * 3) * 12),
+        azPhase: hash(i * 43 + wave) * Math.PI * 2,
+        speedFreq: 1 / (8 + hash(i * 47 + wave * 5) * 10),
+        speedPhase: hash(i * 53 + wave * 7) * Math.PI * 2,
       }, this.killZone, origin);
     }
   }
@@ -150,4 +171,11 @@ export class SwarmManager {
 function hash(n: number): number {
   const s = Math.sin(n * 127.1) * 43758.5453;
   return s - Math.floor(s);
+}
+
+function wrapAzDeg(deg: number): number {
+  let a = deg % 360;
+  if (a > 180) a -= 360;
+  if (a <= -180) a += 360;
+  return a;
 }

@@ -29,4 +29,4 @@ Missed scans, coast between hits, drop after a miss streak. AUTO fires only on a
 
 1. HUD: slew vs TTB + ENGAGED
 2. Designate-priority (AUTO stays default)
-4. Hover-then-dive class (T01 parks at 280 m / TTB REC, then dives — HN-12 short window)
+4. Hover-then-dive class (three independent H01–H03 kamikazes, random bearings)

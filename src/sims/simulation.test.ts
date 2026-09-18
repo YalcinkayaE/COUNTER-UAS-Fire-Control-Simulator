@@ -103,7 +103,7 @@ describe("hover-then-dive ledger", () => {
     sim.resetRun();
     sim.phase = "live";
     for (const d of sim.swarm.drones) d.alive = false;
-    const h = sim.swarm.getById("T01")!;
+    const h = sim.swarm.getById("H01")!;
     h.alive = true;
     h.hoverDive = true;
     h.hoverPhase = "ingress";
@@ -113,10 +113,10 @@ describe("hover-then-dive ledger", () => {
     h.velocity.set(0, 0, -20);
     step(sim, 1);
     expect(h.hoverPhase).toBe("hover");
-    expect(sim.ledger.snapshot().some((r) => r.what === "T01" && r.action === "HOVER")).toBe(true);
+    expect(sim.ledger.snapshot().some((r) => r.what === "H01" && r.action === "HOVER")).toBe(true);
     step(sim, HOVER_HOLD_SEC + 0.2);
     expect(h.hoverPhase).toBe("dive");
-    expect(sim.ledger.snapshot().some((r) => r.what === "T01" && r.action === "DIVE")).toBe(true);
+    expect(sim.ledger.snapshot().some((r) => r.what === "H01" && r.action === "DIVE")).toBe(true);
   });
 });
 

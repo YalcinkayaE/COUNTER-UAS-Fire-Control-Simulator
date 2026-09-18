@@ -24,8 +24,8 @@ describe("SwarmManager", () => {
     const swarm = new SwarmManager(fixedRng);
     swarm.spawnWave(1);
     expect(swarm.drones).toHaveLength(DRONE_POOL_MAX);
-    expect(swarm.aliveCount()).toBe(12 + 3);
-    expect(swarm.drones.filter((d) => d.alive && d.kind === "quad")).toHaveLength(12);
+    expect(swarm.aliveCount()).toBe(12 + 3 + 3);
+    expect(swarm.drones.filter((d) => d.alive && d.kind === "quad" && !d.hoverDive)).toHaveLength(12);
     const wings = swarm.drones.filter((d) => d.alive && d.kind === "fixedWing");
     expect(wings).toHaveLength(FIXED_WING_COUNT_MAX);
     for (const d of wings) {
@@ -42,7 +42,7 @@ describe("SwarmManager", () => {
       const swarm = new SwarmManager(() => v);
       swarm.spawnWave(1);
       for (const d of swarm.drones) {
-        if (!d.alive) continue;
+        if (!d.alive || d.hoverDive) continue;
         expect(Math.abs(azFromNorthDeg(d.position.x, d.position.z))).toBeLessThanOrEqual(43);
       }
     }
@@ -51,7 +51,7 @@ describe("SwarmManager", () => {
   test("quads spawn inside the wave's raid corridor", () => {
     const swarm = new SwarmManager(fixedRng);
     swarm.spawnWave(1);
-    const quads = swarm.drones.filter((d) => d.alive && d.kind === "quad");
+    const quads = swarm.drones.filter((d) => d.alive && d.kind === "quad" && !d.hoverDive);
     expect(quads).toHaveLength(12);
     for (const d of quads) {
       expect(Math.abs(azFromNorthDeg(d.position.x, d.position.z))).toBeLessThanOrEqual(15.01);
@@ -94,7 +94,7 @@ describe("SwarmManager", () => {
       swarm.update(1 / 60);
       for (let j = 0; j < swarm.drones.length; j++) {
         const d = swarm.drones[j]!;
-        if (!d.alive) continue;
+        if (!d.alive || d.hoverDive) continue;
         const s = start[j]!;
         maxAlt = Math.max(maxAlt, Math.abs(d.position.y - s.alt) / s.alt);
         maxSpd = Math.max(maxSpd, Math.abs(d.speed - s.cruise) / s.cruise);
@@ -116,7 +116,11 @@ describe("SwarmManager", () => {
 
     const swarm = new SwarmManager(fixedRng);
     swarm.spawnWave(1);
-    const h = swarm.getById("T01")!;
+    const divers = swarm.drones.filter((d) => d.hoverDive && d.alive);
+    expect(divers).toHaveLength(3);
+    const bearings = divers.map((d) => azFromNorthDeg(d.position.x, d.position.z));
+    expect(new Set(bearings.map((b) => Math.round(b))).size).toBe(3);
+    const h = swarm.getById("H01")!;
     expect(h.hoverDive).toBe(true);
     expect(h.hoverPhase).toBe("ingress");
 
