@@ -38,7 +38,7 @@ import { DroneTarget } from "./droneTarget";
 import { RadarSensor } from "./radarSensor";
 import { EdgeComputer } from "./edgeComputer";
 import { TurretController, type FireMode } from "./turretController";
-import { resumeIfNeeded, setMuted, sfxBreach, sfxFire, sfxHit, unlockAudio } from "./audio";
+import { resumeIfNeeded, setMuted, sfxBreach, sfxFire, unlockAudio } from "./audio";
 
 export type Phase = "briefing" | "live" | "paused" | "defeat" | "wavehold";
 
@@ -295,12 +295,12 @@ export class Simulation {
         const maxEl = this.turret.elMaxRad;
         if (elevationSwitch(horiz, height, maxEl) > 0) {
           desired = evadeHeadingAway(this.ugv, { x: kamikaze.position.x, z: kamikaze.position.z });
-        } else if (call) {
-          const az = azimuthFromNorth(
-            call.track.position.x - this.ugv.x,
-            call.track.position.z - this.ugv.z,
+        } else {
+          const threatAz = azimuthFromNorth(
+            kamikaze.position.x - this.ugv.x,
+            kamikaze.position.z - this.ugv.z,
           );
-          desired = az + Math.PI / 2;
+          desired = threatAz + Math.PI / 2;
         }
       } else if (call) {
         const az = azimuthFromNorth(
@@ -625,7 +625,7 @@ export class Simulation {
       alive: true,
     });
     this.shotsFired += 1;
-    if (!this.muted && this.shotsFired % 4 === 1) sfxFire();
+    if (!this.muted) sfxFire();
   }
 
   private stepProjectiles(dt: number): void {
@@ -704,7 +704,6 @@ export class Simulation {
       kind: "hit",
     });
     this.hitstop = 0;
-    if (!this.muted) sfxHit();
     this.message = `${d.id} KILL`;
     this.commitHigh();
   }
