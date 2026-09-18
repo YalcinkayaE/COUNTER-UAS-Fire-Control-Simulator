@@ -3,7 +3,7 @@ repo_name: sem_defender
 repo_root: /Users/erkanyalcinkaya/projects/sem_defender
 repo_type: prototype
 status_date: 2026-09-18
-branch: cursor/per-effector-elevation-blind-cone-99a4
+branch: main
 default_branch: main
 preferred_runtime: npm run dev
 preferred_entrypoints:
