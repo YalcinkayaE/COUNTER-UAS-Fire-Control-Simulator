@@ -221,7 +221,7 @@ Start screen → View source. Copy one file, or Folders: download zip. Copy all 
 - **MANUAL miss:** fire off-align; round flies to the old lead.
 - **Wrong gun:** switch to PENCE-A late in a wave — 120 rds/min cannot service the queue even with a 400 m envelope.
 - **HN-12 ceiling:** a high fixed-wing can stay outside the 200 m sphere and still run the 36 m asset. TTB keeps counting down; AUTO stays OUT OF RANGE. Switch to CAKIR.
-- **Hover-then-dive:** three kamikazes H01–H03 (HV, cyan) are not in the raid corridor. They come in on separate random bearings, park at 280 m (TTB REC), then dive at 48 m/s. Some sit outside the 120° sector so the staring radar never holds them. HN-12’s window is short; CAKIR can engage a hover that is in the sector.
+- **Hover-then-dive:** three kamikazes H01–H03 (HV, cyan) are not in the raid corridor. They come in on separate random bearings, park at 280 m (TTB REC), then dive at 48 m/s. The AESA is 120° × 80° and 20 tracks; a kamikaze outside that wedge is not on the PPI or the EDF table. HN-12’s window is short on one that is in sector; CAKIR can engage a hover that is in sector.
 - **Pause freeze-frame (Esc):** walk TTB vs distance on the table without the swarm moving.
 
 ---

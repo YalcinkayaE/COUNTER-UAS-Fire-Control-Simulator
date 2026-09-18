@@ -70,9 +70,7 @@ export class RadarSensor {
   scan(objects: RadarObject[]): RadarReport[] {
     this.seq += 1;
     const live = objects.filter((o) => o.alive && this.inFov(o));
-    const kamikaze = live.filter((o) => o.hoverDive);
-    const rest = live
-      .filter((o) => !o.hoverDive)
+    const ranked = live
       .map((o) => {
         const ttb = timeToBreach(
           horizontalRangeFrom(o.position, this.origin),
@@ -82,9 +80,8 @@ export class RadarSensor {
         return { o, ttb };
       })
       .sort((a, b) => a.ttb - b.ttb)
-      .slice(0, Math.max(0, RADAR_MAX_TRACKS - kamikaze.length))
-      .map((row) => row.o);
-    this.reports = [...kamikaze, ...rest].slice(0, RADAR_MAX_TRACKS).map((o) => this.reportOn(o));
+      .slice(0, RADAR_MAX_TRACKS);
+    this.reports = ranked.map(({ o }) => this.reportOn(o));
     return this.reports;
   }
 

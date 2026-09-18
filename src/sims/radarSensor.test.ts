@@ -11,6 +11,7 @@ function truth(id: string, x: number, y: number, z: number, vx = 0, vy = 0, vz =
     id,
     alive: true,
     kind: "quad" as "quad" | "fixedWing",
+    hoverDive: false,
     position: { x, y, z },
     velocity: { x: vx, y: vy, z: vz },
   };
@@ -105,5 +106,16 @@ describe("RadarSensor", () => {
     const sector = truth("T-SECT", 450, 80, 779); // az ≈ 30°, inside
     const reports = radar.scan([east, sector]);
     expect(reports.map((r) => r.id)).toEqual(["T-SECT"]);
+  });
+
+  test("does not report a kamikaze outside the 120° sector, even if it is hovering", () => {
+    const radar = new RadarSensor(noNoise);
+    const flank = truth("H02", 900, 80, 0);
+    flank.hoverDive = true;
+    const north = truth("H01", 0, 80, 900);
+    north.hoverDive = true;
+    const reports = radar.scan([flank, north]);
+    expect(reports.map((r) => r.id)).toEqual(["H01"]);
+    expect(reports).toHaveLength(1);
   });
 });

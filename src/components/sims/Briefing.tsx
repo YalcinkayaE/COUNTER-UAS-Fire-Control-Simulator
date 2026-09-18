@@ -22,8 +22,8 @@ export function BriefingPanel({ onEngage }: { onEngage?: () => void }) {
             sector. The raid axis shifts each wave, and a faster track can beat a closer slow one
             on time-to-breach. Quads and fixed-wing weave in azimuth and altitude. One Echodyne
             Guard AESA stares north over a 120° × 80° sector (1° az / 1.5° el accuracy), publishing
-            az, el, range and velocity at 10 Hz — 20 tracks max, ranked by TTB. The edge computer
-            issues the fire call.
+            az, el, range and velocity at 10 Hz — 20 tracks max, ranked by TTB. Nothing outside that
+            wedge is on the file. The edge computer issues the fire call.
           </p>
           <p className="rounded-md border border-line bg-bg px-3 py-2 text-fg">
             TTB = (horizontal range − 36 m asset) / horizontal closing speed
@@ -34,7 +34,7 @@ export function BriefingPanel({ onEngage }: { onEngage?: () => void }) {
             ranks by time to the 36 m site around the UGV; the gun stays on a track across bursts
             unless a hotter deadline pulls it off. Three kamikaze quads (H01–H03, HV) are not in the
             raid: they approach from separate bearings, park outside the HN-12 200 m envelope (TTB
-            REC), then dive. CAKIR 400 m (1350
+            REC), then dive. A kamikaze outside the 120° sector is never spotted. CAKIR 400 m (1350
             rds/min), HN-12 200 m (1000), PENCE-A 400 m (120). MANUAL is the weapons-release bypass
             on the same solution; AUTO will not fire outside the envelope.
           </p>
