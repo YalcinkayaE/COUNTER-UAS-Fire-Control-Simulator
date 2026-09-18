@@ -227,6 +227,8 @@ Start screen → View source. Copy one file, or Folders: download zip. Copy all 
 
 ## 10. Next demo (only if asked)
 
+Parked items 3–5 (split-raid, hover-then-dive, Pd + coast + AUTO quality gate) live in `docs/40_delivery/405_todo_later.md` (DOC-405). AUTO stays the default.
+
 1. Split-raid waves (two clusters at opposite sector edges, or beyond it — implies a trainable sector or a second radar; that trade-off is the conversation).
 2. Threat classes — fast leaker, decoy, RF-silent.
 3. Soft-kill cone — cheap area effector, fails on silent tracks.
