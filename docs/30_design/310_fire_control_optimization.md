@@ -1,26 +1,25 @@
 ---
 document_id: DOC-310
-title: Fire-control optimisation (EDF, max track set, quadratic intercept)
+title: Fire-control mathematics (math.ts)
 status: implemented
 owner: unresolved
 created: 2026-09-16
-updated: 2026-09-17
+updated: 2026-09-18
 applies_to: desktop simulator
 authority: informative
 supersedes: null
 related:
   - DOC-320
+  - DOC-405
 ---
 
 # C-UAS fire-control mathematics
 
 **SEM-Tech DEFENDER** desktop COUNTER-UAS FIRE CONTROL simulator.
 
-Formulas use GitHub / KaTeX / MathJax notation: inline `$...$`, display on their own lines as `$$...$$`. Open this file in VS Code (Markdown Math), GitHub, Obsidian, Typora, or Quarto.
+This note is the mathematics **`src/sims/math.ts` actually exports**, plus the few callers that supply origin, velocity, and elevation limits. It is not a fielded radar DSP, not a mixed-integer programme, and not a full Pontryagin solver.
 
-This note is the mathematics the simulator actually runs. It is for stakeholders who need to see that the fire order is a defined policy, not a visual heuristic. It is not a fielded radar DSP, not a mixed-integer programme, and not a claim about a production weapon.
-
-Code: `src/sims/math.ts`, `src/sims/radarSensor.ts`, `src/sims/edgeComputer.ts`, `src/sims/turretController.ts`, `src/sims/constants.ts`.
+Formulas use GitHub / KaTeX notation. Code: `src/sims/math.ts`, `src/sims/radarSensor.ts`, `src/sims/edgeComputer.ts`, `src/sims/turretController.ts`, `src/sims/constants.ts`.
 
 ---
 
@@ -28,60 +27,86 @@ Code: `src/sims/math.ts`, `src/sims/radarSensor.ts`, `src/sims/edgeComputer.ts`,
 
 The effector is a **single** UGV gun. At each decision instant it can aim at one intercept point. The question is: **which track, from those the sensor is allowed to hold, should receive the next burst?**
 
-The online policy is Earliest Deadline First (EDF) on Time-to-Breach (TTB), evaluated on a **maximum admissible track set**. That set is the subject of Section 1.
+The online policy is Earliest Deadline First (EDF) on Time-to-Breach (TTB), evaluated on a **maximum admissible track set** of 20.
+
+A second, smaller control (UGV MOVE) is a **bang-bang heading** that opens ground range when an overhead kamikaze would otherwise sit above the 70° gun limit. That is a reduced PMP on $|u|\le v$, not a full Hamiltonian $H(x,u,\lambda)$.
 
 Two radii must not be collapsed:
 
 | Name | Geometry | Role |
 |---|---|---|
 | Envelope / kill zone | sphere, selected effector range (HN-12 200 m; CAKIR / PENCE-A 400 m) | AUTO fire gate; red ring; BREACH alarm |
-| Asset | horizontal cylinder, 36 m | Loss of a life (`collectImpacts`); EDF deadline |
+| Asset | horizontal cylinder, 36 m around the hull | EDF deadline; one IMPACT is **UGV HIT** and the run stops |
 
 ---
 
-## 1. The maximum admissible track set $T_{\max}$
+## 1. Map of `math.ts`
 
-### What it is
+| Function | What it computes |
+|---|---|
+| `hypot3`, `dist3`, `clamp`, `lerp`, `wrapTwoPi` | Euclidean helpers |
+| `radialClosingSpeed` | 3D closing toward **world origin** (legacy; EDF does not use this) |
+| `horizontalRange` / `horizontalClosingSpeed` | Ground range / closing toward **world origin** |
+| `horizontalRangeFrom` / `horizontalClosingFrom` | Ground range / closing toward a **possibly moving** defended point $\mathbf{U},U'$ |
+| `timeToBreach` | $(\rho - 36)/v_\rho$; 0 if $\rho\le 36$; $+\infty$ if not closing |
+| `solveIntercept` | Constant-$V$ quadratic lead; frozen muzzle |
+| `angleBetween` | Unsigned angle between unit directions (slew time) |
+| `azimuthFromNorth` | $\psi=\mathrm{atan2}(x,z)$; 0 = north ($+Z$), $+90^\circ$ = east ($+X$) |
+| `elevationFromGround` | $\varepsilon=\mathrm{atan2}(\Delta y,\sqrt{\Delta x^2+\Delta z^2})$; $+\pi/2$ = zenith |
+| `elevationFromHorizontal` | $\varepsilon=\mathrm{atan2}(h,\rho)$ |
+| `minHorizForElevation` | $\rho_{\min}=h/\tan\varepsilon_{\max}$ |
+| `elevationSwitch` | $\sigma=\rho_{\min}-\rho$; $\sigma>0$ means too high in elevation |
+| `evadeHeadingAway` | Heading of $-\hat{\rho}$ on the ground (bang-bang direction) |
+| `sphericalToCartesian` | Reconstruct $(x,y,z)$ from az, el, range about a radar origin |
+| `trackAssignment` | HUD gate: ENGAGED / HOLD / LATE |
+| `formatTtb`, `formatSlew`, `formatDist`, `formatBearingDeg`, `formatElevDeg` | Display only |
 
-Let $U$ be the live objects in the battlespace (truth). Each wave draws 8–16 quads and 2–3 fixed-wing (pool 16 + 3). The UGV radar is modelled as an Echodyne-class AESA with a hard simultaneous-track budget
+Callers pass $\mathbf{U}$ (hull). `math.ts` does not know about the UGV, H01, or 70°.
 
-$$
-N_{\max} = 20
-$$
+---
 
-The **maximum admissible track set** is the largest set of live objects the fire-control loop is allowed to see:
+## 2. Time-to-Breach and EDF
 
-$$
-T_{\max} \subset U, \qquad |T_{\max}| \le N_{\max}
-$$
+Coordinates: $+Z$ north, $+X$ east. The **defended point** is the UGV ground position $\mathbf{U}=(U_x,0,U_z)$, not a fixed world origin.
 
-Admission is not “nearest $N_{\max}$”. It is the $N_{\max}$ objects with the smallest Time-to-Breach (defined in Section 2). Equivalently: take the $N_{\max}$ smallest $T_{\mathrm{breach}}$ values.
-
-$$
-T_{\max} = \arg\min_{\,S \subset U,\; |S| \le N_{\max}} \sum_{i \in S} T_{\mathrm{breach},i}
-$$
-
-Ties break on radar range. Receding objects have $T_{\mathrm{breach}} = +\infty$ and fall out of the set unless fewer than 20 inbound tracks exist.
-
-The edge computer **only** ranks, intercepts, and issues a fire call on $T_{\max}$. Objects outside $T_{\max}$ do not exist for Decide/Engage until a later 10 Hz epoch.
-
-### Why a maximum set (not “use every drone”)
-
-1. **Sensor budget.** The AESA is specified at 20 simultaneous tracks. Fire control is defined on what the sensor can hold.
-
-2. **Single effector.** One barrel, one aim point, 0.5 s burst. The useful decision is “who is next”.
-
-3. **Edge timing.** Azimuth, elevation, range and velocity arrive at 10 Hz. A hard cap keeps the 10 Hz loop bounded.
-
-4. **Deadline, not proximity.** If the cap were “20 nearest”, a 2 km fixed-wing would often be dropped because it is farther than the 1 km quads. That object can still be the first to the 36 m asset. Selecting the max set by TTB keeps the budget aligned with the objective: delay or prevent an asset overflight.
-
-Worked numbers (same formula the code uses):
+**Horizontal range** (`horizontalRangeFrom`)
 
 $$
-T_{\mathrm{breach}} = \frac{\rho - 36\,\mathrm{m}}{v_{\rho}}
+\rho = \sqrt{(P_x-U_x)^2+(P_z-U_z)^2}
 $$
 
-| Track | Horizontal range $\rho$ | Closing $v_{\rho}$ | $T_{\mathrm{breach}}$ |
+**Horizontal closing** (`horizontalClosingFrom`), positive inbound, including hull velocity $U'$
+
+$$
+v_{\rho} = -\frac{(P_x-U_x)(V_x-U'_x)+(P_z-U_z)(V_z-U'_z)}{\rho}
+$$
+
+**Time-to-Breach** (`timeToBreach`; deadline radius = 36 m)
+
+$$
+T_{\mathrm{breach}} =
+\begin{cases}
+0 & \text{if } \rho \le 36 \\[4pt]
++\infty & \text{if } v_{\rho} \le 0 \\[4pt]
+(\rho - 36)/v_{\rho} & \text{otherwise}
+\end{cases}
+$$
+
+Hovering kamikaze: $v_{\rho}=0$ $\Rightarrow$ TTB $=+\infty$ (HUD **REC**). Inside the 36 m cylinder: TTB $=0$ (HUD **NOW**).
+
+TTB does **not** use the selected effector's range. Switching CAKIR / HN-12 / PENCE-A moves the fire envelope; it does not re-sort EDF.
+
+EDF on the max set $T_{\max}$:
+
+$$
+i^{\star} = \arg\min_{i \in T_{\max}} T_{\mathrm{breach},i}
+$$
+
+That is greedy “who is next”, not a batch raid plan.
+
+Worked numbers (same formula):
+
+| Track | $\rho$ | $v_{\rho}$ | TTB |
 |---|---|---|---|
 | Quad, 1 km, 25 m/s inbound | 1000 m | 25 m/s | **38.6 s** |
 | Fixed-wing, 2 km, 80 m/s inbound | 2000 m | 80 m/s | **24.6 s** |
@@ -90,169 +115,130 @@ The farther aircraft is the earlier deadline.
 
 ---
 
-## 2. Time-to-Breach and EDF
+## 3. Maximum admissible track set $T_{\max}$
 
-Coordinates: origin at the defended point. $+Z$ is north, $+X$ is east.
-
-**Horizontal range**
+Truth $U$ per wave: 8–16 quads + 2–3 fixed-wing + one independent kamikaze **H01** (pool 16 + 3 + 1). Radar is a **120° × 80°** north stare, **20 tracks**, 10 Hz, kinematic reports (not DSP).
 
 $$
-\rho_i = \sqrt{P_{i,x}^{2} + P_{i,z}^{2}}
+T_{\max} \subset U,\qquad |T_{\max}|\le 20
 $$
 
-**Horizontal closing speed** (positive inbound)
-
-$$
-v_{\rho,i} = -\frac{P_{i,x} V_{i,x} + P_{i,z} V_{i,z}}{\rho_i}
-$$
-
-**Time-to-Breach** (asset cylinder 36 m)
-
-$$
-T_{\mathrm{breach},i} =
-\begin{cases}
-0 & \text{if } \rho_i \le 36 \\[4pt]
-+\infty & \text{if } v_{\rho,i} \le 0 \\[4pt]
-\dfrac{\rho_i - 36}{v_{\rho,i}} & \text{otherwise}
-\end{cases}
-$$
-
-TTB does **not** use the selected effector's range. Switching CAKIR / HN-12 / PENCE-A moves the fire envelope and the BREACH alarm; it does not re-sort the EDF queue.
-
-A 3D sphere at the gun range is the wrong deadline: quads can climb to 231 m and fixed-wing to 266 m. Above 200 m they never enter the HN-12 sphere, 3D TTB grows as they pass overhead, and they can still hit the asset. Horizontal TTB keeps counting down.
-
-EDF on the max set:
-
-$$
-i^{\star} = \arg\min_{i \in T_{\max}} T_{\mathrm{breach},i}
-$$
-
-That $i^{\star}$ is the fire-call candidate. AUTO then applies commitment and the in-time gate (Section 5). MANUAL withholds the engage bit and leaves weapons release with the operator, on the same intercept solution.
-
-This is a greedy online policy for a single machine with deadlines. It is not a batch schedule over the whole raid.
+Admission is the 20 smallest TTBs among objects **in the sector**. Receding / hovering tracks have $T_{\mathrm{breach}}=+\infty$ and fall out unless fewer than 20 inbound exist. A kamikaze **outside ±60° of north** is never reported.
 
 ---
 
-## 3. Radar measurements (10 Hz)
+## 4. Quadratic intercept (`solveIntercept`)
 
-Each admitted track is published as an Echodyne-class report, simulated from kinematics (not RF processing):
+Muzzle $\mathbf{S}$ (current UGV pose, $y=14$ m). $v_p=2000$ m/s.
 
-| Symbol | Quantity | Definition in the sim |
+$$
+\|\boldsymbol{\Delta}+\mathbf{V}t\|=v_p t,\qquad \boldsymbol{\Delta}=\mathbf{P}-\mathbf{S}
+$$
+
+$$
+\bigl(\|\mathbf{V}\|^{2}-v_p^{2}\bigr)t^{2}+2(\boldsymbol{\Delta}\cdot\mathbf{V})t+\|\boldsymbol{\Delta}\|^{2}=0
+$$
+
+Earliest $t>0$ and $t\le 30$ s. Aim point $\mathbf{P}+\mathbf{V}t$.
+
+The quadratic treats the gun as **frozen** at the current $\mathbf{S}$ for that round. Hull velocity $U'$ is in TTB, not in this intercept. At 30 km/h and $t\sim 0.2$ s the freeze is centimetres against a 48 m fuse. AUTO will not fire unless $\|\mathbf{P}_{\mathrm{aim}}-\mathbf{S}\|$ is inside the selected envelope.
+
+---
+
+## 5. Slew, assignment, fire gate
+
+Slew $75^\circ$/s. $T_{\mathrm{slew}}=\angle(\hat{b},\mathbf{P}_{\mathrm{aim}}-\mathbf{S})/\omega$ (`angleBetween` / `TURRET_SLEW_RAD`).
+
+In-time: skip if $T_{\mathrm{slew}}+t_{\mathrm{int}}\ge T_{\mathrm{breach}}$ unless TTB is already 0. HUD **LATE** is `trackAssignment` when that geometry fails and no round is in the air.
+
+**ENGAGED** = rounds in flight to that id. **HOLD** = assigned fire call, not yet firing. Burst 0.5 s then 0.5 s recovery. Fuse 48 m.
+
+Gun elevation is clamped in `turretController` (not `math.ts`) to **−8° … 70°**. Look-at $y$ is rewritten as $y_S+ \rho\tan\varepsilon_{\mathrm{clamp}}$. A 90° (zenith) target cannot be followed.
+
+---
+
+## 6. Elevation window and bang-bang hull evade
+
+These four functions are the **Hamiltonian example** in `math.ts`. They are a reduced Pontryagin condition for a speed-limited hull, not $H=T+V$ mechanics and not a costate ODE.
+
+Elevation from height above the muzzle and ground range (`elevationFromHorizontal`):
+
+$$
+\varepsilon = \mathrm{atan2}(h,\rho)
+$$
+
+Zenith is $\varepsilon=\pi/2$ when $\rho=0$.
+
+To keep $\varepsilon\le\varepsilon_{\max}$ (70° for the gun; 80° for the radar):
+
+$$
+\rho_{\min} = \frac{h}{\tan\varepsilon_{\max}}
+\qquad\texttt{minHorizForElevation}
+$$
+
+Worked: $h=406$ m (420 m AGL − 14 m muzzle), $\varepsilon_{\max}=70^\circ$ $\Rightarrow$ $\rho_{\min}\approx 148$ m.
+
+Switching function (`elevationSwitch`):
+
+$$
+\sigma = \rho_{\min} - \rho
+$$
+
+- $\sigma>0$: target too high in elevation; PMP for $|u|\le v_{\mathrm{ugv}}$ says run **away** at $v_{\max}$.
+- $\sigma<0$: already in the elevation window.
+
+Bang-bang heading (`evadeHeadingAway`): unit ground direction $-\hat{\rho}$ (increase $\rho$).
+
+**UGV HOLD:** $u=0$. H01 climbs then dives on the hull’s last ground point. Elevation goes toward 90°. Gun stays at 70°. One overflight of the 36 m cylinder is **UGV HIT**; the run stops.
+
+**UGV MOVE:** $v_{\mathrm{ugv}}=30$ km/h $= 30/3.6$ m/s. While H01 is in climb/dive, heading is `evadeHeadingAway`. Otherwise heading is 90° off the fire-call azimuth. H01 does not chase the hull after commit; it dives on the frozen ground aim. Opening $\rho$ can bring $\varepsilon$ back into the radar and gun windows.
+
+This is **not** a full Hamiltonian. There is no adjoint $\lambda(t)$, no $H=\lambda^\top f-L$, and no differential game. The four functions above are the closed-form switch for that one bounded-speed problem.
+
+---
+
+## 7. Radar measurements (10 Hz)
+
+Kinematic reports, not RF:
+
+| Symbol | Quantity | `math.ts` |
 |---|---|---|
-| $\psi_i$ | Azimuth | From north, clockwise toward east: $\psi = \mathrm{atan2}(x,z)$ |
-| $\varepsilon_i$ | Elevation | Above the ground plane: $\varepsilon = \mathrm{atan2}(\Delta y,\sqrt{\Delta x^{2}+\Delta z^{2}})$ |
-| $R_i$ | Range | Distance from the UGV radar mast at $(0,16,0)$ m |
-| $\mathbf{V}_i$ | Velocity | Cartesian velocity (speed in a given direction) |
+| $\psi$ | Azimuth from north | `azimuthFromNorth` |
+| $\varepsilon$ | Elevation above ground | `elevationFromGround` |
+| $R$ | Range from the mast | `hypot3` about radar origin |
+| Reconstruction | az, el, $R$ $\to$ Cartesian | `sphericalToCartesian` |
 
-Coverage is a 120° az × 80° el staring sector on a north boresight. Reports carry ±1° az / ±1.5° el angular noise.
-
-The edge computer reconstructs Cartesian position from $(\psi, \varepsilon, R)$ and coasts that state between 10 Hz scans. Intercept and TTB are computed from the reconstructed (or coasted) state, not from raw truth, so Decide/Engage is radar-fed.
+Sector: 120° az × 80° el, north boresight. Noise: ±1° az / ±1.5° el. Velocity on the report is truth. Edge coasts between scans.
 
 ---
 
-## 4. Quadratic intercept
+## 8. What this is, and what it is not
 
-Gun position $\mathbf{S}$ (muzzle, near $(0,14,0)$ m). Projectile speed
-
-$$
-v_p = 2000\,\mathrm{m/s}
-\qquad (1\,\mathrm{km\ in\ } 0.5\,\mathrm{s})
-$$
-
-Relative geometry $\boldsymbol{\Delta} = \mathbf{P}_{i^{\star}} - \mathbf{S}$. Constant-velocity intercept:
-
-$$
-\|\boldsymbol{\Delta} + \mathbf{V}_{i^{\star}}\, t\| = v_p\, t
-$$
-
-which expands to the quadratic used in code:
-
-$$
-\bigl(\|\mathbf{V}\|^{2} - v_p^{2}\bigr) t^{2}
-+ 2\,(\boldsymbol{\Delta}\cdot\mathbf{V})\, t
-+ \|\boldsymbol{\Delta}\|^{2}
-= 0
-$$
-
-Take the smallest $t > 0$ that is finite and at most 30 s. The aim point is
-
-$$
-\mathbf{P}_{\mathrm{aim}} = \mathbf{P}_{i^{\star}} + \mathbf{V}_{i^{\star}}\, t_{\mathrm{int}}
-$$
-
-If no positive root exists, there is no fire call for that track.
-
-AUTO will not engage unless $\|\mathbf{P}_{\mathrm{aim}} - \mathbf{S}\|$ is inside the selected effector's range (the envelope). The turret may still slew toward an out-of-range intercept.
-
----
-
-## 5. Slew, burst, commitment, and the fire gate
-
-Turret slew rate
-
-$$
-\omega = 75^{\circ}/\mathrm{s}
-$$
-
-Alignment tolerance $0.85^{\circ}$. Time to swing onto the aim point from the current barrel direction $\hat{b}$:
-
-$$
-T_{\mathrm{slew}} = \frac{\angle(\hat{b},\; \mathbf{P}_{\mathrm{aim}} - \mathbf{S})}{\omega}
-$$
-
-Gun cycle: 0.5 s burst at the selected effector's rate, then 0.5 s recovery. In-burst spacing is $60/\mathrm{rpm}$.
-
-**In-time gate (implemented):** skip a candidate when
-
-$$
-T_{\mathrm{slew}} + t_{\mathrm{int}} \ge T_{\mathrm{breach},i}
-$$
-
-unless $T_{\mathrm{breach},i} = 0$ (already over the asset — last chance). Receding tracks ($T_{\mathrm{breach}} = +\infty$) are not feasible. If every candidate fails the gate, the EDF head is still published so the turret can slew; `autoEngage` stays false.
-
-**Commitment (implemented):** stay on the current fire-call track across bursts unless it leaves the track file, becomes infeasible, or another feasible track's TTB is at least **1.5 s** earlier. That stops the queue flipping every recovery interval while several tracks sit at similar deadlines.
-
-**Wave-clear:** leftover burst state and in-flight rounds are aborted. Rounds resolve as INTERCEPT / SUPPRESSED so a reused track ID on the next wave cannot inherit a MISS.
-
-**Implemented fire gate (AUTO):** intercept exists, track is the committed/feasible call, intercept is inside the envelope, barrel is inside $0.85^{\circ}$, burst/recovery allow a round.
-
-**Implemented fire gate (MANUAL):** same intercept, but the operator must hold fire.
-
-Proximity fuse 48 m. Aligned AUTO still hits inside that bubble; the fuse is larger than typical closest-approach on a committed shot, so lead geometry is not the thing that makes AUTO lose.
-
----
-
-## 6. What this is, and what it is not
-
-| This document / this sim | Not this |
+| In `math.ts` / this sim | Not this |
 |---|---|
-| Online EDF on a TTB-selected max set of 20 | A MILP/CPLEX batch raid plan |
-| Simulated 10 Hz az/el/range/velocity | Fielded Echodyne DSP |
-| Quadratic lead for one kinetic gun | Soft-kill, multi-effector assignment |
-| Greedy “who is next” plus stickiness | Optimal assignment of all bursts over the whole raid |
-
-The value for stakeholders is that the visible queue (AZ, EL, RNG, V, TTB) is this model: admit at most 20 by time to the asset, fire the committed feasible minimum deadline, lead with the quadratic, and only shoot inside the gun envelope. A 2 km fixed-wing can be first because $T_{\mathrm{breach}}$ said so, not because the picture looked urgent.
+| EDF on TTB to the 36 m cylinder | MILP raid plan |
+| 10 Hz kinematic az/el/range/$V$ | Fielded Echodyne DSP |
+| Frozen-muzzle quadratic lead | Moving-shooter intercept with $S(t)=S_0+U't$ |
+| Bang-bang $\sigma$ / evade heading | Full Pontryagin or Isaacs game |
+| One IMPACT = UGV HIT | Five-life game scoring |
 
 ---
 
-## 7. Constants (as coded)
+## 9. Constants (as coded)
 
 | Name | Value |
 |---|---|
 | Asset / TTB deadline | 36 m horizontal cylinder |
 | Envelope / kill zone | 200 m HN-12; 400 m CAKIR, PENCE-A |
 | Inner fence | 1000 m |
-| Detection fence / PPI scale | 2000 m |
-| Radar rate | 10 Hz |
-| Max tracks $N_{\max}$ | 20 |
-| Truth objects / wave | 8–16 quads + 2–3 fixed-wing |
-| Slew $\omega$ | 75°/s |
+| Detection fence / PPI | 2000 m |
+| Radar | 10 Hz, 20 tracks, 120° × 80° |
+| Truth / wave | 8–16 quads + 2–3 fixed-wing + H01 |
+| Slew | 75°/s |
 | Align | 0.85° |
+| Gun elevation | −8° … **70°** |
 | $v_p$ | 2000 m/s |
-| Burst | 0.5 s at the effector's rate, then 0.5 s recovery |
-| Commitment hysteresis | 1.5 s |
+| Burst | 0.5 s at effector rpm, then 0.5 s recovery |
 | Fuse | 48 m |
-| Quad speed | 12–38 m/s |
-| Fixed-wing speed | 72–96 m/s |
-| Path change (alt, azimuth, speed) | up to 40% of spawn values |
-| UGV MOVE (optional) | 30 km/h; away from an overhead kamikaze, otherwise 90° off the fire-call azimuth |
+| UGV MOVE | **30 km/h**; HOLD is stationary |
+| H01 | North ingress, hover 280 m, climb ~420 m, dive on committed ground point |
