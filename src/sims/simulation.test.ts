@@ -135,8 +135,10 @@ describe("asset impact", () => {
     d.position.set(0, 40, 10);
     d.velocity.set(0, 0, 0);
     sim.update(FIXED_DT);
-    expect(sim.phase).toBe("defeat");
     expect(sim.message).toBe("UGV HIT");
+    expect(sim.phase).toBe("live");
+    step(sim, 3);
+    expect(sim.phase).toBe("defeat");
     expect(sim.lives).toBe(0);
     expect(sim.ledger.snapshot().some((r) => r.action === "IMPACT" && r.outcome === "UGV HIT")).toBe(
       true,
@@ -183,8 +185,9 @@ describe("UGV MOVE vs HOLD on the overhead kamikaze", () => {
     h.commitDiveAim({ x: 0, y: 0, z: 0 }, 0, 80);
     h.position.set(0, 420, 80);
     step(sim, 3);
-    expect(sim.phase).toBe("defeat");
     expect(sim.message).toBe("UGV HIT");
+    step(sim, 3);
+    expect(sim.phase).toBe("defeat");
   });
 });
 

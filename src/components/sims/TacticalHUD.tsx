@@ -405,7 +405,19 @@ function StatusWindow({ hud }: { hud: ReturnType<typeof getHud> }) {
           {hud.aligned ? "LOCKED" : "SLEW"}
         </span>
         {hud.message ? <span className="text-line">|</span> : null}
-        {hud.message ? <span className="text-fg">{hud.message}</span> : null}
+        {hud.message ? (
+          <span
+            className={
+              hud.message.includes("UGV HIT") ||
+              hud.message.includes("DIVE") ||
+              hud.message.includes("CLIMB")
+                ? "text-lg font-semibold text-danger"
+                : "text-fg"
+            }
+          >
+            {hud.message}
+          </span>
+        ) : null}
         <span className="text-line">|</span>
         <span className="text-muted">
           RDS <span className="text-fg">{hud.shots}</span>

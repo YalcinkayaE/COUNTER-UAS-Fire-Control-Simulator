@@ -72,6 +72,7 @@ export class DroneTarget {
   hoverPhase: HoverPhase = "ingress";
   hoverHold = 0;
   hoverLogged = false;
+  climbLogged = false;
   diveLogged = false;
   /** World-fixed ground aim once the overhead strike is committed. */
   diveAimX = 0;
@@ -92,6 +93,7 @@ export class DroneTarget {
     this.hoverPhase = "ingress";
     this.hoverHold = 0;
     this.hoverLogged = false;
+    this.climbLogged = false;
     this.diveLogged = false;
     this.diveAimSet = false;
     this.cruiseSpeed = p.cruiseSpeed;

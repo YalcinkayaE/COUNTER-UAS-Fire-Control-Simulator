@@ -665,11 +665,31 @@ function DroneField() {
       {Array.from({ length: HOVER_PER_WAVE }, (_, i) => (
         <group key={`h${i}`}>
           <DroneMesh index={QUAD_COUNT_MAX + FIXED_WING_COUNT_MAX + i} />
+          <KamikazeStalk index={QUAD_COUNT_MAX + FIXED_WING_COUNT_MAX + i} />
           <ContactMarker index={QUAD_COUNT_MAX + FIXED_WING_COUNT_MAX + i} kind="quad" />
         </group>
       ))}
     </>
   );
+}
+
+function KamikazeStalk({ index }: { index: number }) {
+  const obj = useMemo(() => {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.Float32BufferAttribute([0, 0.4, 0, 0, 1, 0], 3));
+    const mat = new THREE.LineBasicMaterial({ color: UAV_HOVER_CONTACT });
+    return new THREE.Line(geo, mat);
+  }, []);
+  useFrame(() => {
+    const d = getSim().swarm.drones[index];
+    obj.visible = Boolean(d?.alive && d.hoverDive);
+    if (!obj.visible || !d) return;
+    const pos = obj.geometry.getAttribute("position") as THREE.BufferAttribute;
+    pos.setXYZ(0, d.position.x, 0.5, d.position.z);
+    pos.setXYZ(1, d.position.x, d.position.y, d.position.z);
+    pos.needsUpdate = true;
+  });
+  return <primitive object={obj} />;
 }
 
 function contactColor(kind: "quad" | "fixedWing", imminent: boolean, hoverDive: boolean): string {
@@ -687,11 +707,11 @@ function ContactMarker({ index, kind }: { index: number; kind: "quad" | "fixedWi
     const m = mesh.current;
     if (!d || !m) return;
     const dist = camera.position.distanceTo(d.position);
-    m.visible = d.alive && dist > UAV_CONTACT_HIDE_M;
+    m.visible = d.alive && (d.hoverDive || dist > UAV_CONTACT_HIDE_M);
     if (!d.alive) return;
     m.position.copy(d.position);
     m.quaternion.copy(camera.quaternion);
-    const s = uavContactWorldSize(dist, viewH);
+    const s = uavContactWorldSize(dist, viewH) * (d.hoverDive ? 1.8 : 1);
     m.scale.set(s, s, 1);
     if (mat.current) {
       const hot = Number.isFinite(d.timeToBreach) && d.timeToBreach < 8;
@@ -848,6 +868,7 @@ function DroneMesh({ index }: { index: number }) {
     if (!d || !g) return;
     g.visible = d.alive;
     if (!d.alive) return;
+    g.scale.setScalar(d.hoverDive ? 22 : 14);
     g.position.copy(d.position);
     g.lookAt(
       d.position.x + d.velocity.x,

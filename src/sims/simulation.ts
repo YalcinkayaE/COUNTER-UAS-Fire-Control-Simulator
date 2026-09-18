@@ -7,6 +7,7 @@ import {
   HIGH_SCORE_KEY,
   HIT_RADIUS,
   HOVER_STANDOFF_M,
+  IMPACT_HOLD_SEC,
   MAX_IN_FLIGHT,
   MAX_WAVES,
   RADAR_POS,
@@ -182,6 +183,7 @@ export class Simulation {
   effectorId: EffectorId = DEFAULT_EFFECTOR_ID;
   ugvMove = false;
   readonly ugv = { x: 0, z: 0, heading: Math.PI / 2 };
+  private impactHold = 0;
 
   private acc = 0;
   private hudAcc = 0;
@@ -227,6 +229,7 @@ export class Simulation {
     this.ugv.x = 0;
     this.ugv.z = 0;
     this.ugv.heading = Math.PI / 2;
+    this.impactHold = 0;
     this.applyEffector(this.effectorId);
     this.syncUgvSensors();
   }
@@ -410,6 +413,14 @@ export class Simulation {
   }
 
   private fixedStep(dt: number): void {
+    if (this.impactHold > 0) {
+      this.impactHold -= dt;
+      this.updateTracers(dt);
+      this.elapsed += dt;
+      if (this.impactHold <= 0) this.phase = "defeat";
+      return;
+    }
+
     if (this.phase === "wavehold") {
       this.stepUgv(dt);
       this.holdTimer -= dt;
@@ -499,11 +510,11 @@ export class Simulation {
       this.message = "UGV HIT";
       this.record(d.id, "IMPACT", "UGV HIT");
       this.record("OPERATOR", "DEFEAT", "UGV HIT");
-      this.phase = "defeat";
       this.abortEngagement();
+      this.impactHold = IMPACT_HOLD_SEC;
     }
 
-    if (this.swarm.aliveCount() === 0 && this.phase === "live") {
+    if (this.impactHold <= 0 && this.swarm.aliveCount() === 0 && this.phase === "live") {
       this.phase = "wavehold";
       this.holdTimer = 2.2;
       this.message = this.wave >= MAX_WAVES ? "HOLDING PERIMETER" : "WAVE CLEAR";
@@ -566,6 +577,11 @@ export class Simulation {
         d.hoverLogged = true;
         this.message = `${d.id} HOVER ${HOVER_STANDOFF_M} m — TTB REC`;
         this.record(d.id, "HOVER", `${HOVER_STANDOFF_M} m TTB REC`);
+      }
+      if (d.hoverPhase === "climb" && !d.climbLogged) {
+        d.climbLogged = true;
+        this.message = `${d.id} CLIMB — overhead`;
+        this.record(d.id, "CLIMB", "OVERHEAD");
       }
       if (d.hoverPhase === "dive" && !d.diveLogged) {
         d.diveLogged = true;

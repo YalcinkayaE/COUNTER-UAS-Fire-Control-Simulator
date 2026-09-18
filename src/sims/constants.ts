@@ -116,6 +116,8 @@ export const MAX_IN_FLIGHT = 16;
 
 /** One IMPACT ends the run. Kept as 1 so existing HUD/probe fields stay valid. */
 export const STARTING_LIVES = 1;
+/** Freeze the battlespace so the overhead strike and explosion are visible before the alert. */
+export const IMPACT_HOLD_SEC = 2.5;
 export const MAX_WAVES = 8;
 
 export const HIGH_SCORE_KEY = "sentinel-cuas-v1";
