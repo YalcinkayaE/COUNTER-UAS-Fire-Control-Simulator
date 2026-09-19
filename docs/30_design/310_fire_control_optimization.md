@@ -7,7 +7,7 @@ created: 2026-09-16
 updated: 2026-09-18
 applies_to: desktop simulator
 authority: informative
-supersedes: null
+supersedes:
 related:
   - DOC-320
   - DOC-405
@@ -42,24 +42,24 @@ Two radii must not be collapsed:
 
 ## 1. Map of `math.ts`
 
-| Function | What it computes |
-|---|---|
-| `hypot3`, `dist3`, `clamp`, `lerp`, `wrapTwoPi` | Euclidean helpers |
-| `radialClosingSpeed` | 3D closing toward **world origin** (legacy; EDF does not use this) |
-| `horizontalRange` / `horizontalClosingSpeed` | Ground range / closing toward **world origin** |
-| `horizontalRangeFrom` / `horizontalClosingFrom` | Ground range / closing toward a **possibly moving** defended point $\mathbf{U},U'$ |
-| `timeToBreach` | $(\rho - 36)/v_\rho$; 0 if $\rho\le 36$; $+\infty$ if not closing |
-| `solveIntercept` | Constant-$V$ quadratic lead; frozen muzzle |
-| `angleBetween` | Unsigned angle between unit directions (slew time) |
-| `azimuthFromNorth` | $\psi=\mathrm{atan2}(x,z)$; 0 = north ($+Z$), $+90^\circ$ = east ($+X$) |
-| `elevationFromGround` | $\varepsilon=\mathrm{atan2}(\Delta y,\sqrt{\Delta x^2+\Delta z^2})$; $+\pi/2$ = zenith |
-| `elevationFromHorizontal` | $\varepsilon=\mathrm{atan2}(h,\rho)$ |
-| `minHorizForElevation` | $\rho_{\min}=h/\tan\varepsilon_{\max}$ |
-| `elevationSwitch` | $\sigma=\rho_{\min}-\rho$; $\sigma>0$ means too high in elevation |
-| `evadeHeadingAway` | Heading of $-\hat{\rho}$ on the ground (bang-bang direction) |
-| `sphericalToCartesian` | Reconstruct $(x,y,z)$ from az, el, range about a radar origin |
-| `trackAssignment` | HUD gate: ENGAGED / HOLD / LATE |
-| `formatTtb`, `formatSlew`, `formatDist`, `formatBearingDeg`, `formatElevDeg` | Display only |
+| Function                                                                     | What it computes                                                                       |
+| ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `hypot3`, `dist3`, `clamp`, `lerp`, `wrapTwoPi`                              | Euclidean helpers                                                                      |
+| `radialClosingSpeed`                                                         | 3D closing toward **world origin** (legacy; EDF does not use this)                     |
+| `horizontalRange` / `horizontalClosingSpeed`                                 | Ground range / closing toward **world origin**                                         |
+| `horizontalRangeFrom` / `horizontalClosingFrom`                              | Ground range / closing toward a **possibly moving** defended point $\mathbf{U},U'$     |
+| `timeToBreach`                                                               | $(\rho - 36)/v_\rho$; 0 if $\rho\le 36$; $+\infty$ if not closing                      |
+| `solveIntercept`                                                             | Constant-$V$ quadratic lead; frozen muzzle                                             |
+| `angleBetween`                                                               | Unsigned angle between unit directions (slew time)                                     |
+| `azimuthFromNorth`                                                           | $\psi=\mathrm{atan2}(x,z)$; 0 = north ($+Z$), $+90^\circ$ = east ($+X$)                |
+| `elevationFromGround`                                                        | $\varepsilon=\mathrm{atan2}(\Delta y,\sqrt{\Delta x^2+\Delta z^2})$; $+\pi/2$ = zenith |
+| `elevationFromHorizontal`                                                    | $\varepsilon=\mathrm{atan2}(h,\rho)$                                                   |
+| `minHorizForElevation`                                                       | $\rho_{\min}=h/\tan\varepsilon_{\max}$                                                 |
+| `elevationSwitch`                                                            | $\sigma=\rho_{\min}-\rho$; $\sigma>0$ means too high in elevation                      |
+| `evadeHeadingAway`                                                           | Heading of $-\hat{\rho}$ on the ground (bang-bang direction)                           |
+| `sphericalToCartesian`                                                       | Reconstruct $(x,y,z)$ from az, el, range about a radar origin                          |
+| `trackAssignment`                                                            | HUD gate: ENGAGED / HOLD / LATE                                                        |
+| `formatTtb`, `formatSlew`, `formatDist`, `formatBearingDeg`, `formatElevDeg` | Display only                                                                           |
 
 Callers pass $\mathbf{U}$ (hull). `math.ts` does not know about the UGV, H01, or 70°.
 

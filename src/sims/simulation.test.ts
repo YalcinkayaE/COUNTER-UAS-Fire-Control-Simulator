@@ -151,11 +151,11 @@ describe("per-effector elevation", () => {
     const sim = new Simulation();
     sim.muted = true;
     sim.setEffector("HN-12");
-    expect(sim.turret.elMaxRad).toBeCloseTo((85 * Math.PI) / 180, 10);
-    expect(sim.turret.elMinRad).toBeCloseTo((-5 * Math.PI) / 180, 10);
+    expect(sim.turret.elMax).toBeCloseTo((85 * Math.PI) / 180, 10);
+    expect(sim.turret.elMin).toBeCloseTo((-5 * Math.PI) / 180, 10);
     sim.setEffector("CAKIR");
-    expect(sim.turret.elMaxRad).toBeCloseTo((70 * Math.PI) / 180, 10);
-    expect(sim.turret.elMinRad).toBeCloseTo((-8 * Math.PI) / 180, 10);
+    expect(sim.turret.elMax).toBeCloseTo((70 * Math.PI) / 180, 10);
+    expect(sim.turret.elMin).toBeCloseTo((-15 * Math.PI) / 180, 10);
   });
 });
 

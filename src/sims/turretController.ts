@@ -35,9 +35,9 @@ export class TurretController {
   mode: FireMode = "AUTO";
   fireCooldown = FIRE_COOLDOWN;
   effectiveRange = Number.POSITIVE_INFINITY;
-  /** Live elevation window from the selected effector. */
-  elMinRad = DEFAULT_EL.elMinDeg * DEG;
-  elMaxRad = DEFAULT_EL.elMaxDeg * DEG;
+  /** Live elevation window from the selected effector (geometric degrees, positive = up). */
+  elMin = DEFAULT_EL.elMinDeg * DEG;
+  elMax = DEFAULT_EL.elMaxDeg * DEG;
   cooldown = 0;
   /** Seconds left in the current 0.5 s burst. */
   burstLeft = 0;
@@ -48,6 +48,7 @@ export class TurretController {
   targetId: string | null = null;
   readonly muzzle = new THREE.Vector3();
   yaw = 0;
+  /** YXZ euler.x of the barrel quaternion — the negation of geometric elevation (pitch −70° = barrel at +70°). */
   pitch = 0.12;
   private burstAim: InterceptSolution | null = null;
   private burstTargetId: string | null = null;
@@ -110,7 +111,7 @@ export class TurretController {
 
     if (this.mode === "AUTO" && this.intercept) {
       this._look.set(this.intercept.x, this.intercept.y, this.intercept.z);
-      clampLookElevation(this.position, this._look, this.elMinRad, this.elMaxRad);
+      clampLookElevation(this.position, this._look, this.elMin, this.elMax);
       this.slewToward(lookToQuat(this.position, this._look, this._dummy, this._aim), dt);
     } else if (this.mode === "MANUAL") {
       let steer = 0;
@@ -121,10 +122,11 @@ export class TurretController {
       if (keys.has("KeyS") || keys.has("ArrowDown")) pitchIn -= 1;
       if (steer !== 0 || pitchIn !== 0) {
         this.yaw += steer * TURRET_SLEW_RAD * dt;
+        // pitch is YXZ euler.x — the negation of geometric elevation.
         this.pitch = clamp(
           this.pitch + pitchIn * TURRET_SLEW_RAD * dt,
-          this.elMinRad,
-          this.elMaxRad,
+          -this.elMax,
+          -this.elMin,
         );
         this.syncFromYawPitch();
       } else if (mouseAim) {

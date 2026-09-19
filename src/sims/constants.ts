@@ -67,8 +67,8 @@ export const TURRET_SLEW_DEG = 75;
 export const TURRET_SLEW_RAD = (TURRET_SLEW_DEG * Math.PI) / 180;
 export const ALIGN_TOLERANCE_DEG = 0.85;
 /**
- * Legacy CAKIR-class defaults. Live fire uses the selected effector's
- * elMinDeg / elMaxDeg (HN-12 opens to 85°; CAKIR / PENCE-A stay at 70°).
+ * Legacy PENCE-A placeholder defaults (−8°/+70°). Live fire uses the selected
+ * effector's elMinDeg / elMaxDeg (HN-12 −5°/+85°; CAKIR −15°/+70°).
  */
 export const TURRET_EL_MIN_DEG = -8;
 export const TURRET_EL_MAX_DEG = 70;
@@ -97,9 +97,18 @@ export type EffectorSpec = {
 };
 
 export const EFFECTORS: Record<EffectorId, EffectorSpec> = {
-  CAKIR: { id: "CAKIR", rpm: 1350, range: 400, elMinDeg: -8, elMaxDeg: 70 },
+  // CAKIR: traverse n×360°, elevation −15°/+70°.
+  CAKIR: { id: "CAKIR", rpm: 1350, range: 400, elMinDeg: -15, elMaxDeg: 70 },
+  // HN-12: traverse 360°, elevation −5°/+85°.
   "HN-12": { id: "HN-12", rpm: 1000, range: 200, elMinDeg: -5, elMaxDeg: 85 },
-  "PENCE-A": { id: "PENCE-A", rpm: 120, range: 400, elMinDeg: -8, elMaxDeg: 70 },
+  // PENCE-A traverse/elevation not specified — placeholder window −8°/+70°.
+  "PENCE-A": {
+    id: "PENCE-A",
+    rpm: 120,
+    range: 400,
+    elMinDeg: TURRET_EL_MIN_DEG,
+    elMaxDeg: TURRET_EL_MAX_DEG,
+  },
 };
 
 export const DEFAULT_EFFECTOR_ID: EffectorId = "HN-12";

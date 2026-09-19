@@ -2,7 +2,7 @@ import { Grid, Html, Line, OrbitControls, Stars } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
-import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
+import type { Line2, OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import {
   CAMERA_2D_POLAR,
   cameraFitRadius,
@@ -21,9 +21,18 @@ import {
   type ViewMode,
 } from "@/sims/camera";
 import {
+  BLIND_CONE_APEX,
+  RADAR_BLIND_CONE_HALF_ANGLE,
+  blindConeSurfacePoint,
+  effectorBlindConeHalfAngle,
+  trackInEngagementBlindCone,
+} from "@/sims/blindCone";
+import {
   DEG,
   DETECT_RADIUS,
+  EFFECTORS,
   FIXED_WING_COUNT_MAX,
+  HOVER_OVERHEAD_ALT_M,
   HOVER_PER_WAVE,
   MAX_IN_FLIGHT,
   OUTER_RADIUS,
@@ -63,6 +72,7 @@ export function Scene({ view }: { view: ViewMode }) {
       <Ground />
       <UgvTrail />
       <Perimeter />
+      <BlindCones />
       <UgvInterceptor />
       <DroneField />
       <Projectiles />
@@ -200,67 +210,10 @@ function Perimeter() {
       <Line points={detect} color="#c9b24a" lineWidth={1.6} />
       <Line points={outer} color="#ee7f1a" lineWidth={1.5} />
       <KillZoneRing />
-      <BlindCone />
       <RadarSector />
       <SpokeLines />
       <Cardinals />
     </group>
-  );
-}
-
-/**
- * Zenith blind zone above the selected effector's elevation max.
- * White tint; opacity rises when any live track sits inside the cone.
- */
-function BlindCone() {
-  const mesh = useRef<THREE.Mesh>(null);
-  const mat = useRef<THREE.MeshBasicMaterial>(null);
-  const geoRef = useRef<THREE.SphereGeometry | null>(null);
-  const lastMax = useRef(-1);
-  const radius = 900;
-
-  useFrame(() => {
-    const sim = getSim();
-    const maxEl = sim.turret.elMaxRad;
-    const open = Math.PI / 2 - maxEl;
-    if (!geoRef.current || Math.abs(lastMax.current - maxEl) > 1e-4) {
-      geoRef.current?.dispose();
-      geoRef.current = new THREE.SphereGeometry(radius, 48, 24, 0, Math.PI * 2, 0, Math.max(0.02, open));
-      lastMax.current = maxEl;
-      if (mesh.current) mesh.current.geometry = geoRef.current;
-    }
-    const m = mesh.current;
-    if (!m) return;
-    // Perimeter group is already at the UGV ground point; cone sits on the turret height.
-    m.position.set(0, sim.turret.position.y, 0);
-    let occupied = false;
-    for (const d of sim.swarm.drones) {
-      if (!d.alive) continue;
-      const dx = d.position.x - sim.turret.position.x;
-      const dy = d.position.y - sim.turret.position.y;
-      const dz = d.position.z - sim.turret.position.z;
-      const el = Math.atan2(dy, Math.hypot(dx, dz));
-      if (el > maxEl + 1e-3) {
-        occupied = true;
-        break;
-      }
-    }
-    if (mat.current) mat.current.opacity = occupied ? 0.16 : 0.055;
-  });
-
-  return (
-    <mesh ref={mesh} renderOrder={2}>
-      <sphereGeometry args={[radius, 48, 24, 0, Math.PI * 2, 0, 0.35]} />
-      <meshBasicMaterial
-        ref={mat}
-        color="#f2f4f6"
-        transparent
-        opacity={0.055}
-        side={THREE.DoubleSide}
-        depthWrite={false}
-        toneMapped={false}
-      />
-    </mesh>
   );
 }
 
@@ -309,6 +262,137 @@ function RadarSector() {
       </mesh>
       <Line points={edge} color="#9eb8a8" lineWidth={1} transparent opacity={0.35} />
       <Line points={edgeWest} color="#9eb8a8" lineWidth={1} transparent opacity={0.35} />
+    </group>
+  );
+}
+
+/**
+ * Blind cones directly above the UGV, apex at the turret, opening upward to the
+ * kamikaze's overhead altitude. Primary: the engagement blind cone from the
+ * selected effector's elevation limit (amber) — it shrinks/grows as the operator
+ * switches effector. The radar elevation gate differs, so it draws as a second,
+ * subtler dashed cone (red).
+ */
+function BlindCones() {
+  const root = useRef<THREE.Group>(null);
+  const gun = useRef<THREE.Group>(null);
+  useFrame(() => {
+    const s = getSim();
+    if (root.current) root.current.position.set(s.ugv.x, 0, s.ugv.z);
+    const k = Math.tan(effectorBlindConeHalfAngle(EFFECTORS[s.effectorId]));
+    if (gun.current) gun.current.scale.set(k, 1, k);
+  });
+  const height = HOVER_OVERHEAD_ALT_M - BLIND_CONE_APEX.y;
+  const radarK = Math.tan(RADAR_BLIND_CONE_HALF_ANGLE);
+  return (
+    <group ref={root}>
+      <group position={[BLIND_CONE_APEX.x, BLIND_CONE_APEX.y, BLIND_CONE_APEX.z]}>
+        <group ref={gun}>
+          <BlindCone
+            height={height}
+            color="#e8a04a"
+            fillOpacity={0.05}
+            lineOpacity={0.5}
+            label="BLIND CONE"
+            labelAzimuth={Math.PI}
+          />
+        </group>
+        <group scale={[radarK, 1, radarK]}>
+          <BlindCone
+            height={height}
+            color="#e44535"
+            fillOpacity={0.025}
+            lineOpacity={0.3}
+            dashed
+            label="RADAR GATE"
+            labelAzimuth={Math.PI / 2}
+          />
+        </group>
+      </group>
+    </group>
+  );
+}
+
+/** Unit cone (45° half-angle, rim radius = height); the parent scales x/z by tan(half-angle). */
+function BlindCone({
+  height,
+  color,
+  fillOpacity,
+  lineOpacity,
+  dashed = false,
+  label,
+  labelAzimuth,
+}: {
+  height: number;
+  color: string;
+  fillOpacity: number;
+  lineOpacity: number;
+  dashed?: boolean;
+  label: string;
+  labelAzimuth: number;
+}) {
+  const geom = useMemo(() => {
+    const g = new THREE.BufferGeometry();
+    const steps = 48;
+    const verts: number[] = [0, 0, 0];
+    for (let i = 0; i <= steps; i++) {
+      const az = (i / steps) * Math.PI * 2;
+      verts.push(...blindConeSurfacePoint(Math.PI / 4, az, height));
+    }
+    const idx: number[] = [];
+    for (let i = 1; i <= steps; i++) idx.push(0, i, i + 1);
+    g.setAttribute("position", new THREE.Float32BufferAttribute(verts, 3));
+    g.setIndex(idx);
+    return g;
+  }, [height]);
+  const rim = useMemo(() => ringPoints(height, height), [height]);
+  const edges = useMemo(
+    () =>
+      [0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2].map(
+        (az) =>
+          [
+            [0, 0, 0] as [number, number, number],
+            blindConeSurfacePoint(Math.PI / 4, az, height),
+          ] as [number, number, number][],
+      ),
+    [height],
+  );
+  const labelPos = useMemo(() => {
+    const [x, y, z] = blindConeSurfacePoint(Math.PI / 4, labelAzimuth, height);
+    return [x, y + 16, z] as [number, number, number];
+  }, [labelAzimuth, height]);
+  const dash = dashed ? { dashed: true, dashSize: 7, gapSize: 5 } : {};
+  return (
+    <group>
+      <mesh geometry={geom} renderOrder={2}>
+        <meshBasicMaterial
+          color={color}
+          transparent
+          opacity={fillOpacity}
+          side={THREE.DoubleSide}
+          depthWrite={false}
+        />
+      </mesh>
+      <Line points={rim} color={color} lineWidth={1} transparent opacity={lineOpacity} {...dash} />
+      {edges.map((pts, i) => (
+        <Line
+          key={i}
+          points={pts}
+          color={color}
+          lineWidth={1.2}
+          transparent
+          opacity={lineOpacity}
+          {...dash}
+        />
+      ))}
+      <Html position={labelPos} center sprite pointerEvents="none" zIndexRange={[1, 0]}>
+        <div
+          className="font-mono text-[10px] font-bold tracking-widest whitespace-nowrap"
+          style={{ color, opacity: 0.85 }}
+        >
+          {label}
+        </div>
+      </Html>
     </group>
   );
 }
@@ -723,6 +807,7 @@ function DroneField() {
         <group key={`h${i}`}>
           <DroneMesh index={QUAD_COUNT_MAX + FIXED_WING_COUNT_MAX + i} />
           <KamikazeStalk index={QUAD_COUNT_MAX + FIXED_WING_COUNT_MAX + i} />
+          <KamikazeTrail index={QUAD_COUNT_MAX + FIXED_WING_COUNT_MAX + i} />
           <ContactMarker index={QUAD_COUNT_MAX + FIXED_WING_COUNT_MAX + i} kind="quad" />
         </group>
       ))}
@@ -745,14 +830,118 @@ function KamikazeStalk({ index }: { index: number }) {
     pos.setXYZ(0, d.position.x, 0.5, d.position.z);
     pos.setXYZ(1, d.position.x, d.position.y, d.position.z);
     pos.needsUpdate = true;
+    const mat = obj.material as THREE.LineBasicMaterial;
+    mat.color.set(d.hoverPhase === "dive" ? UAV_IMMINENT_CONTACT : UAV_HOVER_CONTACT);
   });
   return <primitive object={obj} />;
+}
+
+/** Terminal-profile trail: samples the kamikaze through climb and dive, fades after the strike. */
+function KamikazeTrail({ index }: { index: number }) {
+  const [pts, setPts] = useState<[number, number, number][]>([]);
+  const line = useRef<Line2>(null);
+  const acc = useRef(0);
+  const fade = useRef(0);
+  useFrame((_, dt) => {
+    const d = getSim().swarm.drones[index];
+    const mat = line.current?.material;
+    if (!d || !d.alive) {
+      if (pts.length > 1) {
+        fade.current += dt;
+        const k = 1 - fade.current / 1.6;
+        if (k <= 0) {
+          setPts([]);
+          fade.current = 0;
+        } else if (mat) {
+          mat.opacity = 0.85 * k;
+        }
+      }
+      return;
+    }
+    const terminal = d.hoverDive && (d.hoverPhase === "climb" || d.hoverPhase === "dive");
+    if (!terminal) {
+      if (pts.length > 0) setPts([]);
+      fade.current = 0;
+      return;
+    }
+    fade.current = 0;
+    if (mat) {
+      mat.opacity = 0.85;
+      mat.color.set(d.hoverPhase === "dive" ? UAV_IMMINENT_CONTACT : UAV_HOVER_CONTACT);
+    }
+    acc.current += dt;
+    if (acc.current < 0.1) return;
+    acc.current = 0;
+    setPts((prev) => {
+      const next: [number, number, number] = [d.position.x, d.position.y, d.position.z];
+      const last = prev[prev.length - 1];
+      if (
+        last &&
+        Math.hypot(next[0] - last[0], next[1] - last[1], next[2] - last[2]) < 0.5
+      ) {
+        return prev;
+      }
+      const out = prev.length > 400 ? prev.slice(prev.length - 399) : prev.slice();
+      out.push(next);
+      return out;
+    });
+  });
+  if (pts.length < 2) return null;
+  return (
+    <Line
+      ref={line}
+      points={pts}
+      color={UAV_HOVER_CONTACT}
+      lineWidth={2.2}
+      transparent
+      opacity={0.85}
+    />
+  );
 }
 
 function contactColor(kind: "quad" | "fixedWing", imminent: boolean, hoverDive: boolean): string {
   if (imminent) return UAV_IMMINENT_CONTACT;
   if (hoverDive) return UAV_HOVER_CONTACT;
   return kind === "fixedWing" ? UAV_FIXED_WING_CONTACT : UAV_QUAD_CONTACT;
+}
+
+/** White "unengageable" tint for tracks inside the engagement blind cone. */
+const BLIND_TINT = "#eef3f6";
+
+function inEngagementBlindCone(d: { alive: boolean; position: THREE.Vector3 }): boolean {
+  const s = getSim();
+  return (
+    d.alive && trackInEngagementBlindCone(EFFECTORS[s.effectorId], d.position, s.turret.position)
+  );
+}
+
+type TintSave = { mat: THREE.MeshStandardMaterial; emissive: THREE.Color; intensity: number };
+type TintState = { saved: TintSave[]; active: boolean };
+
+/** Save/restore emissive tint so a pooled drone never respawns still tinted. */
+function setBlindTint(root: THREE.Group | null, state: TintState, on: boolean): void {
+  if (!root || on === state.active) return;
+  if (on) {
+    root.traverse((o) => {
+      const mat = (o as THREE.Mesh).material as THREE.MeshStandardMaterial | undefined;
+      if (mat?.emissive) {
+        state.saved.push({
+          mat,
+          emissive: mat.emissive.clone(),
+          intensity: mat.emissiveIntensity,
+        });
+        mat.emissive.set(BLIND_TINT);
+        mat.emissiveIntensity = Math.max(mat.emissiveIntensity, 0.85);
+      }
+    });
+  } else {
+    for (const s of state.saved) {
+      s.mat.emissive.copy(s.emissive);
+      s.mat.emissiveIntensity = s.intensity;
+    }
+    state.saved = [];
+  }
+  state.active = on;
 }
 
 function ContactMarker({ index, kind }: { index: number; kind: "quad" | "fixedWing" }) {
@@ -768,11 +957,19 @@ function ContactMarker({ index, kind }: { index: number; kind: "quad" | "fixedWi
     if (!d.alive) return;
     m.position.copy(d.position);
     m.quaternion.copy(camera.quaternion);
-    const s = uavContactWorldSize(dist, viewH) * (d.hoverDive ? 1.8 : 1);
+    const diving = d.hoverDive && d.hoverPhase === "dive";
+    let s = uavContactWorldSize(dist, viewH) * (d.hoverDive ? 1.8 : 1);
+    if (diving) {
+      // Telegraph the descent: the contact grows and pulses as altitude drops.
+      const drop = Math.max(0, 1 - d.position.y / HOVER_OVERHEAD_ALT_M);
+      s *= 1 + 0.8 * drop + 0.12 * Math.sin(d.age * 12);
+    }
     m.scale.set(s, s, 1);
     if (mat.current) {
       const hot = Number.isFinite(d.timeToBreach) && d.timeToBreach < 8;
-      mat.current.color.set(contactColor(kind, hot, d.hoverDive));
+      mat.current.color.set(
+        inEngagementBlindCone(d) ? BLIND_TINT : contactColor(kind, hot, d.hoverDive),
+      );
     }
   });
   return (
@@ -792,14 +989,19 @@ function ContactMarker({ index, kind }: { index: number; kind: "quad" | "fixedWi
 
 function FixedWingMesh({ index }: { index: number }) {
   const group = useRef<THREE.Group>(null);
+  const tint = useRef<TintState>({ saved: [], active: false });
   useFrame(() => {
     const d = getSim().swarm.drones[index];
     const g = group.current;
     if (!d || !g) return;
     g.visible = d.alive;
-    if (!d.alive) return;
+    if (!d.alive) {
+      setBlindTint(g, tint.current, false);
+      return;
+    }
     g.position.copy(d.position);
     g.lookAt(d.position.x + d.velocity.x, d.position.y, d.position.z + d.velocity.z);
+    setBlindTint(g, tint.current, inEngagementBlindCone(d));
   });
   return (
     <group ref={group} visible={false} scale={16}>
@@ -919,12 +1121,16 @@ function DroneMesh({ index }: { index: number }) {
   const group = useRef<THREE.Group>(null);
   const rotors = useRef<THREE.Group>(null);
   const led = useRef<THREE.MeshStandardMaterial>(null);
+  const tint = useRef<TintState>({ saved: [], active: false });
   useFrame(() => {
     const d = getSim().swarm.drones[index];
     const g = group.current;
     if (!d || !g) return;
     g.visible = d.alive;
-    if (!d.alive) return;
+    if (!d.alive) {
+      setBlindTint(g, tint.current, false);
+      return;
+    }
     g.scale.setScalar(d.hoverDive ? 22 : 14);
     g.position.copy(d.position);
     g.lookAt(
@@ -942,6 +1148,7 @@ function DroneMesh({ index }: { index: number }) {
       const hot = Number.isFinite(d.timeToBreach) && d.timeToBreach < 8;
       led.current.emissiveIntensity = hot ? 1.6 + Math.sin(d.age * 10) * 0.6 : 0.5;
     }
+    setBlindTint(g, tint.current, inEngagementBlindCone(d));
   });
   return (
     <group ref={group} visible={false} scale={14}>

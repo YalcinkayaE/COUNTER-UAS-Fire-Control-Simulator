@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import {
   DEFAULT_EFFECTOR_ID,
+  DEG,
   EFFECTORS,
   FIRE_BURST,
   FIXED_DT,
@@ -292,7 +293,7 @@ export class Simulation {
           kamikaze.position.x - this.ugv.x,
           kamikaze.position.z - this.ugv.z,
         );
-        const maxEl = this.turret.elMaxRad;
+        const maxEl = this.turret.elMax;
         if (elevationSwitch(horiz, height, maxEl) > 0) {
           desired = evadeHeadingAway(this.ugv, { x: kamikaze.position.x, z: kamikaze.position.z });
         } else {
@@ -558,8 +559,10 @@ export class Simulation {
     this.effectorId = spec.id;
     this.turret.fireCooldown = fireCooldownSec(spec.rpm);
     this.turret.effectiveRange = spec.range;
-    this.turret.elMinRad = (spec.elMinDeg * Math.PI) / 180;
-    this.turret.elMaxRad = (spec.elMaxDeg * Math.PI) / 180;
+    this.turret.elMin = spec.elMinDeg * DEG;
+    this.turret.elMax = spec.elMaxDeg * DEG;
+    this.turret.pitch = clamp(this.turret.pitch, -this.turret.elMax, -this.turret.elMin);
+    this.turret.syncFromYawPitch();
     this.edge.maxRange = spec.range;
     this.swarm.killZone = spec.range;
   }
