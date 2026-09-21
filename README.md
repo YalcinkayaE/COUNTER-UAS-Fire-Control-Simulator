@@ -33,3 +33,7 @@ npm run build
 ```
 
 Walkthrough script: `docs/30_design/320_demo_blueprint.md`.
+
+## Related prototype
+
+`rubiks_cube/` is a separate APL-001 Rubik’s Cube solver prototype (Reset Cube / Solve UI on port 8765). It does not change this simulator’s identity or runtime. See `rubiks_cube/README.md`.
