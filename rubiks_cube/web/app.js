@@ -289,8 +289,15 @@
     const b = document.createElement("button");
     b.type = "button";
     b.textContent = m;
-    b.addEventListener("click", async () => {
-      await ensureMoveTables();
+    b.addEventListener("click", () => {
+      if (!MOVE_TABLES) {
+        setStatus("Move tables still loading…");
+        ensureMoveTables().then(() => {
+          const next = applyMoveLocal(state.facelets, m);
+          setFacelets(next, { status: `Applied ${m} · solution invalidated` });
+        });
+        return;
+      }
       const next = applyMoveLocal(state.facelets, m);
       setFacelets(next, { status: `Applied ${m} · solution invalidated` });
     });
