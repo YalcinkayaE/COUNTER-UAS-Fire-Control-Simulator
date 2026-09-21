@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from fastapi import FastAPI
-from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -40,19 +39,16 @@ def health() -> Dict[str, str]:
     return {"status": "ok"}
 
 
-@app.get("/")
-def index() -> FileResponse:
-    return FileResponse(WEB_DIR / "index.html")
-
-
+# Mount last so /solve and /health win. html=True serves index.html at /.
+# Relative asset paths (./styles.css) resolve next to the page.
 if WEB_DIR.is_dir():
-    app.mount("/static", StaticFiles(directory=str(WEB_DIR)), name="static")
+    app.mount("/", StaticFiles(directory=str(WEB_DIR), html=True), name="web")
 
 
 def main() -> None:
     import uvicorn
 
-    uvicorn.run("rubik.api:app", host="127.0.0.1", port=8765, reload=False)
+    uvicorn.run("rubik.api:app", host="0.0.0.0", port=8765, reload=False)
 
 
 if __name__ == "__main__":

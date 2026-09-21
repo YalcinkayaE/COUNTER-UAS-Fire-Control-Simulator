@@ -148,7 +148,7 @@
 
   async function ensureMoveTables() {
     if (MOVE_TABLES) return MOVE_TABLES;
-    const res = await fetch("/static/moves.json");
+    const res = await fetch(new URL("moves.json", window.location.href));
     MOVE_TABLES = await res.json();
     return MOVE_TABLES;
   }

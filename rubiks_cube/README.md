@@ -7,17 +7,25 @@ This package lives beside the existing SEM DEFENDER simulator and does not chang
 ## Quick start
 
 ```bash
+# Terminal 1 — API
 cd rubiks_cube
-python3 -m venv .venv
-source .venv/bin/activate
+python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-pytest -q
 python -m rubik.cli serve
+
+# Terminal 2 — UI (recommended in Cursor Cloud)
+cd ..   # repo root
+npm install
+npm run dev
 ```
 
-Open **http://127.0.0.1:8765** (Cloud Agent: use the Cursor **Ports** panel to forward 8765 if the tab is blank). If that port is busy, the CLI picks the next free port and prints the URL. Use `--strict-port` to fail instead, or `--port 8766`.
+**Open this URL (not :8765 alone):**
 
-The server binds to `0.0.0.0` by default so port forwarding can reach it.
+**http://127.0.0.1:5173/rubik/**
+
+Cursor Cloud often shows `about:blank` for :8765. Port **5173** is the Vite app Cursor forwards; `/rubik/` is the cube UI, with `/solve` proxied to the Python API on 8765.
+
+Direct API+UI on 8765 still works inside the VM (`python -m rubik.cli serve` binds `0.0.0.0:8765`). Use `--strict-port` / `--port` if needed.
 
 ## Controls
 
