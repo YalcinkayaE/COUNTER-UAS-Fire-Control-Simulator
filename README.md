@@ -33,13 +33,3 @@ npm run build
 ```
 
 Walkthrough script: `docs/30_design/320_demo_blueprint.md`.
-
-## Related prototype
-
-`rubiks_cube/` is a separate APL-001 Rubik’s Cube solver prototype.
-
-**Open in Cursor Cloud:** run `npm run dev:rubik` from the repo root, then open  
-**http://127.0.0.1:5173/rubik/**  
-(Do not use :8765 in the browser — it often shows `about:blank`.)
-
-See `rubiks_cube/README.md`.

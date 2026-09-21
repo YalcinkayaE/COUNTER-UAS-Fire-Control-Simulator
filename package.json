@@ -5,7 +5,6 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:rubik": "bash scripts/dev-rubik.sh",
     "build": "tsc --noEmit -p tsconfig.app.json && vite build",
     "preview": "vite preview --port 4173",
     "test": "vitest run",
