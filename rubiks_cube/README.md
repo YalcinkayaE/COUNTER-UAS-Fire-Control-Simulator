@@ -1,31 +1,42 @@
 # Rubik’s Cube Prototype Solver (APL-001)
 
-Deterministic 3×3×3 solver prototype per the blueprint: validate a complete facelet state, find an HTM move sequence, independently verify it, and present Reset Cube / Solve with a six-face net.
+Deterministic 3×3×3 solver prototype per the blueprint: validate a complete facelet state, find an HTM move sequence, independently verify it, and present Reset Cube / Solve with a six-face net + CSS 3D cube.
 
 This package lives beside the existing SEM DEFENDER simulator and does not change that product’s identity.
 
-## Quick start
+## Quick start (Cursor Cloud)
+
+From the **repo root** (not only `rubiks_cube/`), one command:
 
 ```bash
-# Terminal 1 — API
-cd rubiks_cube
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-python -m rubik.cli serve
-
-# Terminal 2 — UI (recommended in Cursor Cloud)
-cd ..   # repo root
-npm install
-npm run dev
+npm run dev:rubik
 ```
 
-**Open this URL (not :8765 alone):**
+Then open:
 
 **http://127.0.0.1:5173/rubik/**
 
-Cursor Cloud often shows `about:blank` for :8765. Port **5173** is the Vite app Cursor forwards; `/rubik/` is the cube UI, with `/solve` proxied to the Python API on 8765.
+That script frees ports 5173/8765, starts the Python API on 8765, and Vite on 5173 with `/solve` proxied correctly.
 
-Direct API+UI on 8765 still works inside the VM (`python -m rubik.cli serve` binds `0.0.0.0:8765`). Use `--strict-port` / `--port` if needed.
+### Why not :8765 / :8766 in the browser?
+
+Cursor Cloud often opens **`about:blank`** for the API port. Always use **Vite :5173** + `/rubik/`.
+
+### If you start the two processes yourself
+
+```bash
+# kill leftovers first if you see “port in use”
+fuser -k 5173/tcp 8765/tcp 2>/dev/null
+
+# Terminal 1
+cd rubiks_cube && source .venv/bin/activate
+python -m rubik.cli serve --port 8765 --strict-port
+
+# Terminal 2 (repo root)
+npm run dev -- --port 5173 --strictPort
+```
+
+If Vite says “Port 5173 is in use, trying another one…” you are on the **wrong URL** (e.g. 5174). Stop the other Vite, or open `http://127.0.0.1:<that-port>/rubik/` and set `RUBIK_API_PORT` to match the API port.
 
 ## Controls
 
@@ -58,7 +69,7 @@ Direct API+UI on 8765 still works inside the VM (`python -m rubik.cli serve` bin
 | `rubik/optimal.py` | Bounded IDA* |
 | `rubik/solver.py` | Orchestration |
 | `rubik/api.py` | FastAPI |
-| `web/` | Reset / Solve UI |
+| `web/` | Reset / Solve UI (also copied to `/public/rubik` for Vite) |
 
 ## CLI
 
