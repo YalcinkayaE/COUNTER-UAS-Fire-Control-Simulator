@@ -4,10 +4,28 @@ from __future__ import annotations
 
 import argparse
 import json
+import socket
 import sys
 
 from .model import SOLVED_FACELETS, apply_moves, random_legal_moves
 from .solver import solve_request
+
+
+def _port_free(host: str, port: int) -> bool:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            sock.bind((host, port))
+        except OSError:
+            return False
+    return True
+
+
+def _pick_port(host: str, preferred: int, span: int = 20) -> int:
+    for port in range(preferred, preferred + span):
+        if _port_free(host, port):
+            return port
+    raise OSError(f"No free port in {preferred}–{preferred + span - 1} on {host}")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -27,6 +45,11 @@ def main(argv: list[str] | None = None) -> int:
     p_serve = sub.add_parser("serve", help="Run the HTTP API + UI")
     p_serve.add_argument("--host", default="127.0.0.1")
     p_serve.add_argument("--port", type=int, default=8765)
+    p_serve.add_argument(
+        "--strict-port",
+        action="store_true",
+        help="Fail if --port is busy instead of trying the next free port",
+    )
 
     args = parser.parse_args(argv)
 
@@ -40,7 +63,27 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "serve":
         import uvicorn
 
-        uvicorn.run("rubik.api:app", host=args.host, port=args.port, reload=False)
+        port = args.port
+        if not _port_free(args.host, port):
+            if args.strict_port:
+                print(
+                    f"ERROR: {args.host}:{port} is already in use. "
+                    f"Stop the other process or pass --port <free-port>.",
+                    file=sys.stderr,
+                )
+                return 3
+            try:
+                port = _pick_port(args.host, args.port + 1)
+            except OSError as exc:
+                print(f"ERROR: {exc}", file=sys.stderr)
+                return 3
+            print(
+                f"NOTE: {args.host}:{args.port} is in use; serving on {args.host}:{port}",
+                file=sys.stderr,
+            )
+
+        print(f"Rubik prototype UI: http://{args.host}:{port}/", file=sys.stderr)
+        uvicorn.run("rubik.api:app", host=args.host, port=port, reload=False)
         return 0
 
     result = solve_request(args.facelets, mode=args.mode, timeout_ms=args.timeout_ms)
