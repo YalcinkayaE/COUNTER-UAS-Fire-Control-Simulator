@@ -15,8 +15,8 @@
   --B: #3b6cc7;
   --panel: rgba(255, 255, 255, 0.06);
   --line: rgba(255, 255, 255, 0.12);
-  --font: "DM Sans", sans-serif;
-  --mono: "IBM Plex Mono", monospace;
+  --font: "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
 
 * { box-sizing: border-box; }

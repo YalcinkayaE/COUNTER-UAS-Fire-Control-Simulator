@@ -43,7 +43,11 @@ def main(argv: list[str] | None = None) -> int:
     p_scramble.add_argument("--length", type=int, default=25)
 
     p_serve = sub.add_parser("serve", help="Run the HTTP API + UI")
-    p_serve.add_argument("--host", default="127.0.0.1")
+    p_serve.add_argument(
+        "--host",
+        default="0.0.0.0",
+        help="Bind address (default 0.0.0.0 so Cursor port forwarding can reach it)",
+    )
     p_serve.add_argument("--port", type=int, default=8765)
     p_serve.add_argument(
         "--strict-port",
@@ -82,7 +86,13 @@ def main(argv: list[str] | None = None) -> int:
                 file=sys.stderr,
             )
 
-        print(f"Rubik prototype UI: http://{args.host}:{port}/", file=sys.stderr)
+        print(f"Rubik prototype UI: http://127.0.0.1:{port}/", file=sys.stderr)
+        if args.host in ("0.0.0.0", "::"):
+            print(
+                "Listening on all interfaces — if the tab is blank, open this port "
+                "from the Cursor Ports panel (forward 8765) or refresh after serve starts.",
+                file=sys.stderr,
+            )
         uvicorn.run("rubik.api:app", host=args.host, port=port, reload=False)
         return 0
 

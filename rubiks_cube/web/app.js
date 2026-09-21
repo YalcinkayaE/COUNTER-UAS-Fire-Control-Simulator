@@ -40,7 +40,28 @@
     cubeStage: document.getElementById("cube-stage"),
   };
 
-  const cube = window.createCube3D(el.cubeStage);
+  const cube = (() => {
+    try {
+      if (typeof window.createCube3D !== "function") {
+        throw new Error("cube3d.js did not load");
+      }
+      return window.createCube3D(el.cubeStage);
+    } catch (err) {
+      console.error(err);
+      if (el.cubeStage) {
+        el.cubeStage.innerHTML =
+          "<p style='padding:1rem;color:#f0a8a8;font-family:sans-serif'>3D view failed to start. Net + Solve still work.</p>";
+      }
+      return {
+        setFacelets() {},
+        animateMove() {
+          return Promise.resolve();
+        },
+        setOrbitEnabled() {},
+        destroy() {},
+      };
+    }
+  })();
 
   function setStatus(msg) {
     el.status.textContent = msg;

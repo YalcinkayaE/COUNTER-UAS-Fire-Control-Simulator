@@ -15,15 +15,16 @@ pytest -q
 python -m rubik.cli serve
 ```
 
-Open http://127.0.0.1:8765 (if that port is busy, the CLI picks the next free port and prints the URL). Use `--strict-port` to fail instead, or `--port 8766` to choose one.
+Open **http://127.0.0.1:8765** (Cloud Agent: use the Cursor **Ports** panel to forward 8765 if the tab is blank). If that port is busy, the CLI picks the next free port and prints the URL. Use `--strict-port` to fail instead, or `--port 8766`.
 
-The UI includes a **CSS 3D cube** (drag to orbit; face turns animate on Step / Play and manual moves) plus the editable six-face net.
+The server binds to `0.0.0.0` by default so port forwarding can reach it.
 
 ## Controls
 
 - **Reset Cube** — restores `UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB`
 - **Solve** — validates, runs fast (Kociemba two-phase) or bounded optimal IDA*, independently verifies, then plays back moves
 - Editable six-face net + copyable 54-character URFDLB field (shared state)
+- **CSS 3D cube** — drag to orbit; face turns animate on Step / Play and manual moves
 
 ## API
 
