@@ -17,6 +17,8 @@ python -m rubik.cli serve
 
 Open http://127.0.0.1:8765 (if that port is busy, the CLI picks the next free port and prints the URL). Use `--strict-port` to fail instead, or `--port 8766` to choose one.
 
+The UI includes a **CSS 3D cube** (drag to orbit; face turns animate on Step / Play and manual moves) plus the editable six-face net.
+
 ## Controls
 
 - **Reset Cube** — restores `UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB`

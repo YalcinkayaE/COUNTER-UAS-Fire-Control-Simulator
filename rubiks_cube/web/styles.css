@@ -119,9 +119,16 @@ h1 {
 
 .workspace {
   display: grid;
-  grid-template-columns: 1.3fr 0.9fr;
+  grid-template-columns: 1.35fr 0.85fr;
   gap: 1.5rem;
   animation: rise 0.7s ease 0.16s both;
+}
+
+.left-col {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
 }
 
 @media (max-width: 860px) {

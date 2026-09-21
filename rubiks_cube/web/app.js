@@ -9,10 +9,6 @@
     "D", "D'", "D2", "L", "L'", "L2", "B", "B'", "B2",
   ];
 
-  // Independent client-side move tables (generated to match server HTM).
-  // Loaded lazily from /solve verification path; for playback we apply via
-  // a compact embedded permutation table built once from a known scramble
-  // identity check against the server's conventions by shipping permutations.
   let MOVE_TABLES = null;
 
   const state = {
@@ -23,7 +19,8 @@
     paintColor: "U",
     solving: false,
     playback: null,
-    playTimer: null,
+    playing: false,
+    animating: false,
   };
 
   const el = {
@@ -40,19 +37,20 @@
     btnPlay: document.getElementById("btn-play"),
     playPos: document.getElementById("play-pos"),
     turnButtons: document.getElementById("turn-buttons"),
+    cubeStage: document.getElementById("cube-stage"),
   };
+
+  const cube = window.createCube3D(el.cubeStage);
 
   function setStatus(msg) {
     el.status.textContent = msg;
   }
 
   function cancelPlayback() {
-    if (state.playTimer) {
-      clearInterval(state.playTimer);
-      state.playTimer = null;
-    }
+    state.playing = false;
     state.playback = null;
     el.playback.hidden = true;
+    el.btnPlay.textContent = "Play";
   }
 
   function bumpRevision(reason) {
@@ -101,9 +99,14 @@
     el.facelets.value = state.facelets;
   }
 
+  function syncViews() {
+    renderNet();
+    cube.setFacelets(state.facelets);
+    syncField();
+  }
+
   function setFacelets(next, opts = {}) {
     if (next.length !== 54) return;
-    // Centres must stay URFDLB
     const chars = next.split("");
     FACES.forEach((f, i) => {
       chars[[4, 13, 22, 31, 40, 49][i]] = f;
@@ -112,8 +115,7 @@
     if (!opts.silent) {
       bumpRevision(opts.status || "State edited · solution invalidated");
     }
-    renderNet();
-    syncField();
+    syncViews();
   }
 
   function applyPaint(index, color) {
@@ -137,19 +139,22 @@
     return out;
   }
 
+  function delay(ms) {
+    return new Promise((r) => setTimeout(r, ms));
+  }
+
   function resetCube() {
     bumpRevision();
     state.facelets = SOLVED;
     state.selectedIndex = null;
-    renderNet();
-    syncField();
+    syncViews();
     el.result.className = "result";
     el.result.innerHTML = "<p class='muted'>Cube restored to the canonical solved state.</p>";
     setStatus("Cube reset · 54/54 stickers defined");
   }
 
   async function solve() {
-    if (state.solving) return;
+    if (state.solving || state.animating) return;
     const snapshot = state.facelets;
     const revision = state.revision;
     const requestId = ++state.requestId;
@@ -173,7 +178,7 @@
       });
       const data = await res.json();
       if (requestId !== state.requestId || revision !== state.revision) {
-        return; // stale
+        return;
       }
       if (data.status === "SOLVED" && data.verified) {
         const moves = data.moves || [];
@@ -198,7 +203,6 @@
         };
         el.playback.hidden = false;
         el.playPos.textContent = `0 / ${moves.length}`;
-        // Animate from snapshot
         setFacelets(snapshot, { silent: true });
         if (moves.length === 0) {
           setStatus("Already solved · 0 moves");
@@ -236,45 +240,83 @@
     }
   }
 
-  function stepPlayback() {
+  async function stepPlayback() {
     const pb = state.playback;
     if (!pb || pb.revision !== state.revision) return;
     if (pb.index >= pb.moves.length) {
       setStatus("Solved");
       return;
     }
+    if (state.animating) return;
     const move = pb.moves[pb.index];
-    const next = applyMoveLocal(state.facelets, move);
-    state.facelets = next;
-    pb.index += 1;
-    renderNet();
-    syncField();
-    el.playPos.textContent = `${pb.index} / ${pb.moves.length}`;
-    if (pb.index >= pb.moves.length) setStatus("Solved");
+    const rev = state.revision;
+    state.animating = true;
+    el.btnStep.disabled = true;
+    cube.setOrbitEnabled(false);
+    try {
+      await cube.animateMove(move);
+      if (rev !== state.revision || !state.playback) return;
+      const next = applyMoveLocal(state.facelets, move);
+      state.facelets = next;
+      pb.index += 1;
+      syncViews();
+      el.playPos.textContent = `${pb.index} / ${pb.moves.length}`;
+      if (pb.index >= pb.moves.length) setStatus("Solved");
+    } finally {
+      state.animating = false;
+      el.btnStep.disabled = false;
+      cube.setOrbitEnabled(true);
+    }
   }
 
-  function playPlayback() {
+  async function playPlayback() {
     if (!state.playback) return;
-    if (state.playTimer) {
-      clearInterval(state.playTimer);
-      state.playTimer = null;
+    if (state.playing) {
+      state.playing = false;
       el.btnPlay.textContent = "Play";
       return;
     }
+    state.playing = true;
     el.btnPlay.textContent = "Pause";
-    state.playTimer = setInterval(() => {
-      if (!state.playback || state.playback.index >= state.playback.moves.length) {
-        clearInterval(state.playTimer);
-        state.playTimer = null;
-        el.btnPlay.textContent = "Play";
-        setStatus("Solved");
-        return;
-      }
-      stepPlayback();
-    }, 350);
+    const rev = state.revision;
+    while (
+      state.playing &&
+      state.playback &&
+      state.playback.revision === rev &&
+      state.playback.index < state.playback.moves.length
+    ) {
+      await stepPlayback();
+      if (!state.playing) break;
+      await delay(70);
+    }
+    state.playing = false;
+    el.btnPlay.textContent = "Play";
+    if (
+      state.playback &&
+      state.playback.revision === rev &&
+      state.playback.index >= state.playback.moves.length
+    ) {
+      setStatus("Solved");
+    }
   }
 
-  // Palette
+  async function applyManualTurn(m) {
+    if (state.animating) return;
+    await ensureMoveTables();
+    const rev = state.revision;
+    state.animating = true;
+    cube.setOrbitEnabled(false);
+    try {
+      await cube.animateMove(m);
+      if (rev !== state.revision) return;
+      const next = applyMoveLocal(state.facelets, m);
+      setFacelets(next, { status: `Applied ${m} · solution invalidated` });
+    } finally {
+      state.animating = false;
+      cube.setOrbitEnabled(true);
+    }
+  }
+
   document.querySelectorAll(".swatch").forEach((btn) => {
     btn.addEventListener("click", () => {
       state.paintColor = btn.dataset.color;
@@ -284,22 +326,12 @@
   });
   document.querySelector('.swatch[data-color="U"]').classList.add("active");
 
-  // Manual turns
   MOVES.forEach((m) => {
     const b = document.createElement("button");
     b.type = "button";
     b.textContent = m;
     b.addEventListener("click", () => {
-      if (!MOVE_TABLES) {
-        setStatus("Move tables still loading…");
-        ensureMoveTables().then(() => {
-          const next = applyMoveLocal(state.facelets, m);
-          setFacelets(next, { status: `Applied ${m} · solution invalidated` });
-        });
-        return;
-      }
-      const next = applyMoveLocal(state.facelets, m);
-      setFacelets(next, { status: `Applied ${m} · solution invalidated` });
+      applyManualTurn(m);
     });
     el.turnButtons.appendChild(b);
   });
@@ -310,8 +342,12 @@
     await navigator.clipboard.writeText(state.facelets);
     setStatus("State copied");
   });
-  el.btnStep.addEventListener("click", stepPlayback);
-  el.btnPlay.addEventListener("click", playPlayback);
+  el.btnStep.addEventListener("click", () => {
+    stepPlayback();
+  });
+  el.btnPlay.addEventListener("click", () => {
+    playPlayback();
+  });
 
   el.facelets.addEventListener("change", () => {
     const raw = el.facelets.value.replace(/\s+/g, "").toUpperCase();
@@ -323,7 +359,6 @@
     }
   });
 
-  // Init
   resetCube();
   ensureMoveTables().catch(() => {});
 })();

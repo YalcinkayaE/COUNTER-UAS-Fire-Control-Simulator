@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Rubik’s Cube Prototype Solver</title>
   <link rel="stylesheet" href="/static/styles.css" />
+  <link rel="stylesheet" href="/static/cube3d.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet" />
@@ -14,7 +15,7 @@
     <header class="hero">
       <p class="brand">APL-001 · Cube Solver</p>
       <h1>Rubik’s Cube Prototype</h1>
-      <p class="lede">Enter a complete URFDLB state, solve with a verified move sequence, and replay it on the net.</p>
+      <p class="lede">Enter a complete URFDLB state, solve with a verified move sequence, and replay it on the cube.</p>
     </header>
 
     <section class="controls" aria-label="Primary actions">
@@ -31,21 +32,29 @@
     </section>
 
     <section class="workspace">
-      <div class="net-wrap">
-        <h2>Six-face net</h2>
-        <p class="hint">Centres are fixed face labels. Click a sticker, then a colour. Arrow marks the top of each face.</p>
-        <div id="net" class="net" aria-label="Editable cube net"></div>
-        <div class="palette" role="group" aria-label="Sticker colours">
-          <button type="button" data-color="U" class="swatch" title="U / white">U</button>
-          <button type="button" data-color="R" class="swatch" title="R / red">R</button>
-          <button type="button" data-color="F" class="swatch" title="F / green">F</button>
-          <button type="button" data-color="D" class="swatch" title="D / yellow">D</button>
-          <button type="button" data-color="L" class="swatch" title="L / orange">L</button>
-          <button type="button" data-color="B" class="swatch" title="B / blue">B</button>
+      <div class="left-col">
+        <div class="cube-panel">
+          <h2>3D cube</h2>
+          <p class="hint">Drag to orbit. Face turns animate on Step / Play and manual moves.</p>
+          <div id="cube-stage" class="cube-stage" aria-label="3D cube viewport"></div>
         </div>
-        <div class="manual-turns" aria-label="Manual face turns">
-          <span>Manual turns</span>
-          <div id="turn-buttons"></div>
+
+        <div class="net-wrap">
+          <h2>Six-face net</h2>
+          <p class="hint">Centres are fixed face labels. Click a sticker, then a colour. Arrow marks the top of each face.</p>
+          <div id="net" class="net" aria-label="Editable cube net"></div>
+          <div class="palette" role="group" aria-label="Sticker colours">
+            <button type="button" data-color="U" class="swatch" title="U / white">U</button>
+            <button type="button" data-color="R" class="swatch" title="R / red">R</button>
+            <button type="button" data-color="F" class="swatch" title="F / green">F</button>
+            <button type="button" data-color="D" class="swatch" title="D / yellow">D</button>
+            <button type="button" data-color="L" class="swatch" title="L / orange">L</button>
+            <button type="button" data-color="B" class="swatch" title="B / blue">B</button>
+          </div>
+          <div class="manual-turns" aria-label="Manual face turns">
+            <span>Manual turns</span>
+            <div id="turn-buttons"></div>
+          </div>
         </div>
       </div>
 
@@ -66,6 +75,7 @@
       </div>
     </section>
   </div>
+  <script src="/static/cube3d.js"></script>
   <script src="/static/app.js"></script>
 </body>
 </html>
