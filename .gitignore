@@ -4,3 +4,11 @@ dist
 coverage
 *.local
 .DS_Store
+.exports/
+.playwright-mcp/
+artifacts/
+rubiks_cube/
+**/__pycache__/
+*.pyc
+.venv/
+**/.venv/
