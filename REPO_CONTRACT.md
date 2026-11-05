@@ -327,6 +327,7 @@ Assistants must not silently change:
 
 ## Change log
 
+- 2026-09-21: DOC-310 restructured for stakeholder reading: Part A plain-language (decision loop, asset vs kill zone, nearest≠EDF, demo cues); Part B keeps the KaTeX / `math.ts` reference. No runtime change. Elevation windows aligned to live constants (HN-12 −5°/+85°; CAKIR −15°/+70°; PENCE-A −8°/+70°).
 - 2026-09-18: Reconcile Mac blind-cone handoff onto main. Keep Mac `blindCone.ts` (engagement + radar-gate cones, contact tint), CAKIR −15°/+70°, HN-12 −5°/+85°, PENCE-A placeholder −8°/+70°, and pitch-sign fix (`elMin`/`elMax` with MANUAL clamp as negated elevation). Keep main: per-round muzzle audio, stripped welcome briefing, EDF queue under the title on the left, UGV MOVE `elevationSwitch`. Verified: 103 passed (11 files), build exit 0.
 - 2026-09-18: Per-effector turret specs and blind-cone battlespace highlight (Mac working tree, then `25cf582`). Elevation window per effector; `applyEffector` pushes the window and re-clamps pitch. Battlespace amber engagement cone + red dashed radar-gate cone (`src/sims/blindCone.ts`).
 - 2026-09-18: Overhead kamikaze, terminal impact, and the UGV MOVE blind-spot run (commits c66683f, 10b4ac9, 9ca27e0, c942fb7).
