@@ -35,7 +35,7 @@ Do not call it a tower-defense game. The operator is the **weapons-release autho
 **Claim**
 - Live EDF track file at 10 Hz from a single Echodyne Guard-class AESA: 120° × 80° staring sector on a north boresight, 1° az / 1.5° el angular accuracy on the reports
 - Time-to-Breach = (horizontal range − 36 m asset) / horizontal closing speed; EDF sorts on that deadline
-- Effector selection: CAKIR (1350 rds/min, 400 m), HN-12 (1000 rds/min, 200 m), PENCE-A (120 rds/min, 400 m) — the red ring, the AUTO fire envelope, and the BREACH alarm follow the selection; TTB does not
+- Effector selection: Effector 1 (1350 rds/min, 400 m), Effector 2 (120 rds/min, 400 m), Effector 3 (1000 rds/min, 200 m; default) — the red ring, the AUTO fire envelope, and the BREACH alarm follow the selection; TTB does not. Console labels only; internal ids remain CAKIR, PENCE-A, HN-12
 - AUTO commits to a track across bursts unless another deadline is at least 1.5 s earlier, and skips a track when slew plus time of flight exceeds TTB
 - Quadratic 3D lead for a constant-velocity target
 - Hard slew budget (75°/s) and effector burst cycle (0.5 s burst, 16 rounds in flight)
@@ -60,7 +60,7 @@ Do not call it a tower-defense game. The operator is the **weapons-release autho
 | Input | Action |
 |---|---|
 | Engage | Weapons free, wave 1 |
-| Effector buttons | CAKIR / HN-12 / PENCE-A — kill zone follows |
+| Effector buttons | Effector 1 / Effector 2 / Effector 3 — kill zone follows |
 | M | AUTO ↔ MANUAL |
 | A / D | Yaw (MANUAL) |
 | W / S | Pitch (MANUAL) |
@@ -79,7 +79,7 @@ Do not call it a tower-defense game. The operator is the **weapons-release autho
 **Show:** Start card. Rings and the sector wedge visible through the glass.
 
 **Say:**
-> Facility at the origin. Gold ring is the 2 km detect volume, orange is the 1 km fence, red is the kill zone — the selected gun's range: 200 m on the HN-12, 400 m on CAKIR or PENCE-A. That ring is where AUTO is allowed to fire, not the EDF deadline. The pale wedge is the radar: one Echodyne Guard staring north, 120 by 80 degrees. The raid is eight to sixteen quads from 1 km plus two or three fixed-wing from 2 km, axis shifting each wave; they weave in azimuth and altitude. Crossing the red ring is GUNS TIGHT. One overflight of the 36 m site is UGV HIT — the run stops.
+> Facility at the origin. Gold ring is the 2 km detect volume, orange is the 1 km fence, red is the kill zone — the selected gun's range: 200 m on Effector 3, 400 m on Effector 1 or Effector 2. That ring is where AUTO is allowed to fire, not the EDF deadline. The pale wedge is the radar: one Echodyne Guard staring north, 120 by 80 degrees. The raid is eight to sixteen quads from 1 km plus two or three fixed-wing from 2 km, axis shifting each wave; they weave in azimuth and altitude. Crossing the red ring is GUNS TIGHT. One overflight of the 36 m site is UGV HIT — the run stops.
 
 **Do not:** click Engage until the rings and the TTB formula are on screen.
 
@@ -120,7 +120,7 @@ Receding or hovering tracks go to infinity. NOW means the track is over the asse
 **Say:**
 > AUTO is the duty officer. MANUAL is you stealing a shot AUTO would waste — or holding fire. Real C2 is one operator supervising the scheduler, not painting every track by hand.
 
-**Do:** slew onto a second-priority track, fire, switch back to AUTO. Or click an EDF row to designate — AUTO stays on, but the fire call pins to that track (★). Click again to clear. Optional: switch effector mid-wave and watch the red kill-zone ring move — that is the fire envelope. The EDF column does not re-sort; TTB is still time to the asset. **UGV HOLD** vs **UGV MOVE** (30 km/h): HOLD keeps the zenith blind cone (HN-12 85° / CAKIR 70°; H01 overhead → UGV HIT). MOVE can open ground range so radar and turret see the kamikaze.
+**Do:** slew onto a second-priority track, fire, switch back to AUTO. Or click an EDF row to designate — AUTO stays on, but the fire call pins to that track (★). Click again to clear. Optional: switch effector mid-wave and watch the red kill-zone ring move — that is the fire envelope. The EDF column does not re-sort; TTB is still time to the asset. **UGV HOLD** vs **UGV MOVE** (30 km/h): HOLD keeps the zenith blind cone (Effector 3 85° / Effector 1 and Effector 2 70°; H01 overhead → UGV HIT). MOVE can open ground range so radar and turret see the kamikaze.
 
 ### Beat 5 — Leak and reset (4:15–5:00)
 
@@ -158,9 +158,9 @@ Runtime here is **TypeScript + Three.js** so it plays in the browser. The math a
 |---|---|
 | Detect ring | 2 000 m |
 | Outer fence | 1 000 m |
-| Kill zone / envelope | Selected effector's range: 200 m (HN-12) / 400 m (CAKIR, PENCE-A) |
+| Kill zone / envelope | Selected effector's range: 200 m (Effector 3) / 400 m (Effector 1, Effector 2) |
 | Asset / TTB deadline | 36 m horizontal cylinder |
-| Effectors | CAKIR 1350 rds/min · HN-12 1000 rds/min · PENCE-A 120 rds/min |
+| Effectors | Effector 1 1350 rds/min · Effector 2 120 rds/min · Effector 3 1000 rds/min |
 | Tracks / wave | 8–16 quads + 2–3 fixed-wing (radar file holds 20) |
 | Raid axis | Drawn per wave, inside the sector |
 | Radar sector | 120° az × 80° el, boresight north |
@@ -204,7 +204,7 @@ Nearest can be slow and far from the asset. TTB is time to the 36 m cylinder. A 
 Yes. Slew + burst cycle + 16-round cap + the envelope. Wave speed ramps. That is the point of MANUAL.
 
 **Why does the red ring move when I switch effector?**
-Because the kill zone is the gun's range — the AUTO fire envelope and the BREACH alarm. Pick PENCE-A and the ring moves to 400 m. TTB does not move; it is still time to the 36 m asset.
+Because the kill zone is the gun's range — the AUTO fire envelope and the BREACH alarm. Pick Effector 1 or Effector 2 and the ring moves to 400 m. TTB does not move; it is still time to the 36 m asset.
 
 **Is this Unity?**
 The design is Unity C# (`DroneTarget`, `SwarmManager`, `RadarSensor`, `EdgeComputer`, `TurretController`, `TacticalHUD`). This desktop simulator is the same architecture in a browser window.
@@ -219,9 +219,9 @@ Start screen → View source. Copy one file, or Folders: download zip. Copy all 
 - **Slew contest:** wait until two imminent rows sit at opposite sector edges. Narrate AUTO rotating through the gap.
 - **Magazine starve:** watch the RDS counter and the in-flight cap; AUTO skips assigned tracks.
 - **MANUAL miss:** fire off-align; round flies to the old lead.
-- **Wrong gun:** switch to PENCE-A late in a wave — 120 rds/min cannot service the queue even with a 400 m envelope.
-- **HN-12 ceiling:** a high fixed-wing can stay outside the 200 m sphere and still run the 36 m asset. TTB keeps counting down; AUTO stays OUT OF RANGE. Switch to CAKIR.
-- **Hover-then-dive:** one kamikaze H01 (HV, cyan) comes from the north (in the 120° sector), parks at 280 m (TTB REC), climbs to ~420 m, then dives on the hull’s last ground position. Elevation is per effector (HN-12 −5°…+85°; CAKIR / PENCE-A −8°…+70°); white tint marks the zenith blind cone. **UGV HOLD** → blind spot → UGV HIT. **UGV MOVE** (30 km/h) can open the angle so the gun and radar can still see it.
+- **Wrong gun:** switch to Effector 2 late in a wave — 120 rds/min cannot service the queue even with a 400 m envelope.
+- **Effector 3 ceiling:** a high fixed-wing can stay outside the 200 m sphere and still run the 36 m asset. TTB keeps counting down; AUTO stays OUT OF RANGE. Switch to Effector 1.
+- **Hover-then-dive:** one kamikaze H01 (HV, cyan) comes from the north (in the 120° sector), parks at 280 m (TTB REC), climbs to ~420 m, then dives on the hull’s last ground position. Elevation is per effector (Effector 3 −5°…+85°; Effector 1 −15°…+70°; Effector 2 −8°…+70°); white tint marks the zenith blind cone. **UGV HOLD** → blind spot → UGV HIT. **UGV MOVE** (30 km/h) can open the angle so the gun and radar can still see it.
 - **Pause freeze-frame (Esc):** walk TTB vs distance on the table without the swarm moving.
 
 ---

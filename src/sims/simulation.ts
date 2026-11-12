@@ -329,7 +329,7 @@ export class Simulation {
     this.applyEffector(id);
     this.record(
       "OPERATOR",
-      `EFFECTOR ${spec.id}`,
+      spec.label,
       `${spec.rpm} rds/min ${spec.range} m el ${spec.elMinDeg}…${spec.elMaxDeg}°`,
     );
     emit();

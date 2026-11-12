@@ -96,7 +96,7 @@ Treat the following as the current truth:
 - This product is a desktop COUNTER-UAS FIRE CONTROL simulator, not a tower-defense game and not a fielded sensor.
 - The checkout is a Vite SPA in a desktop browser window. TanStack Start / Grok host adapters (`AuthProvider`, `PreviewHostBridge`, `/__grok/*`) are not part of the runtime.
 - `npm run dev` serves the simulator at `http://127.0.0.1:5173`.
-- Observed on 2026-09-17: document title SEM DEFENDER; briefing and HUD wordmark SEM DEFENDER; Engage starts wave 1 (8–16 quads + 2–3 fixed-wing drawn per wave, raid axis shifts each wave; EDF holds ≤ 20); EDF queue sorts by TTB and PPI is north-up; effector selector live (CAKIR / HN-12 / PENCE-A; HN-12 default; AUTO holds fire OUT OF RANGE); the kill zone follows the selected effector — HN-12 breaches ledger at 200 m, CAKIR at 400 m, and the PPI envelope label tracks the selection (200m / 400m); AUTO fires (FIRE AUTO / RELEASED); M toggles MANUAL; Esc pauses; Ledger records ENGAGE / FIRE AUTO / INTERCEPT / BREACH / IMPACT / DEFEAT rows with AZ, EL, RNG, V plus CSV/JSON export; 2D view fits the 2 km detect ring.
+- Observed on 2026-09-17, labels updated 2026-11-12: document title SEM DEFENDER; briefing and HUD wordmark SEM DEFENDER; welcome card has no ground-vehicle image; Engage starts wave 1 (8–16 quads + 2–3 fixed-wing drawn per wave, raid axis shifts each wave; EDF holds ≤ 20); EDF queue sorts by TTB and PPI is north-up; effector selector live (Effector 1 / Effector 2 / Effector 3; Effector 1 is CAKIR 400 m 1350 rds/min, Effector 2 is PENCE-A 400 m 120 rds/min, Effector 3 is HN-12 200 m 1000 rds/min and remains the default; AUTO holds fire OUT OF RANGE); the kill zone follows the selected effector — Effector 3 breaches ledger at 200 m, Effector 1 and Effector 2 at 400 m, and the PPI envelope label tracks the selection (200m / 400m); AUTO fires (FIRE AUTO / RELEASED); M toggles MANUAL; Esc pauses; Ledger records ENGAGE / FIRE AUTO / INTERCEPT / BREACH / IMPACT / DEFEAT rows with AZ, EL, RNG, V plus CSV/JSON export; an effector change records the console label; 2D view fits the 2 km detect ring.
 - Unit tests passed on 2026-09-18 (`93 passed`, 10 files).
 - Radar model observed 2026-09-17: single Echodyne Guard-class AESA staring a 120° az × 80° el sector on a north boresight (az gate ±60°, el gate 0–80°), with ±1° az / ±1.5° el angular noise on reports. The full raid spawns inside the sector: quads 10–40° west of north, fixed-wing at ~20°/~40° az northeast. EDF queue, fire control, and kills stay live under noise; status window fixed at 40 rem with effector name, range/lock state, event message, and RDS counter.
 - `npm run build` exited 0 on 2026-09-17.
@@ -168,7 +168,7 @@ Verified locally on 2026-09-18:
 
 ### Acceptance signals
 - Title is SEM DEFENDER
-- 2 km detect ring, 1 km fence, and the effector-range kill zone ring visible (200 m HN-12; 400 m CAKIR / PENCE-A)
+- 2 km detect ring, 1 km fence, and the effector-range kill zone ring visible (200 m Effector 3; 400 m Effector 1 / Effector 2)
 - After Engage, tracks appear and EDF table sorts by TTB
 - AUTO slews and can fire; MANUAL is available on M
 - Ledger records engage, fire, and intercept
@@ -254,8 +254,9 @@ Use these terms exactly as defined in this repo:
 - `Time-to-Breach` / `TTB`: `(horizontal range − 36 m asset) / horizontal closing speed`
 - `Earliest Deadline First` / `EDF`: sort live tracks by lowest TTB
 - `AUTO` / `MANUAL`: fire-control modes on the same intercept solution
-- `kill zone`: the selected effector's range (HN-12 200 m; CAKIR / PENCE-A 400 m); the AUTO fire envelope and the red ring; a BREACH is envelope entry (GUNS TIGHT), not a lost life
-- `blind cone`: zenith region above the selected effector's elevation max (HN-12 85°; CAKIR 70°; PENCE-A 70°); amber engagement cone + red radar-gate cone in the battlespace; contact tint when a track is inside; UGV MOVE can open ground range to bring a track back into the window
+- `kill zone`: the selected effector's range (Effector 3 / HN-12 200 m; Effector 1 / CAKIR and Effector 2 / PENCE-A 400 m); the AUTO fire envelope and the red ring; a BREACH is envelope entry (GUNS TIGHT), not a lost life
+- `Effector 1` / `Effector 2` / `Effector 3`: console labels. Effector 1 is internal id CAKIR (1350 rds/min, 400 m). Effector 2 is internal id PENCE-A (120 rds/min, 400 m). Effector 3 is internal id HN-12 (1000 rds/min, 200 m) and is the default. Internal ids stay in code and tests.
+- `blind cone`: zenith region above the selected effector's elevation max (Effector 3 / HN-12 85°; Effector 1 / CAKIR 70°; Effector 2 / PENCE-A 70°); amber engagement cone + red radar-gate cone in the battlespace; contact tint when a track is inside; UGV MOVE can open ground range to bring a track back into the window
 - `asset`: 36 m horizontal cylinder; IMPACT here costs a life
 - `weapons-release authority`: the operator role
 - `COUNTER-UAS FIRE CONTROL`: product class; this repo is a desktop simulator of that class
@@ -327,6 +328,7 @@ Assistants must not silently change:
 
 ## Change log
 
+- 2026-11-12: Operator-facing effector labels are Effector 1 (CAKIR), Effector 2 (PENCE-A), and Effector 3 (HN-12, still the default). Welcome card no longer shows the ground-vehicle image. README opening describes mixed-speed swarms, maneuver, move-and-fire, the three effectors, and the round-by-round ledger. Internal ids unchanged.
 - 2026-09-21: DOC-310 restructured for stakeholder reading: Part A plain-language (decision loop, asset vs kill zone, nearest≠EDF, demo cues); Part B keeps the KaTeX / `math.ts` reference. No runtime change. Elevation windows aligned to live constants (HN-12 −5°/+85°; CAKIR −15°/+70°; PENCE-A −8°/+70°).
 - 2026-09-18: Reconcile Mac blind-cone handoff onto main. Keep Mac `blindCone.ts` (engagement + radar-gate cones, contact tint), CAKIR −15°/+70°, HN-12 −5°/+85°, PENCE-A placeholder −8°/+70°, and pitch-sign fix (`elMin`/`elMax` with MANUAL clamp as negated elevation). Keep main: per-round muzzle audio, stripped welcome briefing, EDF queue under the title on the left, UGV MOVE `elevationSwitch`. Verified: 103 passed (11 files), build exit 0.
 - 2026-09-18: Per-effector turret specs and blind-cone battlespace highlight (Mac working tree, then `25cf582`). Elevation window per effector; `applyEffector` pushes the window and re-clamps pitch. Battlespace amber engagement cone + red dashed radar-gate cone (`src/sims/blindCone.ts`).

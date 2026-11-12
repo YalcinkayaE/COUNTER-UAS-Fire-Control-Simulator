@@ -83,11 +83,14 @@ export const UGV_MOVE_MPS = UGV_MOVE_KMH / 3.6;
 export const UGV_TURN_DEG = 20;
 export const UGV_TURN_RAD = (UGV_TURN_DEG * Math.PI) / 180;
 
-export const EFFECTOR_IDS = ["CAKIR", "HN-12", "PENCE-A"] as const;
+/** Console order: Effector 1, Effector 2, Effector 3. */
+export const EFFECTOR_IDS = ["CAKIR", "PENCE-A", "HN-12"] as const;
 export type EffectorId = (typeof EFFECTOR_IDS)[number];
 
 export type EffectorSpec = {
   id: EffectorId;
+  /** Operator-facing name. Internal id stays the catalog key. */
+  label: string;
   rpm: number;
   range: number;
   /** Depression limit, degrees below horizon. */
@@ -97,13 +100,28 @@ export type EffectorSpec = {
 };
 
 export const EFFECTORS: Record<EffectorId, EffectorSpec> = {
-  // CAKIR: traverse n×360°, elevation −15°/+70°.
-  CAKIR: { id: "CAKIR", rpm: 1350, range: 400, elMinDeg: -15, elMaxDeg: 70 },
-  // HN-12: traverse 360°, elevation −5°/+85°.
-  "HN-12": { id: "HN-12", rpm: 1000, range: 200, elMinDeg: -5, elMaxDeg: 85 },
-  // PENCE-A traverse/elevation not specified — placeholder window −8°/+70°.
+  // Effector 1. Traverse n×360°, elevation −15°/+70°.
+  CAKIR: {
+    id: "CAKIR",
+    label: "Effector 1",
+    rpm: 1350,
+    range: 400,
+    elMinDeg: -15,
+    elMaxDeg: 70,
+  },
+  // Effector 3. Traverse 360°, elevation −5°/+85°. Default selection.
+  "HN-12": {
+    id: "HN-12",
+    label: "Effector 3",
+    rpm: 1000,
+    range: 200,
+    elMinDeg: -5,
+    elMaxDeg: 85,
+  },
+  // Effector 2. Traverse/elevation not specified — placeholder window −8°/+70°.
   "PENCE-A": {
     id: "PENCE-A",
+    label: "Effector 2",
     rpm: 120,
     range: 400,
     elMinDeg: TURRET_EL_MIN_DEG,

@@ -16,16 +16,6 @@ export function BriefingPanel({ onEngage }: { onEngage?: () => void }) {
           SEM DEFENDER
         </h1>
         <p className="mt-1 font-mono text-xs tracking-widest text-accent">COUNTER-UAS FIRE CONTROL</p>
-        <div className="mt-5 overflow-hidden rounded-lg border border-line bg-bg">
-          <img
-            src="/ugv-welcome.png"
-            alt="SEM DEFENDER unmanned ground vehicle with counter-UAS turret"
-            className="mx-auto block h-auto w-full max-w-sm object-contain"
-            width={334}
-            height={308}
-            decoding="async"
-          />
-        </div>
         <div className="mt-6 flex flex-col gap-3">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             {onEngage ? (

@@ -7,7 +7,7 @@ import { type ReactNode, useState, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
 import type { ViewMode } from "@/sims/camera";
 import type { LedgerEntry } from "@/sims/ledger";
-import { EFFECTOR_IDS, UGV_MOVE_KMH } from "@/sims/constants";
+import { EFFECTOR_IDS, EFFECTORS, UGV_MOVE_KMH } from "@/sims/constants";
 import { formatBearingDeg, formatDist, formatElevDeg, formatSlew, formatTtb } from "@/sims/math";
 import { getHud, getSim, subscribeHud } from "@/sims/simulation";
 import { Radar } from "./Radar";
@@ -348,13 +348,13 @@ function EffectorPicker({
             type="button"
             aria-pressed={id === eid}
             onClick={() => getSim().setEffector(eid)}
-            className={`h-8 flex-1 rounded-md border px-1 font-mono text-[10px] ${
+            className={`h-8 flex-1 whitespace-nowrap rounded-md border px-1 font-mono text-[10px] ${
               id === eid
                 ? "border-khaki bg-khaki/15 text-khaki"
                 : "border-line bg-surface-2 text-muted hover:text-fg"
             }`}
           >
-            {eid}
+            {EFFECTORS[eid].label}
           </button>
         ))}
       </div>
@@ -386,7 +386,7 @@ function StatusWindow({ hud }: { hud: ReturnType<typeof getHud> }) {
   return (
     <div className="flex w-[40rem] max-w-[calc(100vw-2rem)] flex-col items-center gap-1.5 rounded-lg border border-line bg-surface/90 px-4 py-2 font-mono text-xs tabular-nums">
       <span className="font-display text-lg font-semibold leading-none tracking-display text-khaki">
-        {hud.effector.id}
+        {hud.effector.label}
       </span>
       <div className="flex items-center justify-center gap-2 whitespace-nowrap">
         {hud.phase === "paused" ? <span className="text-warn">PAUSED</span> : null}

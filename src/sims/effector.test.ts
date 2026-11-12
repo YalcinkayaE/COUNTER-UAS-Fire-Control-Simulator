@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import {
   DEFAULT_EFFECTOR_ID,
   DEG,
+  EFFECTOR_IDS,
   EFFECTORS,
   FIRE_BURST,
   FIRE_COOLDOWN,
@@ -17,9 +18,10 @@ import { TurretController } from "./turretController";
 
 describe("effector catalog", () => {
   test("CAKIR, HN-12, and PENCE-A match the stated rpm and range", () => {
-    expect(EFFECTORS.CAKIR).toMatchObject({ rpm: 1350, range: 400 });
-    expect(EFFECTORS["HN-12"]).toMatchObject({ rpm: 1000, range: 200 });
-    expect(EFFECTORS["PENCE-A"]).toMatchObject({ rpm: 120, range: 400 });
+    expect(EFFECTORS.CAKIR).toMatchObject({ label: "Effector 1", rpm: 1350, range: 400 });
+    expect(EFFECTORS["PENCE-A"]).toMatchObject({ label: "Effector 2", rpm: 120, range: 400 });
+    expect(EFFECTORS["HN-12"]).toMatchObject({ label: "Effector 3", rpm: 1000, range: 200 });
+    expect(EFFECTOR_IDS).toEqual(["CAKIR", "PENCE-A", "HN-12"]);
     expect(DEFAULT_EFFECTOR_ID).toBe("HN-12");
     expect(FIRE_RPM).toBe(1000);
     expect(FIRE_COOLDOWN).toBeCloseTo(fireCooldownSec(1000), 10);
